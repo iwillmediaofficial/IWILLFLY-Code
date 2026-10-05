@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../auth/AuthProvider';
 import { useToast } from '../components/Toast';
 import { db, must } from '../lib/queries';
 import type { Vendor, VendorStatus } from '../lib/types';
 import { Empty, ErrorNotice, Loading } from './ui';
 import { PUBLIC_KEYS, formatDate, friendlyError, one, useInvalidate, waLink } from './util';
+import { DIRECTORY_KEY, useVendorDirectory, type VendorOwnerRow } from './vendorApi';
 
 type Tab = VendorStatus | 'all';
 const TABS: { key: Tab; label: string }[] = [
@@ -23,6 +25,19 @@ type VendorRow = Vendor & {
 export function Vendors() {
   const [params, setParams] = useSearchParams();
   const tab = (TABS.find((t) => t.key === params.get('status'))?.key ?? 'pending') as Tab;
+  const [search, setSearch] = useState('');
+  const { roles } = useAuth();
+  const directory = useVendorDirectory();
+
+  const counts = useQuery({
+    queryKey: ['admin', 'vendors', 'counts'],
+    queryFn: async () => {
+      const rows = must<{ status: VendorStatus }[]>(await db().from('vendors').select('status'));
+      const c: Record<Tab, number> = { pending: 0, approved: 0, blocked: 0, all: rows.length };
+      for (const r of rows) c[r.status] += 1;
+      return c;
+    },
+  });
 
   const vendors = useQuery({
     queryKey: ['admin', 'vendors', tab],
@@ -36,8 +51,37 @@ export function Vendors() {
     },
   });
 
+  const q = search.trim().toLowerCase();
+  const shown = vendors.data?.filter((v) => {
+    if (!q) return true;
+    const o = directory.data?.get(v.id);
+    return [v.business_name, v.contact_phone, v.whatsapp, o?.owner_email, o?.owner_name, o?.owner_phone].some(
+      (x) => x?.toLowerCase().includes(q),
+    );
+  });
+
   return (
     <>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+        <input
+          type="search"
+          className="grow"
+          placeholder="Search business, owner email, name or phone"
+          aria-label="Search vendors"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{ border: '1px solid var(--color-line)', borderRadius: 12, padding: 10, minWidth: 0 }}
+        />
+        {roles.includes('super_admin') && (
+          <Link
+            className="btn small"
+            to="/admin/vendors/new"
+            style={{ whiteSpace: 'nowrap', alignSelf: 'center' }}
+          >
+            ＋ Add vendor
+          </Link>
+        )}
+      </div>
       <div className="tabs" role="tablist">
         {TABS.map((t) => (
           <button
@@ -48,24 +92,26 @@ export function Vendors() {
             onClick={() => setParams({ status: t.key }, { replace: true })}
           >
             {t.label}
+            {counts.data ? ` (${counts.data[t.key]})` : ''}
           </button>
         ))}
       </div>
       {vendors.isPending && <Loading />}
       {vendors.error && <ErrorNotice error={vendors.error} />}
-      {vendors.data?.length === 0 && (
+      {shown?.length === 0 && q && <Empty emoji="🔍" title="No vendors match your search" />}
+      {vendors.data?.length === 0 && !q && (
         <Empty emoji="🏪" title={tab === 'pending' ? 'No vendors waiting' : 'No vendors here'}>
           {tab === 'pending' ? 'New applications will show up here.' : undefined}
         </Empty>
       )}
-      {vendors.data?.map((v) => (
-        <VendorCard key={v.id} vendor={v} />
+      {shown?.map((v) => (
+        <VendorCard key={v.id} vendor={v} owner={directory.data?.get(v.id)} />
       ))}
     </>
   );
 }
 
-function VendorCard({ vendor: v }: { vendor: VendorRow }) {
+function VendorCard({ vendor: v, owner }: { vendor: VendorRow; owner?: VendorOwnerRow }) {
   const toast = useToast();
   const invalidate = useInvalidate();
   const [editingNote, setEditingNote] = useState(false);
@@ -75,7 +121,14 @@ function VendorCard({ vendor: v }: { vendor: VendorRow }) {
     mutationFn: async (patch: Partial<Vendor>) => {
       must(await db().from('vendors').update(patch).eq('id', v.id));
     },
-    onSuccess: () => invalidate(['admin', 'vendors'], ['admin_stats'], ...PUBLIC_KEYS),
+    onSuccess: () =>
+      invalidate(
+        ['admin', 'vendors'],
+        ['admin', 'vendor', v.id],
+        DIRECTORY_KEY,
+        ['admin_stats'],
+        ...PUBLIC_KEYS,
+      ),
     onError: (e) => toast(friendlyError(e)),
   });
 
@@ -97,6 +150,13 @@ function VendorCard({ vendor: v }: { vendor: VendorRow }) {
         <div className="grow">
           <h4>{v.business_name}</h4>
           <div className="meta">Applied {formatDate(v.created_at)}</div>
+          {owner && (
+            <div className="meta">
+              👤 {owner.owner_name ? `${owner.owner_name} · ` : ''}
+              {owner.owner_email}
+              {owner.owner_phone ? ` · ${owner.owner_phone}` : ''}
+            </div>
+          )}
         </div>
         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           <span className={`pill-status ${v.status}`}>{v.status}</span>
@@ -225,6 +285,9 @@ function VendorCard({ vendor: v }: { vendor: VendorRow }) {
             {v.admin_note ? 'Edit note' : 'Add note'}
           </button>
         )}
+        <Link className="btn small secondary" to={`/admin/vendors/${v.id}`}>
+          Details & edit
+        </Link>
       </div>
     </div>
   );

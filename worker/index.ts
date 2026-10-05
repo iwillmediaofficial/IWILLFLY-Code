@@ -1,3 +1,4 @@
+import { handleCreateVendor, handleSetVendorPassword } from './adminVendors';
 import type { Env } from './env';
 import { dispatchPush, handleDispatch } from './push';
 import { handleSeo } from './seo';
@@ -10,6 +11,10 @@ export default {
     const { pathname } = new URL(request.url);
     if (request.method === 'POST' && pathname === '/api/upload') return handleUpload(request, env);
     if (request.method === 'POST' && pathname === '/api/push/dispatch') return handleDispatch(request, env);
+    if (request.method === 'POST' && pathname === '/api/admin/vendors')
+      return handleCreateVendor(request, env);
+    if (request.method === 'POST' && pathname === '/api/admin/vendors/password')
+      return handleSetVendorPassword(request, env);
     if (pathname.startsWith('/api/')) return new Response('Not found', { status: 404 });
     const seo = await handleSeo(request, env, ctx);
     if (seo) return seo;
