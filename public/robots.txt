@@ -1,0 +1,13 @@
+# Fallback copy. In production the Worker serves /robots.txt (worker/seo.ts) with an absolute Sitemap URL.
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /vendor
+Disallow: /login
+Disallow: /profile
+Disallow: /settings
+Disallow: /saved
+Disallow: /prizes
+Disallow: /notifications
+Disallow: /history
+Disallow: /help

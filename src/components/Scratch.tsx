@@ -173,7 +173,7 @@ function ResultFace({ result }: { result: PlayResult | null }) {
       <>
         <div style={{ fontSize: 42 }}>⏳</div>
         <h2 style={{ margin: '7px 0' }}>Checking…</h2>
-        <p style={{ margin: 0, color: '#6f7c91', fontSize: 12 }}>Getting today’s result</p>
+        <p style={{ margin: 0, color: 'var(--color-muted)', fontSize: 12 }}>Getting today’s result</p>
       </>
     );
   }
@@ -182,7 +182,9 @@ function ResultFace({ result }: { result: PlayResult | null }) {
       <>
         <div style={{ fontSize: 42 }}>🍀</div>
         <h2 style={{ margin: '7px 0' }}>Better Luck Tomorrow</h2>
-        <p style={{ margin: 0, color: '#6f7c91', fontSize: 12 }}>No prize this time. Try again tomorrow.</p>
+        <p style={{ margin: 0, color: 'var(--color-muted)', fontSize: 12 }}>
+          No prize this time. Try again tomorrow.
+        </p>
       </>
     );
   }
@@ -190,7 +192,7 @@ function ResultFace({ result }: { result: PlayResult | null }) {
     <>
       <div style={{ fontSize: 42 }}>🎉</div>
       <h2 style={{ margin: '7px 0' }}>{result.prize?.name ?? 'You won!'}</h2>
-      <p style={{ margin: 0, color: '#6f7c91', fontSize: 12 }}>
+      <p style={{ margin: 0, color: 'var(--color-muted)', fontSize: 12 }}>
         Show your claim code at {result.sponsor?.name ?? 'the shop'} to claim.
       </p>
     </>
@@ -215,7 +217,14 @@ function ResultScreen({ result, onClose }: { result: PlayResult; onClose: () => 
   return (
     <div className="form-card win-card">
       {result.prize?.image_key ? (
-        <img className="win-img" src={mediaUrl(result.prize.image_key)} alt="" />
+        <img
+          className="win-img"
+          src={mediaUrl(result.prize.image_key)}
+          alt=""
+          decoding="async"
+          width={96}
+          height={96}
+        />
       ) : (
         <div className="win-icon">🎁</div>
       )}
@@ -381,7 +390,11 @@ export function PrizeGrid({ items }: { items: PrizeItem[] }) {
     <div className="prize-grid">
       {items.map((p) => (
         <div key={p.key} className="prize">
-          {p.imageKey ? <img src={mediaUrl(p.imageKey)} alt="" loading="lazy" /> : <b>{p.icon ?? '🎁'}</b>}
+          {p.imageKey ? (
+            <img src={mediaUrl(p.imageKey)} alt="" loading="lazy" decoding="async" width={36} height={36} />
+          ) : (
+            <b>{p.icon ?? '🎁'}</b>
+          )}
           {p.label}
         </div>
       ))}

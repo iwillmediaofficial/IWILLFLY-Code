@@ -4,6 +4,7 @@ import { AppShell, BackHeader } from '../../components/AppShell';
 import { EmptyState, ShopCard } from '../../components/ShopCard';
 import { formatKm, haversineKm } from '../../lib/hours';
 import { usePlace } from '../../lib/location';
+import { usePageMeta } from '../../lib/pageMeta';
 import { db, must, useShopSearch } from '../../lib/queries';
 import { mediaUrl, supabase } from '../../lib/supabase';
 import type { Mall as MallRow } from '../../lib/types';
@@ -22,6 +23,7 @@ export default function Mall() {
   });
   const shops = useShopSearch({ mallId: valid ? id : null, limit: 100 });
   const m = mall.data;
+  usePageMeta(m?.name, m && (m.description || `Shops and live offers inside ${m.name} on IWILLFLY.`));
   const km = m?.lat != null && m.lng != null && place ? haversineKm(place, { lat: m.lat, lng: m.lng }) : null;
 
   const header = <BackHeader back="/malls" title={m?.name ?? 'Mall'} subtitle="Shops & live offers inside" />;

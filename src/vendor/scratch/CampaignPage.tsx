@@ -166,6 +166,8 @@ function PrizeRow({ prize: p, onEdit }: { prize: ScratchPrize; onEdit?: () => vo
           <img
             src={mediaUrl(p.image_key)}
             alt=""
+            loading="lazy"
+            decoding="async"
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           />
         ) : (

@@ -22,7 +22,11 @@ export function ImageField({
     <div className="field">
       <label>{label}</label>
       <div className="image-pick" style={{ aspectRatio: aspect }}>
-        {value ? <img src={mediaUrl(value)} alt="" /> : <span>{busy ? 'Uploading…' : '＋ Add photo'}</span>}
+        {value ? (
+          <img src={mediaUrl(value)} alt="" decoding="async" />
+        ) : (
+          <span>{busy ? 'Uploading…' : '＋ Add photo'}</span>
+        )}
         <input
           type="file"
           accept="image/*"
@@ -78,7 +82,7 @@ export function ImageListField({
       <div className="image-strip">
         {value.map((k, i) => (
           <div key={k} className="image-pick small">
-            <img src={mediaUrl(k)} alt="" />
+            <img src={mediaUrl(k)} alt="" loading="lazy" decoding="async" />
             {i === 0 && <em className="cover-tag">Cover</em>}
             <button
               type="button"

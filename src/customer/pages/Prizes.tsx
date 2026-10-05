@@ -217,7 +217,14 @@ function ClaimQr({ code }: { code: string }) {
   }, [code]);
   if (failed) return null;
   return src ? (
-    <img className="claim-qr" src={src} alt={`QR code for claim code ${formatCode(code)}`} />
+    <img
+      className="claim-qr"
+      src={src}
+      width={280}
+      height={280}
+      decoding="async"
+      alt={`QR code for claim code ${formatCode(code)}`}
+    />
   ) : (
     <div className="claim-qr" style={{ display: 'grid', placeItems: 'center' }}>
       <span className="meta">Loading QR…</span>
