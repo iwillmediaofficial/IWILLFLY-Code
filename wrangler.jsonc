@@ -18,5 +18,7 @@
   "triggers": { "crons": ["*/2 * * * *"] },
   // Variables and secrets are set in the Cloudflare dashboard; deploys must not wipe them.
   "keep_vars": true,
+  // Lets Workers Builds run `wrangler preview` for pull request branches. Top-level settings apply to previews too.
+  "previews": {},
   "observability": { "enabled": true },
 }
