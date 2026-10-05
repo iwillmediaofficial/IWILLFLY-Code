@@ -28,7 +28,7 @@ export function ShopCard({ shop, showStatus = true }: { shop: ShopResult; showSt
             {shop.offer_count > 1 ? ` +${shop.offer_count - 1} more` : ''}
           </span>
         ) : (
-          <span className="offer" style={{ background: '#eef2f7', color: '#6f7c91' }}>
+          <span className="offer" style={{ background: '#eef2f7', color: 'var(--color-muted)' }}>
             No live offers right now
           </span>
         )}

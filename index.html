@@ -4,13 +4,33 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
     <meta name="theme-color" content="#1760d9" />
-    <meta name="description" content="Local offers, malls and daily Scratch & Win near you." />
+    <meta
+      name="description"
+      content="Find live offers from local shops and malls near you, check opening hours and directions, and play the daily Scratch & Win on IWILLFLY."
+    />
+    <meta property="og:site_name" content="IWILLFLY" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="IWILLFLY – Local offers, malls and Scratch & Win near you" />
+    <meta
+      property="og:description"
+      content="Find live offers from local shops and malls near you, check opening hours and directions, and play the daily Scratch & Win on IWILLFLY."
+    />
+    <meta name="twitter:card" content="summary" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
-    <title>IWILLFLY</title>
+    <title>IWILLFLY – Local offers, malls and Scratch & Win near you</title>
   </head>
   <body>
-    <div id="root"></div>
+    <!-- Static shell painted before the app's JavaScript loads; React replaces it on start. -->
+    <div id="root">
+      <div class="app-shell">
+        <header class="topbar">
+          <div class="top-row">
+            <img class="logo" src="/iwillfly-logo.webp" alt="IWILLFLY" width="132" height="44" />
+          </div>
+        </header>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

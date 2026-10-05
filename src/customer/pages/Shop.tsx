@@ -6,6 +6,7 @@ import { EmptyState } from '../../components/ShopCard';
 import { track } from '../../lib/engagement';
 import { DAYS, formatKm, formatPrice, formatTime, haversineKm, nowIST, openState } from '../../lib/hours';
 import { usePlace } from '../../lib/location';
+import { usePageMeta } from '../../lib/pageMeta';
 import { db, must, useSavedIds } from '../../lib/queries';
 import { mediaUrl, supabase } from '../../lib/supabase';
 import type { Branch, Category, Offer, Shop as ShopRow } from '../../lib/types';
@@ -120,6 +121,10 @@ export default function Shop() {
     if (shopId && openOfferId) track('view', shopId, openOfferId);
   }, [shopId, openOfferId]);
   const shopSaved = s ? Boolean(savedShops.data?.has(s.id)) : false;
+  usePageMeta(
+    s?.name,
+    s && (s.description || `${s.name}: live offers, opening hours and directions on IWILLFLY.`),
+  );
   const header = (
     <BackHeader
       back="/explore"
@@ -197,6 +202,9 @@ export default function Shop() {
           <img
             src={mediaUrl(s.logo_key)}
             alt=""
+            width={64}
+            height={64}
+            decoding="async"
             style={{ width: 64, height: 64, borderRadius: 16, objectFit: 'cover', background: '#fff' }}
           />
         ) : (
@@ -455,6 +463,8 @@ function OfferDetails({
               key={k}
               src={mediaUrl(k)}
               alt=""
+              loading="lazy"
+              decoding="async"
               style={{
                 width: o.image_keys.length > 1 ? '85%' : '100%',
                 flex: 'none',

@@ -245,6 +245,8 @@ function ResultCard({
               <img
                 src={mediaUrl(r.prize.image_key)}
                 alt=""
+                loading="lazy"
+                decoding="async"
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
             ) : (

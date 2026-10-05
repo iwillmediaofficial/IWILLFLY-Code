@@ -158,6 +158,7 @@ function Message({ message: m, mine }: { message: TicketMessage; mine: boolean }
             src={mediaUrl(m.image_key)}
             alt="Attached screenshot"
             loading="lazy"
+            decoding="async"
             style={{ display: 'block', maxWidth: '100%', maxHeight: 320, borderRadius: 12, marginTop: 8 }}
           />
         </a>

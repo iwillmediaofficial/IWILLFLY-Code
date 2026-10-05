@@ -22,7 +22,7 @@
   --color-blue2: #0b4fca;
   --color-yellow: #ffdc16;
   --color-ink: #17243f;
-  --color-muted: #6f7c91;
+  --color-muted: #5f6b80;
   --color-bg: #f4f7fb;
   --color-card: #ffffff;
   --color-green: #16b85a;
@@ -539,7 +539,7 @@
   }
   .nav-item {
     text-align: center;
-    color: #7a8798;
+    color: #5f6b80;
     font-size: 10px;
     font-weight: 700;
   }

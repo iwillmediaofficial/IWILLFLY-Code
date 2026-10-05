@@ -260,7 +260,7 @@ function UpiQr({ link }: { link: string }) {
   if (failed) return null;
   const box = { width: 220, height: 220, margin: '12px auto', display: 'block', borderRadius: 12 } as const;
   return src ? (
-    <img src={src} alt="UPI payment QR code" style={box} />
+    <img src={src} alt="UPI payment QR code" width={220} height={220} decoding="async" style={box} />
   ) : (
     <div style={{ ...box, display: 'grid', placeItems: 'center', background: 'var(--color-bg)' }}>
       <span className="meta">Loading QR…</span>

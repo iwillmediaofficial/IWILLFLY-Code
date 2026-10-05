@@ -40,7 +40,11 @@ export function ErrorNotice({ error, onRetry }: { error: unknown; onRetry?: () =
 export function Thumb({ imageKey, icon }: { imageKey?: string | null; icon?: string | null }) {
   return (
     <div className="shop-thumb">
-      {imageKey ? <img src={mediaUrl(imageKey)} alt="" loading="lazy" /> : (icon ?? '🏪')}
+      {imageKey ? (
+        <img src={mediaUrl(imageKey)} alt="" loading="lazy" decoding="async" width={74} height={74} />
+      ) : (
+        (icon ?? '🏪')
+      )}
     </div>
   );
 }
@@ -67,7 +71,7 @@ export function OfferImage({
       className={`offer-image${tone ? ` ${tone}` : ''}`}
       style={imageKey ? { position: 'relative', overflow: 'hidden', ...style } : style}
     >
-      {imageKey && <img src={mediaUrl(imageKey)} alt="" loading="lazy" style={fill} />}
+      {imageKey && <img src={mediaUrl(imageKey)} alt="" loading="lazy" decoding="async" style={fill} />}
       {badge ? (
         <span className="badge" style={imageKey ? above : undefined}>
           {badge}

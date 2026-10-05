@@ -19,7 +19,14 @@ export function LogoHeader({ actions, children }: { actions?: ReactNode; childre
     <header className="topbar">
       <div className="top-row">
         <Link to="/" style={{ display: 'flex' }}>
-          <img className="logo" src="/iwillfly-logo.jpg" alt="IWILLFLY" />
+          <img
+            className="logo"
+            src="/iwillfly-logo.webp"
+            alt="IWILLFLY"
+            width={132}
+            height={44}
+            fetchPriority="high"
+          />
         </Link>
         <div className="grow" />
         {actions}

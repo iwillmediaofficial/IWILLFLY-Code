@@ -19,6 +19,8 @@ export function CampaignSummary({
         <img
           src={mediaUrl(c.banner_key)}
           alt=""
+          loading="lazy"
+          decoding="async"
           style={{
             width: '100%',
             aspectRatio: full ? '16 / 7' : '16 / 5',

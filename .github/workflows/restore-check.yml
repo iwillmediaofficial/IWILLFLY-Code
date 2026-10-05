@@ -1,0 +1,49 @@
+# Weekly proof that the newest nightly backup really restores: it is loaded into a throwaway Postgres
+# inside GitHub Actions (never into Supabase) and every table's row count is compared with the counts
+# saved when the backup was taken. Run it by hand from the Actions tab any time.
+name: Backup restore check
+
+on:
+  schedule:
+    - cron: '30 22 * * 0' # Mondays 04:00 IST, after Sunday night's backup
+  workflow_dispatch:
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:17-3.5
+        env:
+          POSTGRES_PASSWORD: restorecheck
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      BUCKET: iwillfly-backups
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+      ENDPOINT: https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+      TARGET: postgresql://postgres:restorecheck@localhost:5432/postgres
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install PostgreSQL 17 client (matches Supabase)
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client-17
+
+      - name: Download the newest backup
+        run: |
+          NAME=$(aws s3 ls "s3://$BUCKET/db/" --endpoint-url "$ENDPOINT" | awk '{print $4}' | grep '\.counts\.txt$' |
+            sort -r | head -1 | sed 's/\.counts\.txt$//')
+          if [ -z "$NAME" ]; then echo "No backup with saved row counts yet; run the nightly backup first." >&2; exit 1; fi
+          echo "Checking $NAME"
+          aws s3 cp "s3://$BUCKET/db/$NAME.dump" backup.dump --endpoint-url "$ENDPOINT"
+          aws s3 cp "s3://$BUCKET/db/$NAME.counts.txt" backup.counts.txt --endpoint-url "$ENDPOINT"
+
+      - name: Restore and compare
+        run: PATH=/usr/lib/postgresql/17/bin:$PATH scripts/restore-check.sh backup.dump backup.counts.txt "$TARGET"

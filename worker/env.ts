@@ -3,6 +3,8 @@ export interface Env {
   MEDIA: R2Bucket;
   VITE_SUPABASE_URL: string;
   VITE_SUPABASE_ANON_KEY: string;
+  // Public media URL, the same value as the build variable; used for og:image on shop and mall pages.
+  VITE_MEDIA_BASE_URL?: string;
   // Web push (optional until set in the Cloudflare dashboard; pushes are skipped without them)
   SUPABASE_SERVICE_ROLE_KEY?: string;
   VAPID_PRIVATE_JWK?: string;

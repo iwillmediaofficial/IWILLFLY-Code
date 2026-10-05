@@ -9,7 +9,8 @@
     "directory": "./dist",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*"],
+    // /shop/* and /mall/* get SEO tags added by the Worker (worker/seo.ts), which also builds the sitemap and robots.txt.
+    "run_worker_first": ["/api/*", "/shop/*", "/mall/*", "/sitemap.xml", "/robots.txt"],
   },
   // Images are written through this binding by /api/upload (worker/upload.ts).
   "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "iwillfly-media" }],

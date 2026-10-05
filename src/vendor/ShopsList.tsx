@@ -35,7 +35,11 @@ export default function ShopsList() {
             return (
               <Link key={s.id} className="shop-card" to={`/vendor/shops/${s.id}`}>
                 <div className="shop-thumb">
-                  {s.logo_key ? <img src={mediaUrl(s.logo_key)} alt="" /> : '🏪'}
+                  {s.logo_key ? (
+                    <img src={mediaUrl(s.logo_key)} alt="" loading="lazy" decoding="async" />
+                  ) : (
+                    '🏪'
+                  )}
                 </div>
                 <div>
                   <h4>{s.name}</h4>

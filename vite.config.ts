@@ -9,7 +9,9 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.png', 'iwillfly-logo.jpg', 'icons/apple-touch-icon.png'],
+      // Load the service worker registration without blocking the first paint.
+      injectRegister: 'script-defer',
+      includeAssets: ['favicon.png', 'iwillfly-logo.jpg', 'iwillfly-logo.webp', 'icons/apple-touch-icon.png'],
       manifest: {
         name: 'IWILLFLY',
         short_name: 'IWILLFLY',
@@ -26,7 +28,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,png,jpg,svg,woff2}'],
-        navigateFallbackDenylist: [/^\/api\//],
+        navigateFallbackDenylist: [/^\/api\//, /^\/(sitemap\.xml|robots\.txt)$/],
         // Shows web push notifications and opens the app when one is tapped.
         importScripts: ['/push-sw.js'],
       },

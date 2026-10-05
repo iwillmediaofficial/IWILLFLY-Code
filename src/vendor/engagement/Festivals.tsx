@@ -104,6 +104,8 @@ function FestivalCard({
         <img
           src={mediaUrl(f.banner_key)}
           alt=""
+          loading="lazy"
+          decoding="async"
           style={{
             width: '100%',
             aspectRatio: '16 / 6',
