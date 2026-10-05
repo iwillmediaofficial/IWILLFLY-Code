@@ -3,12 +3,20 @@ import { Link, Navigate, useLocation } from 'react-router-dom';
 import { useAuth, type AppRole } from './AuthProvider';
 
 /** Shows children only to signed-in users holding one of the roles. RLS still enforces this on the server. */
-export function RequireRole({ roles, children }: { roles: AppRole[]; children: ReactNode }) {
+export function RequireRole({
+  roles,
+  children,
+  loginPath = '/login',
+}: {
+  roles: AppRole[];
+  children: ReactNode;
+  loginPath?: string;
+}) {
   const { session, roles: mine, loading } = useAuth();
   const location = useLocation();
 
   if (loading) return <div className="center-screen meta">Loading…</div>;
-  if (!session) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  if (!session) return <Navigate to={loginPath} replace state={{ from: location.pathname }} />;
   if (!mine.some((r) => roles.includes(r))) {
     return (
       <div className="center-screen">

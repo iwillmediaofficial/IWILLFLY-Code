@@ -16,6 +16,7 @@ const Profile = lazy(() => import('./customer/pages/Profile'));
 const Mall = lazy(() => import('./customer/pages/Mall'));
 const Settings = lazy(() => import('./customer/pages/Settings'));
 const Login = lazy(() => import('./auth/Login'));
+const AdminLogin = lazy(() => import('./auth/AdminLogin'));
 const VendorApply = lazy(() => import('./vendor/VendorApply'));
 const VendorApp = lazy(() => import('./vendor/VendorApp'));
 const AdminApp = lazy(() => import('./admin/AdminApp'));
@@ -38,6 +39,7 @@ export default function App() {
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/login" element={<Login />} />
+                <Route path="/admin/login" element={<AdminLogin />} />
                 <Route path="/vendor/apply" element={<VendorApply />} />
                 <Route
                   path="/vendor/*"
@@ -50,7 +52,7 @@ export default function App() {
                 <Route
                   path="/admin/*"
                   element={
-                    <RequireRole roles={ADMIN_ROLES}>
+                    <RequireRole roles={ADMIN_ROLES} loginPath="/admin/login">
                       <AdminApp />
                     </RequireRole>
                   }
