@@ -1,0 +1,43 @@
+# Nightly Supabase backup to the private R2 bucket. Free Supabase has no backups of its own,
+# and the daily connection also keeps the free project from pausing after 7 idle days.
+name: Nightly database backup
+
+on:
+  schedule:
+    - cron: '30 20 * * *' # 02:00 IST
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    env:
+      KEEP: 14
+      BUCKET: iwillfly-backups
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+      ENDPOINT: https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+    steps:
+      - name: Install PostgreSQL 17 client (matches Supabase)
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client-17
+
+      - name: Dump database
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          FILE="iwillfly-$(date -u +%Y-%m-%dT%H%MZ).dump"
+          /usr/lib/postgresql/17/bin/pg_dump "$SUPABASE_DB_URL" --format=custom --no-owner --no-privileges \
+            --schema=public --schema=auth --file="$FILE"
+          echo "FILE=$FILE" >> "$GITHUB_ENV"
+
+      - name: Upload to R2
+        run: aws s3 cp "$FILE" "s3://$BUCKET/db/$FILE" --endpoint-url "$ENDPOINT"
+
+      - name: Keep only the newest backups
+        run: |
+          aws s3 ls "s3://$BUCKET/db/" --endpoint-url "$ENDPOINT" | awk '{print $4}' | sort -r | tail -n +$((KEEP + 1)) |
+            while read -r f; do aws s3 rm "s3://$BUCKET/db/$f" --endpoint-url "$ENDPOINT"; done
