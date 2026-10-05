@@ -160,3 +160,137 @@ export interface MallResult {
   shop_count: number;
   offer_count: number;
 }
+
+// Scratch & Win ----------------------------------------------------------------------------------
+
+export type ClaimStatus = 'unclaimed' | 'claimed' | 'expired';
+
+export interface ScratchCampaign {
+  id: number;
+  name: string;
+  description: string | null;
+  banner_key: string | null;
+  starts_on: string;
+  ends_on: string | null;
+  /** "HH:MM:SS", India time */
+  active_from: string;
+  active_to: string;
+  location_id: number | null;
+  max_wins_per_customer: number | null;
+  claim_valid_days: number;
+  is_active: boolean;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ScratchPrize {
+  id: number;
+  campaign_id: number;
+  sponsor_vendor_id: number | null;
+  name: string;
+  description: string | null;
+  image_key: string | null;
+  quantity: number;
+  remaining: number;
+  /** 0..1 chance of winning this prize on one scratch */
+  probability: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+/** One play as the customer sees it (play_scratch, my_prizes, scratch_today.today_play). */
+export interface PlayResult {
+  play_id: number;
+  campaign_id: number;
+  campaign_name: string;
+  played_at: string;
+  won: boolean;
+  prize: { id: number; name: string; description: string | null; image_key: string | null } | null;
+  sponsor: { vendor_id: number; name: string } | null;
+  claim_code: string | null;
+  /** already 'expired' when past expires_at, even before the hourly job runs */
+  claim_status: ClaimStatus | null;
+  expires_at: string | null;
+  claimed_at: string | null;
+}
+
+/** play_scratch() result. */
+export interface PlayResponse extends PlayResult {
+  status: 'won' | 'lost' | 'already_played';
+}
+
+/** Row from the scratch_today RPC. */
+export interface TodayCampaign {
+  id: number;
+  name: string;
+  description: string | null;
+  banner_key: string | null;
+  starts_on: string;
+  ends_on: string | null;
+  active_from: string;
+  active_to: string;
+  is_open_now: boolean;
+  /** false when the campaign is for another area (or the customer has not set one in Settings) */
+  eligible: boolean;
+  today_play: PlayResult | null;
+}
+
+/** claim_prize(code, confirm) result. No sponsor field. */
+export type ClaimLookup =
+  | { status: 'not_found' }
+  | (Omit<PlayResult, 'sponsor'> & {
+      status: ClaimStatus | 'claimed_now' | 'flagged';
+      customer_name: string;
+      fraud_flag: boolean;
+    });
+
+/** Row from vendor_winners(campaign_id?). */
+export interface VendorWinner {
+  play_id: number;
+  campaign_id: number;
+  campaign_name: string;
+  prize_id: number;
+  prize_name: string;
+  customer_name: string;
+  played_at: string;
+  claim_status: ClaimStatus;
+  expires_at: string;
+  claimed_at: string | null;
+}
+
+/** Row from campaign_winners(campaign_id), managers only. */
+export interface CampaignWinner {
+  play_id: number;
+  prize_id: number;
+  prize_name: string;
+  sponsor_name: string | null;
+  customer_id: string;
+  customer_name: string;
+  customer_email: string | null;
+  played_at: string;
+  claim_code: string;
+  claim_status: ClaimStatus;
+  expires_at: string;
+  claimed_at: string | null;
+  fraud_flag: boolean;
+  fraud_note: string | null;
+  /** wins this customer has in the campaign */
+  customer_wins: number;
+}
+
+/** Row from campaign_stats(campaign_id), managers only. given_out always equals won. */
+export interface CampaignPrizeStats {
+  prize_id: number;
+  prize_name: string;
+  quantity: number;
+  remaining: number;
+  given_out: number;
+  won: number;
+  claimed: number;
+  unclaimed: number;
+  expired: number;
+  plays_total: number;
+  players: number;
+}
