@@ -6,7 +6,8 @@ import { useUnreadCount } from '../lib/engagement';
 import { db, must } from '../lib/queries';
 import type { Vendor } from '../lib/types';
 import { useMyOffers, VENDOR_KEY } from './api';
-import { useVendor } from './context';
+import { DashboardPlanCard } from './billing/PlanCard';
+import { useVendor, useVendorRole } from './context';
 import { useVendorAnalytics } from './engagement/api';
 import { num } from './engagement/format';
 import { errorMessage, offerPhase, orNull, phoneError } from './format';
@@ -14,6 +15,7 @@ import { ErrorNote, Lockable } from './ui';
 
 export default function Dashboard() {
   const vendor = useVendor();
+  const { isOwner, canEdit } = useVendorRole();
   return (
     <>
       <section className="hero">
@@ -32,6 +34,11 @@ export default function Dashboard() {
         <StatusNotice vendor={vendor} />
         <Counts />
       </section>
+      {vendor.status !== 'blocked' && (
+        <section className="section">
+          <DashboardPlanCard />
+        </section>
+      )}
       <section className="section">
         <div className="section-head">
           <h2>Last 7 days</h2>
@@ -43,23 +50,38 @@ export default function Dashboard() {
         <div className="section-head">
           <h2>Quick actions</h2>
         </div>
-        <div className="btn-row" style={{ marginTop: 0 }}>
-          <Link className="btn" to="/vendor/offers/new">
-            ＋ New offer
-          </Link>
-          <Link className="btn secondary" to="/vendor/shops/new">
-            ＋ Add shop
-          </Link>
-          <Link className="btn secondary" to="/vendor/offers?status=pending">
-            Offers in review
-          </Link>
-        </div>
+        {!canEdit ? (
+          <div className="btn-row" style={{ marginTop: 0 }}>
+            <Link className="btn" to="/vendor/scratch/claim">
+              📷 Verify a prize
+            </Link>
+            <Link className="btn secondary" to="/vendor/insights">
+              See insights
+            </Link>
+            <Link className="btn secondary" to="/vendor/help">
+              Get help
+            </Link>
+          </div>
+        ) : (
+          <div className="btn-row" style={{ marginTop: 0 }}>
+            <Link className="btn" to="/vendor/offers/new">
+              ＋ New offer
+            </Link>
+            <Link className="btn secondary" to="/vendor/shops/new">
+              ＋ Add shop
+            </Link>
+            <Link className="btn secondary" to="/vendor/offers?status=pending">
+              Offers in review
+            </Link>
+          </div>
+        )}
       </section>
       <section className="section">
         <div className="section-head">
           <h2>Business details</h2>
         </div>
-        <BusinessForm vendor={vendor} />
+        {!isOwner && <div className="notice">Only the business owner can change these details.</div>}
+        <BusinessForm vendor={vendor} locked={vendor.status === 'blocked' || !isOwner} />
       </section>
     </>
   );
@@ -148,7 +170,7 @@ function WeekAndAlerts() {
   );
 }
 
-function BusinessForm({ vendor }: { vendor: Vendor }) {
+function BusinessForm({ vendor, locked }: { vendor: Vendor; locked: boolean }) {
   const qc = useQueryClient();
   const toast = useToast();
   const [name, setName] = useState(vendor.business_name);
@@ -184,7 +206,7 @@ function BusinessForm({ vendor }: { vendor: Vendor }) {
 
   return (
     <form className="form-card" onSubmit={submit} noValidate>
-      <Lockable locked={vendor.status === 'blocked'}>
+      <Lockable locked={locked}>
         <div className="field">
           <label htmlFor="v-name">Business name *</label>
           <input id="v-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={120} />

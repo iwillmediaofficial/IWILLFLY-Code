@@ -129,7 +129,7 @@ as $$
   limit 1;
 $$;
 
--- Owner and managers: the team with names and emails.
+-- The whole team with names and emails, for every member.
 create or replace function public.vendor_team()
 returns table (user_id uuid, email text, full_name text, role text, added_at timestamptz)
 language sql
@@ -139,11 +139,11 @@ set search_path = ''
 as $$
   select v.owner_id, u.email::text, p.full_name, 'owner', v.created_at
   from public.vendors v join auth.users u on u.id = v.owner_id left join public.profiles p on p.id = v.owner_id
-  where v.id = private.my_vendor_id()
+  where v.id = private.my_member_vendor_id()
   union all
   select s.user_id, u.email::text, p.full_name, s.role::text, s.added_at
   from public.vendor_staff s join auth.users u on u.id = s.user_id left join public.profiles p on p.id = s.user_id
-  where s.vendor_id = private.my_vendor_id() and s.removed_at is null
+  where s.vendor_id = private.my_member_vendor_id() and s.removed_at is null
   order by 5;
 $$;
 
@@ -650,6 +650,22 @@ $$;
 revoke execute on function private.activate_invoice(bigint, text, text, date), private.apply_addon_flags()
   from public, anon, authenticated;
 
+-- An admin cancelling or extending an add-on takes effect right away, not at midnight.
+create or replace function public.refresh_addon_flags()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  perform private.apply_addon_flags();
+  return null;
+end;
+$$;
+revoke execute on function public.refresh_addon_flags() from public, anon, authenticated;
+create trigger addon_purchases_refresh_flags after update on public.addon_purchases
+  for each statement execute function public.refresh_addon_flags();
+
 -- The owner (or an admin, for any vendor) creates an invoice for plans and add-ons from the catalogue.
 -- p_items: [{"plan_id": 1}, {"addon_id": 2, "offer_id": 9}, {"addon_id": 3, "shop_id": 4}]
 create or replace function public.create_invoice(p_items jsonb, p_vendor_id bigint default null)
@@ -719,9 +735,9 @@ begin
       end if;
       if ad.kind = 'promoted_offer' then
         select o.title, o.shop_id into label, shop from public.offers o join public.shops sh on sh.id = o.shop_id
-        where o.id = offer and sh.vendor_id = v.id;
+        where o.id = offer and sh.vendor_id = v.id and o.status = 'approved';
         if label is null then
-          raise exception 'Choose one of your offers to promote' using errcode = '22023';
+          raise exception 'Choose one of your approved offers to promote' using errcode = '22023';
         end if;
       else
         offer := null;

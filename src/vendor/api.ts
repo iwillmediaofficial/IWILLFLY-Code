@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../auth/AuthProvider';
 import { db, must } from '../lib/queries';
-import type { Branch, Offer, Shop, Vendor } from '../lib/types';
+import type { Branch, MyVendor, Offer, Shop } from '../lib/types';
 import { useVendor } from './context';
 
 // Every vendor-area query key starts with 'vendor', so a save can refresh them all at once.
@@ -12,8 +12,8 @@ export function useMyVendorRow() {
   const uid = session?.user.id;
   return useQuery({
     queryKey: ['vendor', 'me', uid],
-    queryFn: async () =>
-      must<Vendor | null>(await db().from('vendors').select('*').eq('owner_id', uid!).maybeSingle()),
+    // my_vendor() also finds the business for managers and staff, with their role in it.
+    queryFn: async () => must<MyVendor | null>(await db().rpc('my_vendor')),
     enabled: Boolean(uid),
   });
 }

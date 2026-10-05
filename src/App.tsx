@@ -16,6 +16,7 @@ const Prizes = lazy(() => import('./customer/pages/Prizes'));
 const Notifications = lazy(() => import('./customer/pages/Notifications'));
 const Festival = lazy(() => import('./customer/pages/Festival'));
 const History = lazy(() => import('./customer/pages/History'));
+const Help = lazy(() => import('./customer/pages/Help'));
 const Profile = lazy(() => import('./customer/pages/Profile'));
 const Mall = lazy(() => import('./customer/pages/Mall'));
 const Settings = lazy(() => import('./customer/pages/Settings'));
@@ -44,6 +45,7 @@ export default function App() {
                 <Route path="/notifications" element={<Notifications />} />
                 <Route path="/festival/:slug" element={<Festival />} />
                 <Route path="/history" element={<History />} />
+                <Route path="/help/*" element={<Help />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/login" element={<Login />} />

@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { useToast } from '../../components/Toast';
 import { mediaUrl } from '../../lib/supabase';
 import type { Festival, FestivalOfferRow, Offer, Shop } from '../../lib/types';
-import { useVendor } from '../context';
+import { useReadOnly, useVendor } from '../context';
 import { errorMessage, formatDate, offerPhase, phaseClass, phaseLabel, todayIST } from '../format';
 import { BlockedNote, ErrorNote, Loading, Lockable, PageHead } from '../ui';
 import { useFestivalData, useFestivalSubmission } from './api';
@@ -10,6 +10,7 @@ import { festivalOpen, reviewClass, reviewLabel, submissionsCloseOn } from './fo
 
 export default function VendorFestivals() {
   const vendor = useVendor();
+  const readOnly = useReadOnly();
   const { festivals, offers, shops, submissions, isPending, error } = useFestivalData();
   const today = todayIST();
   const open = (festivals ?? []).filter((f) => festivalOpen(f, today));
@@ -19,7 +20,7 @@ export default function VendorFestivals() {
   return (
     <>
       <PageHead title="Festivals" />
-      {vendor.status === 'blocked' ? (
+      {readOnly ? (
         <BlockedNote />
       ) : vendor.status === 'pending' ? (
         <div className="notice warn">
@@ -43,7 +44,7 @@ export default function VendorFestivals() {
           <p>When IWILLFLY opens a festival, it shows up here and you can submit your offers.</p>
         </div>
       ) : (
-        <Lockable locked={vendor.status === 'blocked'}>
+        <Lockable locked={readOnly}>
           {open.length > 0 && (
             <section className="section" style={{ marginTop: 0 }}>
               <div className="section-head">

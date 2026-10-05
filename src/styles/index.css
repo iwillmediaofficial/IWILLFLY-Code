@@ -1164,3 +1164,28 @@
     margin-top: 0;
   }
 }
+
+/* Phase 4: printing an invoice shows only the invoice, without the app's header, tabs and buttons. */
+@media print {
+  .topbar,
+  .tabs,
+  .bottom-nav,
+  .toast,
+  .no-print {
+    display: none !important;
+  }
+  html,
+  body {
+    background: #fff !important;
+    padding: 0 !important;
+  }
+  .app-shell {
+    max-width: none;
+    box-shadow: none;
+    padding-bottom: 0;
+  }
+  .invoice-sheet {
+    border: 0;
+    padding: 0;
+  }
+}

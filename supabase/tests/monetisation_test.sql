@@ -230,6 +230,13 @@ set local role authenticated;
 select pg_temp.check((select my_billing()->'plan'->>'name') = 'Free', 'an expired plan falls back to the default plan');
 reset role;
 
+select pg_temp.act_as('00000000-0000-0000-0000-0000000000a1');
+set local role authenticated;
+update public.addon_purchases set cancelled_at = now() where kind = 'promoted_offer';
+reset role;
+select pg_temp.check((select not is_featured from public.offers where id = (select v from ids where k = 'offer1')),
+  'cancelling a promoted offer unfeatures it at once');
+
 -- Vendor staff ------------------------------------------------------------------------------------
 select pg_temp.act_as('00000000-0000-0000-0000-0000000000b1');
 set local role authenticated;

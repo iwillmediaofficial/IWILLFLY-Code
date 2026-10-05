@@ -16,7 +16,7 @@ import {
   suggestDiscount,
   todayIST,
 } from './format';
-import { BlockedNote, ErrorNote, Loading, Lockable, NotFound, PageHead } from './ui';
+import { BlockedNote, ErrorNote, FormError, Loading, Lockable, NotFound, PageHead } from './ui';
 
 export default function OfferEditor() {
   const { id } = useParams();
@@ -335,7 +335,7 @@ function OfferForm({
               <div className="hint">Leave empty to keep it running.</div>
             </div>
           </div>
-          {error && <p className="error-text">{error}</p>}
+          <FormError error={error} />
           <button className="btn block" type="submit" disabled={save.isPending} style={{ marginTop: 8 }}>
             {save.isPending ? 'Saving…' : offer ? 'Save changes' : 'Submit for review'}
           </button>

@@ -1,7 +1,7 @@
 import imageCompression from 'browser-image-compression';
 import { supabase } from './supabase';
 
-export type UploadFolder = 'shops' | 'offers' | 'ads' | 'prizes' | 'test';
+export type UploadFolder = 'shops' | 'offers' | 'ads' | 'prizes' | 'support' | 'test';
 
 /**
  * Compresses an image to WebP (max 1600 px) on the device, then sends it to the

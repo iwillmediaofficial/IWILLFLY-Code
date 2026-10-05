@@ -39,6 +39,12 @@ export interface Vendor {
   created_at: string;
 }
 
+/** The signed-in user's business from my_vendor(), with their place in it. */
+export type VendorRole = 'owner' | 'manager' | 'staff';
+export interface MyVendor extends Vendor {
+  my_role: VendorRole;
+}
+
 export interface Shop {
   id: number;
   vendor_id: number;
@@ -50,6 +56,8 @@ export interface Shop {
   phone: string | null;
   whatsapp: string | null;
   is_active: boolean;
+  /** Set by a paid "featured shop" add-on or an admin. */
+  is_featured: boolean;
   created_at: string;
 }
 
@@ -487,4 +495,220 @@ export interface HistoryOffer {
   shop_name: string;
   shop_logo_key: string | null;
   viewed_at: string;
+}
+
+// Phase 4: plans, add-ons, invoices, staff, support and audit -------------------------------------
+
+export interface BillingSettings {
+  id: 1;
+  upi_id: string | null;
+  payee_name: string | null;
+  business_name: string | null;
+  business_address: string | null;
+  gstin: string | null;
+  gst_percent: number;
+  invoice_prefix: string;
+  payment_note: string | null;
+  updated_at: string;
+}
+
+export interface Plan {
+  id: number;
+  name: string;
+  description: string | null;
+  features: string[];
+  /** Rupees. numeric columns arrive as strings or numbers; wrap in Number() before maths. */
+  price: number | string;
+  period_days: number;
+  max_shops: number | null;
+  max_live_offers: number | null;
+  is_default: boolean;
+  is_active: boolean;
+  sort_order: number;
+}
+
+export type AddonKind = 'featured_shop' | 'promoted_offer' | 'banner_ad';
+
+export interface Addon {
+  id: number;
+  kind: AddonKind;
+  name: string;
+  description: string | null;
+  price: number | string;
+  duration_days: number;
+  is_active: boolean;
+  sort_order: number;
+}
+
+export type InvoiceStatus = 'unpaid' | 'submitted' | 'paid' | 'void';
+export type PaymentMethod = 'upi' | 'cash' | 'bank' | 'razorpay' | 'free';
+
+export interface Invoice {
+  id: number;
+  number: string;
+  vendor_id: number;
+  status: InvoiceStatus;
+  subtotal: number | string;
+  gst_percent: number | string;
+  tax: number | string;
+  total: number | string;
+  issued_on: string;
+  due_on: string;
+  bill_to: { business_name?: string; phone?: string | null; vendor_id?: number };
+  bill_from: {
+    name?: string | null;
+    address?: string | null;
+    gstin?: string | null;
+    upi_id?: string | null;
+    payee_name?: string | null;
+    note?: string | null;
+  };
+  payer_ref: string | null;
+  payer_note: string | null;
+  submitted_at: string | null;
+  payment_method: PaymentMethod | null;
+  payment_ref: string | null;
+  paid_on: string | null;
+  void_reason: string | null;
+  admin_note: string | null;
+  created_at: string;
+}
+
+export interface InvoiceItem {
+  id: number;
+  invoice_id: number;
+  plan_id: number | null;
+  addon_id: number | null;
+  shop_id: number | null;
+  offer_id: number | null;
+  description: string;
+  days: number;
+  amount: number | string;
+}
+
+/** One line of create_invoice(p_items). */
+export type PurchaseItem =
+  { plan_id: number } | { addon_id: number; shop_id?: number | null; offer_id?: number | null };
+
+export interface Subscription {
+  id: number;
+  vendor_id: number;
+  plan_id: number;
+  invoice_item_id: number | null;
+  starts_on: string;
+  ends_on: string;
+  cancelled_at: string | null;
+  created_at: string;
+}
+
+export interface AddonPurchase {
+  id: number;
+  vendor_id: number;
+  addon_id: number;
+  kind: AddonKind;
+  shop_id: number | null;
+  offer_id: number | null;
+  invoice_item_id: number | null;
+  starts_on: string;
+  ends_on: string;
+  cancelled_at: string | null;
+  created_at: string;
+}
+
+/** my_billing() */
+export interface MyBilling {
+  plan: Plan | null;
+  subscription: Subscription | null;
+  paid_until: string | null;
+  usage: { shops: number; live_offers: number };
+  addons: {
+    id: number;
+    kind: AddonKind;
+    name: string;
+    shop_id: number | null;
+    offer_id: number | null;
+    target: string | null;
+    starts_on: string;
+    ends_on: string;
+  }[];
+}
+
+export type StaffRole = 'manager' | 'staff';
+
+/** vendor_team() */
+export interface TeamMember {
+  user_id: string;
+  email: string;
+  full_name: string | null;
+  role: VendorRole;
+  added_at: string;
+}
+
+export type TicketStatus = 'open' | 'waiting' | 'resolved' | 'closed';
+export type TicketCategory = 'billing' | 'account' | 'offers' | 'scratch' | 'technical' | 'other';
+export type TicketPriority = 'low' | 'normal' | 'high';
+
+export interface SupportTicket {
+  id: number;
+  opened_by: string;
+  vendor_id: number | null;
+  subject: string;
+  category: TicketCategory;
+  status: TicketStatus;
+  priority: TicketPriority;
+  assigned_to: string | null;
+  last_message_at: string;
+  last_from_staff: boolean;
+  created_at: string;
+}
+
+export interface TicketMessage {
+  id: number;
+  ticket_id: number;
+  author_id: string | null;
+  is_staff: boolean;
+  body: string;
+  image_key: string | null;
+  created_at: string;
+}
+
+/** support_queue() */
+export interface QueueTicket {
+  id: number;
+  subject: string;
+  category: TicketCategory;
+  status: TicketStatus;
+  priority: TicketPriority;
+  opened_by: string;
+  opener_email: string | null;
+  opener_name: string | null;
+  vendor_id: number | null;
+  business_name: string | null;
+  assigned_to: string | null;
+  assignee_email: string | null;
+  last_message_at: string;
+  last_from_staff: boolean;
+  created_at: string;
+}
+
+/** admin_team() */
+export interface StaffMember {
+  user_id: string;
+  email: string;
+  full_name: string | null;
+  roles: string[];
+  last_sign_in_at: string | null;
+}
+
+/** audit_log() */
+export interface AuditEntry {
+  id: number;
+  actor_id: string | null;
+  actor_email: string | null;
+  action: 'insert' | 'update' | 'delete';
+  table_name: string;
+  row_id: string | null;
+  /** update: {column: [old, new]}; insert/delete: the whole row */
+  changes: Record<string, unknown>;
+  created_at: string;
 }
