@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthProvider';
 import { AppShell, LogoHeader } from '../../components/AppShell';
 import { EmptyState } from '../../components/ShopCard';
+import { track } from '../../lib/engagement';
 import { formatPrice } from '../../lib/hours';
 import { db, must } from '../../lib/queries';
 import { supabase } from '../../lib/supabase';
@@ -176,7 +177,11 @@ function SavedLists({ userId }: { userId: string }) {
             return (
               <div key={r.offer_id} className="shop-card" style={{ cursor: 'default' }}>
                 {r.live && o?.shop ? (
-                  <Link to={`/shop/${o.shop.id}?offer=${o.id}`} style={{ display: 'contents' }}>
+                  <Link
+                    to={`/shop/${o.shop.id}?offer=${o.id}`}
+                    onClick={() => o.shop && track('click', o.shop.id, o.id)}
+                    style={{ display: 'contents' }}
+                  >
                     {body}
                   </Link>
                 ) : (

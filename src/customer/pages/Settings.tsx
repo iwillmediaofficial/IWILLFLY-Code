@@ -77,11 +77,17 @@ export default function Settings() {
       </section>
       <section className="section form-card">
         <h3 style={{ marginTop: 0 }}>🔔 Notifications</h3>
-        <label className="check-row" style={{ opacity: 0.6 }}>
-          <input type="checkbox" disabled />
-          Nearby, festival and saved-offer alerts
-        </label>
-        <div className="meta">Coming soon.</div>
+        <p className="meta" style={{ lineHeight: 1.6, marginTop: 0 }}>
+          Your inbox and push alerts for festival offers, prizes and shops you save.
+        </p>
+        <Link className="shop-card" to="/notifications">
+          <div className="shop-thumb">🔔</div>
+          <div>
+            <h4>Notifications</h4>
+            <div className="meta">Inbox and push notifications</div>
+          </div>
+          <div className="chev">›</div>
+        </Link>
       </section>
       <section className="section form-card">
         <h3 style={{ marginTop: 0 }}>🔒 Privacy</h3>

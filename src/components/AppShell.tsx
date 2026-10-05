@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link, NavLink } from 'react-router-dom';
+import { useAuth } from '../auth/AuthProvider';
+import { useUnreadCount } from '../lib/engagement';
 
 export function AppShell({ children, header }: { children: ReactNode; header: ReactNode }) {
   return (
@@ -24,6 +26,23 @@ export function LogoHeader({ actions, children }: { actions?: ReactNode; childre
       </div>
       {children}
     </header>
+  );
+}
+
+/** Header bell linking to the inbox, with an unread badge for signed-in users. */
+export function NotificationBell() {
+  const { session } = useAuth();
+  const { data: unread = 0 } = useUnreadCount();
+  const count = session ? unread : 0;
+  return (
+    <Link
+      className="icon-btn bell-btn"
+      to="/notifications"
+      aria-label={count ? `Notifications, ${count} unread` : 'Notifications'}
+    >
+      🔔
+      {count > 0 && <span className="bell-badge">{count > 9 ? '9+' : count}</span>}
+    </Link>
   );
 }
 
