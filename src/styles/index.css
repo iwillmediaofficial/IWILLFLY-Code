@@ -743,6 +743,26 @@
   .field input:focus {
     border-color: #b7cdfc;
   }
+  /* Password input with a Show/Hide toggle inside it. */
+  .password-wrap {
+    position: relative;
+  }
+  .password-wrap input {
+    padding-right: 64px;
+  }
+  .password-wrap button {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 0;
+    background: none;
+    padding: 6px 8px;
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--color-blue);
+    cursor: pointer;
+  }
   .error-text {
     color: var(--color-red);
     font-size: 12px;

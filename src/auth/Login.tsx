@@ -1,18 +1,73 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AppShell, LogoHeader } from '../components/AppShell';
+import { AreaPicker } from '../components/AreaPicker';
 import { supabase } from '../lib/supabase';
 import { homeFor, useAuth } from './AuthProvider';
+
+type Mode = 'signin' | 'signup' | 'code';
+
+/** Indian mobile numbers: 10 digits starting 6-9, with or without +91. Returns +91XXXXXXXXXX or null. */
+function normalisePhone(raw: string) {
+  let digits = raw.replace(/\D/g, '');
+  if (digits.length === 12 && digits.startsWith('91')) digits = digits.slice(2);
+  if (digits.length === 11 && digits.startsWith('0')) digits = digits.slice(1);
+  return /^[6-9]\d{9}$/.test(digits) ? `+91${digits}` : null;
+}
+
+function PasswordInput({
+  id,
+  value,
+  onChange,
+  autoComplete,
+  placeholder,
+}: {
+  id: string;
+  value: string;
+  onChange: (v: string) => void;
+  autoComplete: string;
+  placeholder?: string;
+}) {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="password-wrap">
+      <input
+        id={id}
+        type={show ? 'text' : 'password'}
+        required
+        autoComplete={autoComplete}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+      />
+      <button
+        type="button"
+        onClick={() => setShow((s) => !s)}
+        aria-label={show ? 'Hide password' : 'Show password'}
+        aria-pressed={show}
+      >
+        {show ? 'Hide' : 'Show'}
+      </button>
+    </div>
+  );
+}
 
 export default function Login() {
   const { session, roles, loading } = useAuth();
   const navigate = useNavigate();
   const from = (useLocation().state as { from?: string } | null)?.from;
+  const [mode, setMode] = useState<Mode>('signin');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [password2, setPassword2] = useState('');
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [areaId, setAreaId] = useState<number | null>(null);
   const [code, setCode] = useState('');
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
 
   useEffect(() => {
     if (!loading && session) navigate(from ?? homeFor(roles), { replace: true });
@@ -31,6 +86,64 @@ export default function Login() {
     );
   }
   const sb = supabase;
+
+  const switchMode = (m: Mode) => {
+    setMode(m);
+    setError('');
+    setNotice('');
+    setSent(false);
+  };
+
+  const signIn = async (e: FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setError('');
+    setNotice('');
+    const { error } = await sb.auth.signInWithPassword({ email: email.trim(), password });
+    setBusy(false);
+    if (!error) return;
+    if (error.message === 'Invalid login credentials')
+      setError('Wrong email or password. If you signed up with a login code or Google, use that instead.');
+    else if (error.message === 'Email not confirmed')
+      setError('Please confirm your email first. Tap the link we sent when you created your account.');
+    else setError(error.message);
+  };
+
+  const signUp = async (e: FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setNotice('');
+    const fullName = name.trim();
+    const mobile = normalisePhone(phone);
+    if (fullName.length < 2) return setError('Please enter your name.');
+    if (!mobile) return setError('Please enter a valid 10-digit mobile number.');
+    if (areaId == null) return setError('Please choose your location.');
+    if (password.length < 8) return setError('Password must be at least 8 characters.');
+    if (password !== password2) return setError('The two passwords do not match.');
+    setBusy(true);
+    // The profile row is filled from this metadata on first sign-in (see AuthProvider).
+    const { data, error } = await sb.auth.signUp({
+      email: email.trim(),
+      password,
+      options: {
+        data: { full_name: fullName, phone: mobile, location_id: areaId },
+        emailRedirectTo: window.location.origin + '/login',
+      },
+    });
+    setBusy(false);
+    if (error) return setError(error.message);
+    // With email confirmation on, an existing address comes back as a user with no identities.
+    if (data.user && data.user.identities?.length === 0) {
+      setMode('signin');
+      return setError('An account with this email already exists. Please sign in.');
+    }
+    if (!data.session) {
+      setMode('signin');
+      setPassword('');
+      setPassword2('');
+      setNotice(`We sent a confirmation link to ${email.trim()}. Tap it, then sign in here.`);
+    }
+  };
 
   const sendCode = async (e: FormEvent) => {
     e.preventDefault();
@@ -63,6 +176,21 @@ export default function Login() {
     if (error) setError(error.message);
   };
 
+  const emailField = (
+    <div className="field">
+      <label htmlFor="email">Email address</label>
+      <input
+        id="email"
+        type="email"
+        required
+        autoComplete="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="you@example.com"
+      />
+    </div>
+  );
+
   return (
     <AppShell header={<LogoHeader />}>
       <section className="hero">
@@ -70,54 +198,159 @@ export default function Login() {
         <p>Sign in to save offers, play the daily Scratch & Win and claim your prizes.</p>
       </section>
       <section className="section form-card">
-        {!sent ? (
-          <form onSubmit={sendCode}>
+        <div className="tabs" role="tablist">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode !== 'signup'}
+            className={mode !== 'signup' ? 'active' : ''}
+            onClick={() => switchMode('signin')}
+          >
+            Sign in
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === 'signup'}
+            className={mode === 'signup' ? 'active' : ''}
+            onClick={() => switchMode('signup')}
+          >
+            Create account
+          </button>
+        </div>
+
+        {notice && <p className="notice">{notice}</p>}
+
+        {mode === 'signin' && (
+          <form onSubmit={signIn}>
+            {emailField}
             <div className="field">
-              <label htmlFor="email">Email address</label>
-              <input
-                id="email"
-                type="email"
-                required
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
+              <label htmlFor="password">Password</label>
+              <PasswordInput
+                id="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={setPassword}
               />
             </div>
             <button className="btn" style={{ width: '100%' }} disabled={busy}>
-              {busy ? 'Sending…' : 'Send login code'}
-            </button>
-          </form>
-        ) : (
-          <form onSubmit={verify}>
-            <p className="meta" style={{ marginTop: 0 }}>
-              We emailed a code to <b>{email}</b>. Enter it below, or tap the link in the email.
-            </p>
-            <div className="field">
-              <label htmlFor="code">Login code</label>
-              <input
-                id="code"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                required
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                placeholder="123456"
-              />
-            </div>
-            <button className="btn" style={{ width: '100%' }} disabled={busy}>
-              {busy ? 'Checking…' : 'Verify and sign in'}
+              {busy ? 'Signing in…' : 'Sign in'}
             </button>
             <button
               type="button"
               className="btn secondary"
               style={{ width: '100%', marginTop: 8 }}
-              onClick={() => setSent(false)}
+              onClick={() => switchMode('code')}
             >
-              Use a different email
+              Forgot password? Email me a login code
             </button>
           </form>
         )}
+
+        {mode === 'signup' && (
+          <form onSubmit={signUp}>
+            <div className="field">
+              <label htmlFor="name">Your name</label>
+              <input
+                id="name"
+                required
+                autoComplete="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Full name"
+              />
+            </div>
+            {emailField}
+            <div className="field">
+              <label htmlFor="phone">Mobile number</label>
+              <input
+                id="phone"
+                type="tel"
+                inputMode="tel"
+                required
+                autoComplete="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="98765 43210"
+              />
+            </div>
+            <AreaPicker label="Your location" value={areaId} onChange={(a) => setAreaId(a?.id ?? null)} />
+            <div className="field">
+              <label htmlFor="new-password">Password</label>
+              <PasswordInput
+                id="new-password"
+                autoComplete="new-password"
+                value={password}
+                onChange={setPassword}
+                placeholder="At least 8 characters"
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="confirm-password">Confirm password</label>
+              <PasswordInput
+                id="confirm-password"
+                autoComplete="new-password"
+                value={password2}
+                onChange={setPassword2}
+                placeholder="Type it again"
+              />
+              {password2 && password !== password2 && (
+                <p className="error-text">Passwords do not match yet.</p>
+              )}
+            </div>
+            <button className="btn" style={{ width: '100%' }} disabled={busy}>
+              {busy ? 'Creating account…' : 'Create account'}
+            </button>
+          </form>
+        )}
+
+        {mode === 'code' &&
+          (!sent ? (
+            <form onSubmit={sendCode}>
+              {emailField}
+              <button className="btn" style={{ width: '100%' }} disabled={busy}>
+                {busy ? 'Sending…' : 'Send login code'}
+              </button>
+              <button
+                type="button"
+                className="btn secondary"
+                style={{ width: '100%', marginTop: 8 }}
+                onClick={() => switchMode('signin')}
+              >
+                Sign in with password
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={verify}>
+              <p className="meta" style={{ marginTop: 0 }}>
+                We emailed a code to <b>{email}</b>. Enter it below, or tap the link in the email.
+              </p>
+              <div className="field">
+                <label htmlFor="code">Login code</label>
+                <input
+                  id="code"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  required
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  placeholder="123456"
+                />
+              </div>
+              <button className="btn" style={{ width: '100%' }} disabled={busy}>
+                {busy ? 'Checking…' : 'Verify and sign in'}
+              </button>
+              <button
+                type="button"
+                className="btn secondary"
+                style={{ width: '100%', marginTop: 8 }}
+                onClick={() => setSent(false)}
+              >
+                Use a different email
+              </button>
+            </form>
+          ))}
+
         <div className="meta" style={{ textAlign: 'center', margin: '14px 0' }}>
           or
         </div>
