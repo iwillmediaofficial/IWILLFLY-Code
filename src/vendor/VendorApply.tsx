@@ -41,18 +41,29 @@ export default function VendorApply() {
           <ApplyForm />
         ) : (
           <div className="form-card">
-            <h3 style={{ marginTop: 0 }}>Sign in first</h3>
-            <p className="meta">
-              Sign in with your email or Google account, then come back here to register your business.
-            </p>
+            <h3 style={{ marginTop: 0 }}>Get started</h3>
+            <p className="meta">Create a vendor account with your business details in one step.</p>
             <Link
               className="btn block"
-              to="/login"
-              state={{ from: '/vendor/apply' }}
+              to="/vendor/signup"
               style={{ display: 'block', textAlign: 'center', marginTop: 12 }}
             >
-              Sign in to continue
+              Register your business
             </Link>
+            <Link
+              className="btn secondary block"
+              to="/vendor/login"
+              style={{ display: 'block', textAlign: 'center', marginTop: 8 }}
+            >
+              Already a vendor? Sign in
+            </Link>
+            <p className="meta" style={{ marginBottom: 0 }}>
+              Already shop with us?{' '}
+              <Link to="/login" state={{ from: '/vendor/apply' }}>
+                Sign in with your customer account
+              </Link>{' '}
+              and add your business to it.
+            </p>
           </div>
         )}
       </section>

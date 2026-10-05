@@ -54,6 +54,42 @@ async function fillProfileFromSignup(user: User) {
   if (Object.keys(patch).length) await supabase.from('profiles').update(patch).eq('id', user.id);
 }
 
+interface VendorApplication {
+  business_name: string;
+  phone: string;
+  whatsapp: string;
+}
+
+const vendorFiling = new Map<string, Promise<void>>();
+
+/**
+ * Files the vendor application saved by the vendor sign-up form (/vendor/signup) the first time the
+ * account has a session, then clears it from the metadata so it is never filed again.
+ * apply_as_vendor ignores repeats, and concurrent callers share one promise.
+ */
+function fileVendorApplication(user: User): Promise<void> {
+  const app = user.user_metadata?.vendor_application as VendorApplication | null | undefined;
+  if (!supabase || !app?.business_name) return Promise.resolve();
+  const sb = supabase;
+  let p = vendorFiling.get(user.id);
+  if (!p) {
+    p = (async () => {
+      const { error } = await sb.rpc('apply_as_vendor', {
+        p_business_name: app.business_name,
+        p_phone: app.phone ?? '',
+        p_whatsapp: app.whatsapp ?? '',
+      });
+      if (error) {
+        vendorFiling.delete(user.id); // let a later sign-in retry
+        return;
+      }
+      await sb.auth.updateUser({ data: { vendor_application: null } });
+    })();
+    vendorFiling.set(user.id, p);
+  }
+  return p;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
@@ -63,7 +99,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!supabase) return;
     let active = true;
     const apply = async (s: Session | null) => {
-      if (s) void fillProfileFromSignup(s.user);
+      if (s) {
+        void fillProfileFromSignup(s.user);
+        await fileVendorApplication(s.user);
+      }
       const r = s ? await fetchRoles(s.user.id) : [];
       if (!active) return;
       setSession(s);
