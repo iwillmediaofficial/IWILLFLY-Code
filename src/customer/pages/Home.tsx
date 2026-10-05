@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { AppShell, LogoHeader } from '../../components/AppShell';
+import { AppShell, LogoHeader, NotificationBell } from '../../components/AppShell';
 import { AdSlider } from '../../components/AdSlider';
 import { LocationButton } from '../../components/LocationButton';
 import { CampaignPrizes, ScratchButton, ScratchModal } from '../../components/Scratch';
@@ -8,7 +8,9 @@ import { formatKm } from '../../lib/hours';
 import { useCategories, useMalls, useOfferSearch } from '../../lib/queries';
 import { formatTime, useScratchToday } from '../../lib/scratch';
 import { supabase } from '../../lib/supabase';
-import { ErrorNotice, Loading, NoBackend, OfferImage, Thumb } from '../ui';
+import { FestivalBanners } from '../FestivalBanner';
+import { OfferTile } from '../OfferTile';
+import { ErrorNotice, Loading, NoBackend, Thumb } from '../ui';
 import { pickCampaign, useCampaignPrizes, useScratchCard, type ScratchCard } from '../scratch';
 import { toneFor } from '../util';
 
@@ -23,7 +25,7 @@ export default function Home() {
           actions={
             <>
               <LocationButton />
-              <button className="icon-btn">🔔</button>
+              <NotificationBell />
             </>
           }
         >
@@ -41,6 +43,7 @@ export default function Home() {
       }
     >
       <AdSlider />
+      <FestivalBanners />
       <section className="scratch-panel">
         <ScratchButton card={card} />
         <ScratchStatus card={card} />
@@ -123,7 +126,6 @@ function CategoryGrid() {
 }
 
 function NearOffers() {
-  const navigate = useNavigate();
   const { data, isLoading, error, refetch } = useOfferSearch({ limit: 10 });
   if (!supabase) return null;
   if (isLoading) return <Loading text="Finding offers near you…" />;
@@ -136,26 +138,17 @@ function NearOffers() {
   return (
     <div className="offer-row">
       {data.map((o, i) => (
-        <article
+        <OfferTile
           key={o.offer_id}
-          className="offer-card"
-          onClick={() => navigate(`/shop/${o.shop_id}?offer=${o.offer_id}`)}
-        >
-          <OfferImage
-            imageKey={o.image_key}
-            icon={o.category_icon}
-            badge={o.discount_label ?? (o.is_featured ? 'FEATURED' : 'OFFER')}
-            tone={toneFor(i)}
-          />
-          <div className="offer-body">
-            <h4>{o.shop_name}</h4>
-            <div className="meta">{[formatKm(o.distance_km), o.title].filter(Boolean).join(' · ')}</div>
-            <div className="offer-cta">
-              <strong>View offer</strong>
-              <span>→</span>
-            </div>
-          </div>
-        </article>
+          shopId={o.shop_id}
+          offerId={o.offer_id}
+          imageKey={o.image_key}
+          icon={o.category_icon}
+          badge={o.discount_label ?? (o.is_featured ? 'FEATURED' : 'OFFER')}
+          tone={toneFor(i)}
+          title={o.shop_name}
+          meta={[formatKm(o.distance_km), o.title].filter(Boolean).join(' · ')}
+        />
       ))}
     </div>
   );

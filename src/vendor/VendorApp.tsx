@@ -10,6 +10,9 @@ import BranchEditor from './BranchEditor';
 import OffersList from './OffersList';
 import OfferEditor from './OfferEditor';
 import VendorScratch from './scratch/VendorScratch';
+import VendorFestivals from './engagement/Festivals';
+import VendorInsights from './engagement/Insights';
+import VendorPromote from './engagement/Promote';
 import { ErrorNote, Loading } from './ui';
 
 const tabs = [
@@ -17,6 +20,9 @@ const tabs = [
   { to: '/vendor/shops', label: 'Shops' },
   { to: '/vendor/offers', label: 'Offers' },
   { to: '/vendor/scratch', label: 'Scratch & Win' },
+  { to: '/vendor/insights', label: 'Insights' },
+  { to: '/vendor/festivals', label: 'Festivals' },
+  { to: '/vendor/promote', label: 'Promote' },
 ];
 
 export default function VendorApp() {
@@ -60,6 +66,9 @@ export default function VendorApp() {
               <Route path="offers/new" element={<OfferEditor />} />
               <Route path="offers/:id" element={<OfferEditor />} />
               <Route path="scratch/*" element={<VendorScratch />} />
+              <Route path="insights" element={<VendorInsights />} />
+              <Route path="festivals" element={<VendorFestivals />} />
+              <Route path="promote" element={<VendorPromote />} />
               <Route path="*" element={<Navigate to="/vendor" replace />} />
             </Routes>
           </VendorContext.Provider>

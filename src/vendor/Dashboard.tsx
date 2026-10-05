@@ -2,10 +2,13 @@ import { useState, type FormEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { useToast } from '../components/Toast';
+import { useUnreadCount } from '../lib/engagement';
 import { db, must } from '../lib/queries';
 import type { Vendor } from '../lib/types';
 import { useMyOffers, VENDOR_KEY } from './api';
 import { useVendor } from './context';
+import { useVendorAnalytics } from './engagement/api';
+import { num } from './engagement/format';
 import { errorMessage, offerPhase, orNull, phoneError } from './format';
 import { ErrorNote, Lockable } from './ui';
 
@@ -28,6 +31,13 @@ export default function Dashboard() {
       <section className="section">
         <StatusNotice vendor={vendor} />
         <Counts />
+      </section>
+      <section className="section">
+        <div className="section-head">
+          <h2>Last 7 days</h2>
+          <Link to="/vendor/insights?days=7">See insights</Link>
+        </div>
+        <WeekAndAlerts />
       </section>
       <section className="section">
         <div className="section-head">
@@ -104,6 +114,36 @@ function Counts() {
           <strong>{c.value}</strong>
         </Link>
       ))}
+    </div>
+  );
+}
+
+/** Last-7-days views and WhatsApp leads, plus unread alerts. */
+function WeekAndAlerts() {
+  const stats = useVendorAnalytics(7);
+  const unread = useUnreadCount();
+  const value = (n: number | undefined) => (stats.isPending ? '…' : stats.error ? '–' : num(n ?? 0));
+  const alerts = unread.isPending ? '…' : unread.error ? '–' : num(unread.data ?? 0);
+  return (
+    <div className="info-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+      <Link className="info-card" to="/vendor/insights?days=7">
+        <span>Views</span>
+        <strong>{value(stats.data?.totals.views)}</strong>
+      </Link>
+      <Link className="info-card" to="/vendor/insights?days=7">
+        <span>WhatsApp leads</span>
+        <strong>{value(stats.data?.totals.whatsapp)}</strong>
+      </Link>
+      <Link
+        className="info-card"
+        to="/notifications"
+        style={
+          unread.data ? { borderColor: 'var(--color-blue)', background: 'var(--color-blue-soft)' } : undefined
+        }
+      >
+        <span>Unread alerts</span>
+        <strong>{alerts}</strong>
+      </Link>
     </div>
   );
 }

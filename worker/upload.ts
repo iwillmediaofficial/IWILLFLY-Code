@@ -1,16 +1,8 @@
-export interface Env {
-  ASSETS: Fetcher;
-  MEDIA: R2Bucket;
-  VITE_SUPABASE_URL: string;
-  VITE_SUPABASE_ANON_KEY: string;
-}
+import { json, rolesFor, type Env } from './env';
 
 const FOLDERS = ['shops', 'offers', 'ads', 'prizes', 'test'] as const;
 const UPLOAD_ROLES = ['vendor', 'admin', 'super_admin', 'campaign_manager'];
 const MAX_BYTES = 1024 * 1024; // images arrive as ~150 KB WebP; 1 MB is a hard ceiling
-
-const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
 /**
  * POST /api/upload?folder=offers  body: the WebP image  with  Authorization: Bearer <supabase access token>
@@ -30,13 +22,9 @@ export async function handleUpload(request: Request, env: Env): Promise<Response
     return json({ error: 'Image too large' }, 413);
 
   // Supabase checks the token; RLS returns only this user's own roles.
-  const rolesRes = await fetch(`${env.VITE_SUPABASE_URL}/rest/v1/user_roles?select=role`, {
-    headers: { apikey: env.VITE_SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` },
-  }).catch(() => null);
-  if (!rolesRes) return json({ error: 'Could not verify account' }, 502);
-  if (rolesRes.status === 401) return json({ error: 'Session expired, sign in again' }, 401);
-  if (!rolesRes.ok) return json({ error: 'Could not verify account' }, 502);
-  const roles = ((await rolesRes.json()) as { role: string }[]).map((r) => r.role);
+  const roles = await rolesFor(request, env);
+  if (roles === null) return json({ error: 'Session expired, sign in again' }, 401);
+  if (roles === 'error') return json({ error: 'Could not verify account' }, 502);
   if (!roles.some((r) => UPLOAD_ROLES.includes(r)))
     return json({ error: 'Your account cannot upload images' }, 403);
 

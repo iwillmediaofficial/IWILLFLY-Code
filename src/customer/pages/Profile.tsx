@@ -100,8 +100,9 @@ export default function Profile() {
           />
           <ProfileRow to="/prizes" icon="🏆" title="My Prizes" meta="Your wins and claim codes" />
           <ProfileRow to="/scratch" icon="🎁" title="My Scratch & Win history" meta="Daily prize activity" />
+          <ProfileRow to="/history" icon="🕘" title="Recently viewed" meta="Offers you looked at" />
           <ProfileRow
-            to="/settings"
+            to="/notifications"
             icon="🔔"
             title="Notifications"
             meta="Festival, nearby and saved offers"

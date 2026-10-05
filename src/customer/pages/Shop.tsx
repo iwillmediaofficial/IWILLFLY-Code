@@ -1,8 +1,9 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { AppShell, BackHeader } from '../../components/AppShell';
 import { EmptyState } from '../../components/ShopCard';
+import { track } from '../../lib/engagement';
 import { DAYS, formatKm, formatPrice, formatTime, haversineKm, nowIST, openState } from '../../lib/hours';
 import { usePlace } from '../../lib/location';
 import { db, must, useSavedIds } from '../../lib/queries';
@@ -110,6 +111,14 @@ export default function Shop() {
   );
 
   const s = shop.data;
+  const shopId = s?.id;
+  const openOfferId = openOffer?.id;
+  useEffect(() => {
+    if (shopId) track('view', shopId);
+  }, [shopId]);
+  useEffect(() => {
+    if (shopId && openOfferId) track('view', shopId, openOfferId);
+  }, [shopId, openOfferId]);
   const shopSaved = s ? Boolean(savedShops.data?.has(s.id)) : false;
   const header = (
     <BackHeader
@@ -375,6 +384,7 @@ export default function Shop() {
             <a
               className="btn yellow"
               href={directionsLink(branch.lat, branch.lng)}
+              onClick={() => track('directions', s.id)}
               target="_blank"
               rel="noreferrer"
             >
@@ -382,12 +392,22 @@ export default function Shop() {
             </a>
           )}
           {phone && (
-            <a className="btn secondary" href={`tel:${phone.replace(/\s/g, '')}`}>
+            <a
+              className="btn secondary"
+              href={`tel:${phone.replace(/\s/g, '')}`}
+              onClick={() => track('call', s.id)}
+            >
               📞 Call
             </a>
           )}
           {s.whatsapp && (
-            <a className="btn secondary" href={whatsappLink(s.whatsapp)} target="_blank" rel="noreferrer">
+            <a
+              className="btn secondary"
+              href={whatsappLink(s.whatsapp)}
+              onClick={() => track('whatsapp', s.id)}
+              target="_blank"
+              rel="noreferrer"
+            >
               💬 WhatsApp
             </a>
           )}

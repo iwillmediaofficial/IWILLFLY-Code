@@ -8,6 +8,11 @@ import { Locations } from './Locations';
 import { MallEdit, Malls } from './Malls';
 import { Offers } from './Offers';
 import ScratchAdmin from './scratch/ScratchAdmin';
+import AdminAds from './engagement/Ads';
+import AdminAnalytics from './engagement/Analytics';
+import AdminFestivals from './engagement/Festivals';
+import AdminNotify from './engagement/Notify';
+import AdminRequests from './engagement/Requests';
 import { ErrorNotice, Loading } from './ui';
 import { Vendors } from './Vendors';
 
@@ -16,6 +21,11 @@ const tabs = [
   { to: '/admin/vendors', label: 'Vendors' },
   { to: '/admin/offers', label: 'Offers' },
   { to: '/admin/scratch', label: 'Scratch & Win' },
+  { to: '/admin/festivals', label: 'Festivals' },
+  { to: '/admin/ads', label: 'Home ads' },
+  { to: '/admin/requests', label: 'Requests' },
+  { to: '/admin/notify', label: 'Notify' },
+  { to: '/admin/analytics', label: 'Analytics' },
   { to: '/admin/categories', label: 'Categories' },
   { to: '/admin/malls', label: 'Malls' },
   { to: '/admin/locations', label: 'Locations' },
@@ -56,6 +66,11 @@ export default function AdminApp() {
           <Route path="malls/:id" element={<MallEdit />} />
           <Route path="locations" element={<Locations />} />
           <Route path="scratch/*" element={<ScratchAdmin />} />
+          <Route path="festivals/*" element={<AdminFestivals />} />
+          <Route path="ads/*" element={<AdminAds />} />
+          <Route path="requests" element={<AdminRequests />} />
+          <Route path="notify" element={<AdminNotify />} />
+          <Route path="analytics" element={<AdminAnalytics />} />
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>
       </main>
