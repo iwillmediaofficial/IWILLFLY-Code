@@ -23,6 +23,8 @@ const Settings = lazy(() => import('./customer/pages/Settings'));
 const Login = lazy(() => import('./auth/Login'));
 const AdminLogin = lazy(() => import('./auth/AdminLogin'));
 const VendorApply = lazy(() => import('./vendor/VendorApply'));
+const VendorSignup = lazy(() => import('./vendor/VendorSignup'));
+const VendorLogin = lazy(() => import('./vendor/VendorLogin'));
 const VendorApp = lazy(() => import('./vendor/VendorApp'));
 const AdminApp = lazy(() => import('./admin/AdminApp'));
 
@@ -51,10 +53,12 @@ export default function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/admin/login" element={<AdminLogin />} />
                 <Route path="/vendor/apply" element={<VendorApply />} />
+                <Route path="/vendor/signup" element={<VendorSignup />} />
+                <Route path="/vendor/login" element={<VendorLogin />} />
                 <Route
                   path="/vendor/*"
                   element={
-                    <RequireRole roles={['vendor']}>
+                    <RequireRole roles={['vendor']} loginPath="/vendor/login">
                       <VendorApp />
                     </RequireRole>
                   }

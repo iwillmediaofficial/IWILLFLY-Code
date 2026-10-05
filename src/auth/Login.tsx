@@ -1,56 +1,12 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AppShell, LogoHeader } from '../components/AppShell';
 import { AreaPicker } from '../components/AreaPicker';
 import { supabase } from '../lib/supabase';
 import { homeFor, useAuth } from './AuthProvider';
+import { EmailCodeForm, EmailField, normalisePhone, PasswordInput, passwordSignInError } from './forms';
 
 type Mode = 'signin' | 'signup' | 'code';
-
-/** Indian mobile numbers: 10 digits starting 6-9, with or without +91. Returns +91XXXXXXXXXX or null. */
-function normalisePhone(raw: string) {
-  let digits = raw.replace(/\D/g, '');
-  if (digits.length === 12 && digits.startsWith('91')) digits = digits.slice(2);
-  if (digits.length === 11 && digits.startsWith('0')) digits = digits.slice(1);
-  return /^[6-9]\d{9}$/.test(digits) ? `+91${digits}` : null;
-}
-
-function PasswordInput({
-  id,
-  value,
-  onChange,
-  autoComplete,
-  placeholder,
-}: {
-  id: string;
-  value: string;
-  onChange: (v: string) => void;
-  autoComplete: string;
-  placeholder?: string;
-}) {
-  const [show, setShow] = useState(false);
-  return (
-    <div className="password-wrap">
-      <input
-        id={id}
-        type={show ? 'text' : 'password'}
-        required
-        autoComplete={autoComplete}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-      />
-      <button
-        type="button"
-        onClick={() => setShow((s) => !s)}
-        aria-label={show ? 'Hide password' : 'Show password'}
-        aria-pressed={show}
-      >
-        {show ? 'Hide' : 'Show'}
-      </button>
-    </div>
-  );
-}
 
 export default function Login() {
   const { session, roles, loading } = useAuth();
@@ -63,8 +19,6 @@ export default function Login() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [areaId, setAreaId] = useState<number | null>(null);
-  const [code, setCode] = useState('');
-  const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -91,7 +45,6 @@ export default function Login() {
     setMode(m);
     setError('');
     setNotice('');
-    setSent(false);
   };
 
   const signIn = async (e: FormEvent) => {
@@ -101,12 +54,7 @@ export default function Login() {
     setNotice('');
     const { error } = await sb.auth.signInWithPassword({ email: email.trim(), password });
     setBusy(false);
-    if (!error) return;
-    if (error.message === 'Invalid login credentials')
-      setError('Wrong email or password. If you signed up with a login code or Google, use that instead.');
-    else if (error.message === 'Email not confirmed')
-      setError('Please confirm your email first. Tap the link we sent when you created your account.');
-    else setError(error.message);
+    if (error) setError(passwordSignInError(error.message));
   };
 
   const signUp = async (e: FormEvent) => {
@@ -145,28 +93,6 @@ export default function Login() {
     }
   };
 
-  const sendCode = async (e: FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
-    setError('');
-    const { error } = await sb.auth.signInWithOtp({
-      email: email.trim(),
-      options: { emailRedirectTo: window.location.origin + '/login' },
-    });
-    setBusy(false);
-    if (error) setError(error.message);
-    else setSent(true);
-  };
-
-  const verify = async (e: FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
-    setError('');
-    const { error } = await sb.auth.verifyOtp({ email: email.trim(), token: code.trim(), type: 'email' });
-    setBusy(false);
-    if (error) setError(error.message);
-  };
-
   const google = async () => {
     setError('');
     const { error } = await sb.auth.signInWithOAuth({
@@ -175,21 +101,6 @@ export default function Login() {
     });
     if (error) setError(error.message);
   };
-
-  const emailField = (
-    <div className="field">
-      <label htmlFor="email">Email address</label>
-      <input
-        id="email"
-        type="email"
-        required
-        autoComplete="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder="you@example.com"
-      />
-    </div>
-  );
 
   return (
     <AppShell header={<LogoHeader />}>
@@ -223,7 +134,7 @@ export default function Login() {
 
         {mode === 'signin' && (
           <form onSubmit={signIn}>
-            {emailField}
+            <EmailField value={email} onChange={setEmail} />
             <div className="field">
               <label htmlFor="password">Password</label>
               <PasswordInput
@@ -260,7 +171,7 @@ export default function Login() {
                 placeholder="Full name"
               />
             </div>
-            {emailField}
+            <EmailField value={email} onChange={setEmail} />
             <div className="field">
               <label htmlFor="phone">Mobile number</label>
               <input
@@ -304,52 +215,14 @@ export default function Login() {
           </form>
         )}
 
-        {mode === 'code' &&
-          (!sent ? (
-            <form onSubmit={sendCode}>
-              {emailField}
-              <button className="btn" style={{ width: '100%' }} disabled={busy}>
-                {busy ? 'Sending…' : 'Send login code'}
-              </button>
-              <button
-                type="button"
-                className="btn secondary"
-                style={{ width: '100%', marginTop: 8 }}
-                onClick={() => switchMode('signin')}
-              >
-                Sign in with password
-              </button>
-            </form>
-          ) : (
-            <form onSubmit={verify}>
-              <p className="meta" style={{ marginTop: 0 }}>
-                We emailed a code to <b>{email}</b>. Enter it below, or tap the link in the email.
-              </p>
-              <div className="field">
-                <label htmlFor="code">Login code</label>
-                <input
-                  id="code"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  required
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  placeholder="123456"
-                />
-              </div>
-              <button className="btn" style={{ width: '100%' }} disabled={busy}>
-                {busy ? 'Checking…' : 'Verify and sign in'}
-              </button>
-              <button
-                type="button"
-                className="btn secondary"
-                style={{ width: '100%', marginTop: 8 }}
-                onClick={() => setSent(false)}
-              >
-                Use a different email
-              </button>
-            </form>
-          ))}
+        {mode === 'code' && (
+          <EmailCodeForm
+            email={email}
+            onEmail={setEmail}
+            returnPath="/login"
+            onBack={() => switchMode('signin')}
+          />
+        )}
 
         <div className="meta" style={{ textAlign: 'center', margin: '14px 0' }}>
           or
@@ -359,6 +232,10 @@ export default function Login() {
         </button>
         {error && <p className="error-text">{error}</p>}
       </section>
+      <p className="meta" style={{ textAlign: 'center' }}>
+        Shop owner? <Link to="/vendor/signup">Register your business</Link> ·{' '}
+        <Link to="/vendor/login">Vendor sign in</Link>
+      </p>
     </AppShell>
   );
 }
