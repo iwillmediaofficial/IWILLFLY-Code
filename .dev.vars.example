@@ -6,3 +6,5 @@ R2_SECRET_ACCESS_KEY=
 VITE_SUPABASE_URL=https://evqxdkzekwmgfmjvzjrv.supabase.co
 VITE_SUPABASE_ANON_KEY=
 VITE_MEDIA_BASE_URL=
+# Super admin tools (create vendor accounts, set vendor passwords) and web push. Server-only: never put it in .env.local.
+SUPABASE_SERVICE_ROLE_KEY=

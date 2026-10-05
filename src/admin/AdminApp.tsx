@@ -19,6 +19,7 @@ import SupportAdmin from './support/Support';
 import AdminReports from './reports/Reports';
 import Team from './team/Team';
 import { ErrorNotice, Loading } from './ui';
+import { VendorCreate, VendorDetail } from './VendorDetail';
 import { Vendors } from './Vendors';
 
 const ADMIN: AppRole[] = ['admin', 'super_admin'];
@@ -84,6 +85,8 @@ export default function AdminApp() {
         <Routes>
           <Route index element={<Dashboard />} />
           <Route path="vendors" element={<Vendors />} />
+          <Route path="vendors/new" element={<VendorCreate />} />
+          <Route path="vendors/:id" element={<VendorDetail />} />
           <Route path="offers" element={<Offers />} />
           <Route path="categories" element={<Categories />} />
           <Route path="malls" element={<Malls />} />
