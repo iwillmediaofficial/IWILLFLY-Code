@@ -1004,3 +1004,106 @@
     margin-bottom: 8px;
   }
 }
+
+/* Scratch & Win (live): canvas scratch layer, result details and My Prizes. */
+@layer components {
+  .scratch-area.scratching {
+    background: linear-gradient(135deg, #eaf4ff, #d6eaff);
+    cursor: default;
+  }
+  .scratch-area.scratching .result {
+    display: block;
+  }
+  .scratch-area.scratching .cover {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    transition: opacity 0.25s;
+  }
+  .scratch-area .cover.gone {
+    opacity: 0;
+  }
+  .scratch-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+    cursor: pointer;
+    transition: opacity 0.35s;
+  }
+  .scratch-canvas.gone {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .prize img {
+    display: block;
+    width: 36px;
+    height: 36px;
+    object-fit: cover;
+    border-radius: 10px;
+    margin: 0 auto 4px;
+  }
+  .win-card {
+    text-align: center;
+  }
+  .win-img {
+    width: 96px;
+    height: 96px;
+    object-fit: cover;
+    border-radius: 18px;
+    margin-bottom: 8px;
+  }
+  .win-icon {
+    font-size: 48px;
+    margin-bottom: 6px;
+  }
+  .claim-code {
+    margin: 12px auto 8px;
+    padding: 12px 16px;
+    border: 2px dashed var(--color-blue);
+    border-radius: 14px;
+    background: var(--color-blue-soft);
+    color: var(--color-blue);
+    font-size: 26px;
+    font-weight: 900;
+    letter-spacing: 3px;
+    font-variant-numeric: tabular-nums;
+  }
+  .claim-code.huge {
+    font-size: 34px;
+  }
+  .claim-qr {
+    display: block;
+    width: min(280px, 100%);
+    aspect-ratio: 1;
+    margin: 4px auto 0;
+    border-radius: 16px;
+    border: 1px solid var(--color-line);
+    background: #fff;
+  }
+  .prize-status {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 5px 8px;
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: 800;
+  }
+  .prize-status.unclaimed {
+    background: #fff1a8;
+    color: #6f5400;
+  }
+  .prize-status.claimed {
+    background: #e3f8eb;
+    color: #087638;
+  }
+  .prize-status.expired {
+    background: #eef1f5;
+    color: #6c788a;
+  }
+}

@@ -9,12 +9,14 @@ import ShopEditor from './ShopEditor';
 import BranchEditor from './BranchEditor';
 import OffersList from './OffersList';
 import OfferEditor from './OfferEditor';
+import VendorScratch from './scratch/VendorScratch';
 import { ErrorNote, Loading } from './ui';
 
 const tabs = [
   { to: '/vendor', label: 'Dashboard', end: true },
   { to: '/vendor/shops', label: 'Shops' },
   { to: '/vendor/offers', label: 'Offers' },
+  { to: '/vendor/scratch', label: 'Scratch & Win' },
 ];
 
 export default function VendorApp() {
@@ -57,6 +59,7 @@ export default function VendorApp() {
               <Route path="offers" element={<OffersList />} />
               <Route path="offers/new" element={<OfferEditor />} />
               <Route path="offers/:id" element={<OfferEditor />} />
+              <Route path="scratch/*" element={<VendorScratch />} />
               <Route path="*" element={<Navigate to="/vendor" replace />} />
             </Routes>
           </VendorContext.Provider>

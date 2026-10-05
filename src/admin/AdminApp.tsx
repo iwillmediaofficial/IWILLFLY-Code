@@ -7,6 +7,7 @@ import { Categories } from './Categories';
 import { Locations } from './Locations';
 import { MallEdit, Malls } from './Malls';
 import { Offers } from './Offers';
+import ScratchAdmin from './scratch/ScratchAdmin';
 import { ErrorNotice, Loading } from './ui';
 import { Vendors } from './Vendors';
 
@@ -14,6 +15,7 @@ const tabs = [
   { to: '/admin', label: 'Dashboard', end: true },
   { to: '/admin/vendors', label: 'Vendors' },
   { to: '/admin/offers', label: 'Offers' },
+  { to: '/admin/scratch', label: 'Scratch & Win' },
   { to: '/admin/categories', label: 'Categories' },
   { to: '/admin/malls', label: 'Malls' },
   { to: '/admin/locations', label: 'Locations' },
@@ -53,6 +55,7 @@ export default function AdminApp() {
           <Route path="malls/new" element={<MallEdit />} />
           <Route path="malls/:id" element={<MallEdit />} />
           <Route path="locations" element={<Locations />} />
+          <Route path="scratch/*" element={<ScratchAdmin />} />
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>
       </main>
