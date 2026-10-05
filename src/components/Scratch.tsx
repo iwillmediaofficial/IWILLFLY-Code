@@ -1,159 +1,405 @@
-import { useEffect, useState, type CSSProperties } from 'react';
-import { prizes } from '../data/demo';
-import { readJSON, writeJSON } from '../lib/storage';
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../auth/AuthProvider';
+import { closedLabel, formatDay, useCampaignPrizes, type ScratchCard } from '../customer/scratch';
+import { errorText } from '../customer/util';
+import { formatCode, formatTime } from '../lib/scratch';
+import { mediaUrl } from '../lib/supabase';
+import type { PlayResult } from '../lib/types';
 import { useToast } from './Toast';
 
-// Phase 0 keeps the prototype's on-device demo. Phase 2 moves this to the play_scratch() database function.
-const KEY = 'iwillfly-win';
-type Play = { date: string; prize: string };
-
-function today() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function readPlay(): Play | null {
-  const p = readJSON<Play | null>(KEY, null);
-  return p && p.date === today() ? p : null;
-}
-
-function isActiveHours(d = new Date()) {
-  const n = d.getHours() * 60 + d.getMinutes();
-  return n >= 9 * 60 && n < 22 * 60;
-}
-
-// eslint-disable-next-line react-refresh/only-export-components
-export function useDailyScratch() {
-  const [play, setPlay] = useState<Play | null>(readPlay);
-  const [open, setOpen] = useState(false);
-  const reveal = () => {
-    const p = { date: today(), prize: prizes[Math.floor(Math.random() * prizes.length)] };
-    writeJSON(KEY, p);
-    setPlay(p);
-  };
-  return { play, open, setOpen, reveal, active: isActiveHours() };
-}
-
-type Daily = ReturnType<typeof useDailyScratch>;
-
-export function ScratchButton({ daily, style }: { daily: Daily; style?: CSSProperties }) {
+/** The daily button: green = play now, red = played today, gray = nothing to play right now. */
+export function ScratchButton({ card, style }: { card: ScratchCard; style?: CSSProperties }) {
   const toast = useToast();
-  if (daily.play) {
+  const navigate = useNavigate();
+  const { session } = useAuth();
+  const c = card.campaign;
+  const play = card.result;
+
+  if (!c) {
     return (
       <button
-        className="scratch-btn red"
+        className="scratch-btn gray"
         style={style}
-        onClick={() => toast("Today's chance already used. Come back tomorrow.")}
+        onClick={() => !card.loading && toast('No Scratch & Win is running today. Check back soon.')}
       >
-        <div style={{ fontSize: 13, fontWeight: 800 }}>✓ WON TODAY</div>
-        <div className="big">{daily.play.prize === 'Better Luck Tomorrow' ? 'PLAYED' : 'CLAIM'}</div>
+        <div style={{ fontSize: 13, fontWeight: 800 }}>{card.loading ? 'LOADING' : 'NO GAME TODAY'}</div>
+        <div className="big">
+          SCRATCH
+          <br />& WIN
+        </div>
+        <small>{card.loading ? 'Checking today’s game…' : 'Check back soon'}</small>
+      </button>
+    );
+  }
+  if (play) {
+    return (
+      <button className="scratch-btn red" style={style} onClick={() => card.setOpen(true)}>
+        <div style={{ fontSize: 13, fontWeight: 800 }}>{play.won ? '✓ WON TODAY' : '✓ PLAYED TODAY'}</div>
+        <div className="big">{play.won ? 'CLAIM' : 'PLAYED'}</div>
         <small>
-          {daily.play.prize}
+          {play.won ? (play.prize?.name ?? 'Prize won') : 'Better luck tomorrow'}
           <br />
           Come back tomorrow
         </small>
       </button>
     );
   }
-  if (daily.active) {
+  if (session && !c.eligible) {
     return (
-      <button className="scratch-btn green" style={style} onClick={() => daily.setOpen(true)}>
-        <div style={{ fontSize: 13, fontWeight: 800 }}>● LIVE · 24 HRS</div>
+      <button
+        className="scratch-btn gray"
+        style={style}
+        onClick={() => {
+          toast('Set your area in Settings to play this Scratch & Win.');
+          navigate('/settings');
+        }}
+      >
+        <div style={{ fontSize: 13, fontWeight: 800 }}>NOT IN YOUR AREA</div>
         <div className="big">
           SCRATCH
           <br />& WIN
         </div>
-        <small>One chance today</small>
+        <small>
+          Set your area in Settings
+          <br />
+          to see if you can play
+        </small>
+      </button>
+    );
+  }
+  const hours = `${formatTime(c.active_from)} – ${formatTime(c.active_to)}`;
+  if (!c.is_open_now) {
+    const label = closedLabel(c);
+    return (
+      <button
+        className="scratch-btn gray"
+        style={style}
+        onClick={() => toast(`Scratch & Win is available ${hours}. ${label}.`)}
+      >
+        <div style={{ fontSize: 13, fontWeight: 800 }}>CLOSED NOW</div>
+        <div className="big">
+          SCRATCH
+          <br />& WIN
+        </div>
+        <small>
+          {label}
+          <br />
+          Available {hours}
+        </small>
       </button>
     );
   }
   return (
     <button
-      className="scratch-btn gray"
+      className="scratch-btn green"
       style={style}
-      onClick={() => toast('Scratch & Win is available during shop hours.')}
+      onClick={() => {
+        if (!session) {
+          toast('Sign in to play Scratch & Win');
+          navigate('/login');
+          return;
+        }
+        card.setOpen(true);
+      }}
     >
-      <div style={{ fontSize: 13, fontWeight: 800 }}>CLOSED NOW</div>
+      <div style={{ fontSize: 13, fontWeight: 800 }}>● LIVE · TILL {formatTime(c.active_to)}</div>
       <div className="big">
         SCRATCH
         <br />& WIN
       </div>
-      <small>Available 9:00 AM – 10:00 PM</small>
+      <small>One chance today</small>
     </button>
   );
 }
 
 export function ScratchModal({
-  daily,
+  card,
   title,
   subtitle,
   children,
 }: {
-  daily: Daily;
+  card: ScratchCard;
   title: string;
   subtitle: string;
-  children?: React.ReactNode;
+  children?: ReactNode;
 }) {
-  const toast = useToast();
-  const [revealed, setRevealed] = useState(false);
+  const { open, setOpen, result, revealed } = card;
 
   useEffect(() => {
-    document.body.style.overflow = daily.open ? 'hidden' : '';
+    document.body.style.overflow = open ? 'hidden' : '';
     return () => {
       document.body.style.overflow = '';
     };
-  }, [daily.open]);
-
-  const onScratch = () => {
-    if (revealed || daily.play) return;
-    daily.reveal();
-    setRevealed(true);
-    toast("Today's result saved on this device.");
-  };
+  }, [open]);
 
   return (
     <div
-      className={`modal${daily.open ? ' show' : ''}`}
-      onClick={(e) => e.target === e.currentTarget && daily.setOpen(false)}
+      className={`modal${open ? ' show' : ''}`}
+      onClick={(e) => e.target === e.currentTarget && setOpen(false)}
     >
       <div className="sheet">
         <div className="sheet-head">
           <div>
             <h2 style={{ margin: 0 }}>{title}</h2>
-            <div className="meta">{subtitle}</div>
+            <div className="meta">{revealed ? (card.campaign?.name ?? subtitle) : subtitle}</div>
           </div>
-          <button className="close" onClick={() => daily.setOpen(false)} aria-label="Close">
+          <button className="close" onClick={() => setOpen(false)} aria-label="Close">
             ×
           </button>
         </div>
-        <div className={`scratch-area${revealed ? ' revealed' : ''}`} onClick={onScratch}>
-          <div className="cover">
-            <div style={{ fontSize: 36 }}>☝️</div>
-            <h2>SCRATCH HERE</h2>
-            <div className="meta">Tap to reveal today’s prize</div>
+        {revealed ? (
+          <div className="scratch-area revealed">
+            <div className="result">
+              <ResultFace result={result} />
+            </div>
           </div>
-          <div className="result">
-            <div style={{ fontSize: 42 }}>🎉</div>
-            <h2 style={{ margin: '7px 0' }}>{daily.play?.prize}</h2>
-            <p style={{ margin: 0, color: '#6f7c91', fontSize: 12 }}>
-              Show this screen at the selected shop to claim.
-            </p>
-          </div>
-        </div>
-        {children}
+        ) : open ? (
+          <ScratchSurface key={card.attempt} card={card} />
+        ) : (
+          <div className="scratch-area" />
+        )}
+        {card.error && !revealed && <div className="notice bad">{errorText(card.error)}</div>}
+        {revealed && result ? <ResultScreen result={result} onClose={() => setOpen(false)} /> : children}
       </div>
     </div>
   );
 }
 
-export function PrizeGrid({ items }: { items: [string, string][] }) {
+/** What shows under the silver layer. */
+function ResultFace({ result }: { result: PlayResult | null }) {
+  if (!result) {
+    return (
+      <>
+        <div style={{ fontSize: 42 }}>⏳</div>
+        <h2 style={{ margin: '7px 0' }}>Checking…</h2>
+        <p style={{ margin: 0, color: '#6f7c91', fontSize: 12 }}>Getting today’s result</p>
+      </>
+    );
+  }
+  if (!result.won) {
+    return (
+      <>
+        <div style={{ fontSize: 42 }}>🍀</div>
+        <h2 style={{ margin: '7px 0' }}>Better Luck Tomorrow</h2>
+        <p style={{ margin: 0, color: '#6f7c91', fontSize: 12 }}>No prize this time. Try again tomorrow.</p>
+      </>
+    );
+  }
+  return (
+    <>
+      <div style={{ fontSize: 42 }}>🎉</div>
+      <h2 style={{ margin: '7px 0' }}>{result.prize?.name ?? 'You won!'}</h2>
+      <p style={{ margin: 0, color: '#6f7c91', fontSize: 12 }}>
+        Show your claim code at {result.sponsor?.name ?? 'the shop'} to claim.
+      </p>
+    </>
+  );
+}
+
+/** Details under the card once the result is revealed. */
+function ResultScreen({ result, onClose }: { result: PlayResult; onClose: () => void }) {
+  if (!result.won) {
+    return (
+      <div className="form-card" style={{ textAlign: 'center' }}>
+        <h3 style={{ margin: '0 0 6px' }}>Better luck tomorrow</h3>
+        <div className="meta" style={{ marginBottom: 12 }}>
+          You get one free scratch every day. Come back tomorrow for another chance.
+        </div>
+        <button className="btn secondary block" onClick={onClose}>
+          Close
+        </button>
+      </div>
+    );
+  }
+  return (
+    <div className="form-card win-card">
+      {result.prize?.image_key ? (
+        <img className="win-img" src={mediaUrl(result.prize.image_key)} alt="" />
+      ) : (
+        <div className="win-icon">🎁</div>
+      )}
+      <h3 style={{ margin: '0 0 4px' }}>{result.prize?.name}</h3>
+      {result.prize?.description && <div className="meta">{result.prize.description}</div>}
+      {result.sponsor && <div className="meta">Sponsored by {result.sponsor.name}</div>}
+      {result.claim_code && <div className="claim-code">{formatCode(result.claim_code)}</div>}
+      <div className="meta" style={{ marginBottom: 12 }}>
+        {result.sponsor ? `Show this code at ${result.sponsor.name}. ` : ''}
+        {result.expires_at && `Valid till ${formatDay(result.expires_at)}`}
+      </div>
+      <Link className="btn block" to="/prizes" style={{ display: 'block', textAlign: 'center' }}>
+        View in My Prizes
+      </Link>
+    </div>
+  );
+}
+
+const BRUSH = 38;
+
+/**
+ * The silver layer, drawn on a canvas so it can be scratched off. Touching it starts the play on the
+ * server; a tap or scratching about half of it reveals the result underneath.
+ */
+function ScratchSurface({ card }: { card: ScratchCard }) {
+  const wrap = useRef<HTMLDivElement>(null);
+  const canvas = useRef<HTMLCanvasElement>(null);
+  const drag = useRef<{ x: number; y: number; moved: number } | null>(null);
+  const touched = useRef(false);
+  const [started, setStarted] = useState(false);
+  const [gone, setGone] = useState(false);
+
+  useEffect(() => {
+    const cv = canvas.current;
+    const el = wrap.current;
+    if (!cv || !el) return;
+    const paint = () => {
+      const { width, height } = el.getBoundingClientRect();
+      if (!width || !height) return;
+      const dpr = window.devicePixelRatio || 1;
+      cv.width = Math.round(width * dpr);
+      cv.height = Math.round(height * dpr);
+      const ctx = cv.getContext('2d');
+      if (!ctx) return;
+      // Same stripes as the prototype's repeating-linear-gradient(45deg, #d4d6db 0 10px, #c1c4ca 10px 20px).
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.fillStyle = '#d4d6db';
+      ctx.fillRect(0, 0, width, height);
+      ctx.save();
+      ctx.translate(width / 2, height / 2);
+      ctx.rotate(Math.PI / 4);
+      const d = Math.hypot(width, height);
+      ctx.fillStyle = '#c1c4ca';
+      for (let y = -d; y < d; y += 20) ctx.fillRect(-d, y + 10, 2 * d, 10);
+      ctx.restore();
+    };
+    paint();
+    const ro = new ResizeObserver(() => !touched.current && paint());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const point = (e: PointerEvent) => {
+    const r = canvas.current!.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  };
+
+  const erase = (a: { x: number; y: number }, b: { x: number; y: number }) => {
+    const ctx = canvas.current?.getContext('2d');
+    if (!ctx) return;
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.lineWidth = BRUSH;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x + 0.01, b.y);
+    ctx.stroke();
+  };
+
+  const cleared = () => {
+    const cv = canvas.current;
+    const ctx = cv?.getContext('2d');
+    if (!cv || !ctx || !cv.width || !cv.height) return 1;
+    const data = ctx.getImageData(0, 0, cv.width, cv.height).data;
+    let clear = 0;
+    let total = 0;
+    for (let i = 3; i < data.length; i += 4 * 24) {
+      total++;
+      if (data[i] === 0) clear++;
+    }
+    return total ? clear / total : 1;
+  };
+
+  const begin = () => {
+    if (!touched.current) {
+      touched.current = true;
+      setStarted(true);
+      card.start();
+    }
+  };
+
+  const finish = () => {
+    setGone(true);
+    card.reveal();
+  };
+
+  return (
+    <div ref={wrap} className="scratch-area scratching">
+      <div className="result">
+        <ResultFace result={card.result} />
+      </div>
+      <canvas
+        ref={canvas}
+        className={`scratch-canvas${gone ? ' gone' : ''}`}
+        role="button"
+        tabIndex={0}
+        aria-label="Scratch to reveal today’s prize"
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            begin();
+            finish();
+          }
+        }}
+        onPointerDown={(e) => {
+          e.currentTarget.setPointerCapture(e.pointerId);
+          const p = point(e);
+          drag.current = { ...p, moved: 0 };
+          begin();
+          erase(p, p);
+        }}
+        onPointerMove={(e) => {
+          const d = drag.current;
+          if (!d) return;
+          const p = point(e);
+          erase(d, p);
+          drag.current = { ...p, moved: d.moved + Math.hypot(p.x - d.x, p.y - d.y) };
+        }}
+        onPointerUp={() => {
+          const d = drag.current;
+          drag.current = null;
+          if (!d) return;
+          if (d.moved < 10 || cleared() > 0.45) finish();
+        }}
+        onPointerCancel={() => {
+          drag.current = null;
+        }}
+      />
+      <div className={`cover${started ? ' gone' : ''}`}>
+        <div style={{ fontSize: 36 }}>☝️</div>
+        <h2>SCRATCH HERE</h2>
+        <div className="meta">Scratch or tap to reveal today’s prize</div>
+      </div>
+    </div>
+  );
+}
+
+export type PrizeItem = { key: string | number; label: string; icon?: string; imageKey?: string | null };
+
+export function PrizeGrid({ items }: { items: PrizeItem[] }) {
   return (
     <div className="prize-grid">
-      {items.map(([icon, label]) => (
-        <div key={label} className="prize">
-          <b>{icon}</b>
-          {label}
+      {items.map((p) => (
+        <div key={p.key} className="prize">
+          {p.imageKey ? <img src={mediaUrl(p.imageKey)} alt="" loading="lazy" /> : <b>{p.icon ?? '🎁'}</b>}
+          {p.label}
         </div>
       ))}
     </div>
+  );
+}
+
+/** A campaign's live prizes as a PrizeGrid. */
+export function CampaignPrizes({ campaignId, limit }: { campaignId: number | undefined; limit?: number }) {
+  const { data, isLoading, error } = useCampaignPrizes(campaignId);
+  if (!campaignId) return <div className="meta">Prizes will appear here when a game is running.</div>;
+  if (isLoading) return <div className="meta">Loading prizes…</div>;
+  if (error) return <div className="notice bad">{errorText(error)}</div>;
+  const list = (data ?? []).filter((p) => p.remaining > 0);
+  if (!list.length) return <div className="meta">Prizes will be announced soon.</div>;
+  return (
+    <PrizeGrid
+      items={list.slice(0, limit).map((p) => ({ key: p.id, label: p.name, imageKey: p.image_key }))}
+    />
   );
 }

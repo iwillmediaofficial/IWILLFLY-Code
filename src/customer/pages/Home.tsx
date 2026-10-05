@@ -2,16 +2,19 @@ import { Link, useNavigate } from 'react-router-dom';
 import { AppShell, LogoHeader } from '../../components/AppShell';
 import { AdSlider } from '../../components/AdSlider';
 import { LocationButton } from '../../components/LocationButton';
-import { PrizeGrid, ScratchButton, ScratchModal, useDailyScratch } from '../../components/Scratch';
+import { CampaignPrizes, ScratchButton, ScratchModal } from '../../components/Scratch';
 import { EmptyState } from '../../components/ShopCard';
 import { formatKm } from '../../lib/hours';
 import { useCategories, useMalls, useOfferSearch } from '../../lib/queries';
+import { formatTime, useScratchToday } from '../../lib/scratch';
 import { supabase } from '../../lib/supabase';
 import { ErrorNotice, Loading, NoBackend, OfferImage, Thumb } from '../ui';
+import { pickCampaign, useCampaignPrizes, useScratchCard, type ScratchCard } from '../scratch';
 import { toneFor } from '../util';
 
 export default function Home() {
-  const daily = useDailyScratch();
+  const today = useScratchToday();
+  const card = useScratchCard(pickCampaign(today.data), today.isLoading);
   const navigate = useNavigate();
   return (
     <AppShell
@@ -39,19 +42,8 @@ export default function Home() {
     >
       <AdSlider />
       <section className="scratch-panel">
-        <ScratchButton daily={daily} />
-        <div className="status-card">
-          <div className="status open">
-            <span className="light" />
-            <b>Shop Open</b>
-          </div>
-          <div className="meta" style={{ marginTop: 4 }}>
-            9:00 AM – 10:00 PM
-          </div>
-          <div className="prize-mini">
-            Today’s highlighted prize<strong>🎧 Wireless Earbuds</strong>
-          </div>
-        </div>
+        <ScratchButton card={card} />
+        <ScratchStatus card={card} />
       </section>
       <section className="section">
         <div className="section-head">
@@ -74,20 +66,34 @@ export default function Home() {
         </div>
         <TopMalls />
       </section>
-      <ScratchModal daily={daily} title="Daily Scratch & Win" subtitle="One chance every day">
+      <ScratchModal card={card} title="Daily Scratch & Win" subtitle="One chance every day">
         <h3>Possible prizes today</h3>
-        <PrizeGrid
-          items={[
-            ['📱', 'Smart Phone'],
-            ['💻', 'Laptop'],
-            ['🎧', 'Earbuds'],
-            ['⌚', 'Smart Watch'],
-            ['🎫', 'Vouchers'],
-            ['🎁', 'Mystery Gift'],
-          ]}
-        />
+        <CampaignPrizes campaignId={card.campaign?.id} />
       </ScratchModal>
     </AppShell>
+  );
+}
+
+/** The small card next to the scratch button: open/closed, hours and a highlighted prize. */
+function ScratchStatus({ card }: { card: ScratchCard }) {
+  const c = card.campaign;
+  const prizes = useCampaignPrizes(c?.id);
+  const highlight = prizes.data?.find((p) => p.remaining > 0);
+  const open = Boolean(c?.is_open_now);
+  return (
+    <div className="status-card">
+      <div className={`status ${open ? 'open' : 'closed'}`}>
+        <span className="light" />
+        <b>{c ? (open ? 'Open Now' : 'Closed Now') : card.loading ? 'Loading…' : 'No Game Today'}</b>
+      </div>
+      <div className="meta" style={{ marginTop: 4 }}>
+        {c ? `${formatTime(c.active_from)} – ${formatTime(c.active_to)}` : 'Check back soon'}
+      </div>
+      <div className="prize-mini">
+        Today’s highlighted prize
+        <strong>{highlight ? `🎁 ${highlight.name}` : c ? 'Coming soon' : '—'}</strong>
+      </div>
+    </div>
   );
 }
 

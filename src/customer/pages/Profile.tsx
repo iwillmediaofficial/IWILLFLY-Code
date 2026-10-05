@@ -3,6 +3,7 @@ import { AppShell, LogoHeader } from '../../components/AppShell';
 import { ADMIN_ROLES, useAuth } from '../../auth/AuthProvider';
 import { usePlace } from '../../lib/location';
 import { useSavedIds } from '../../lib/queries';
+import { useMyPrizes } from '../../lib/scratch';
 
 const pad = (n: number | undefined) => (n == null ? '–' : String(n).padStart(2, '0'));
 
@@ -11,6 +12,7 @@ export default function Profile() {
   const { place } = usePlace();
   const savedOffers = useSavedIds('offer');
   const savedShops = useSavedIds('shop');
+  const myPrizes = useMyPrizes();
   const email = session?.user.email ?? '';
   const name =
     (session?.user.user_metadata?.full_name as string | undefined) ?? (email ? email.split('@')[0] : 'Guest');
@@ -66,7 +68,7 @@ export default function Profile() {
           </div>
           <div className="info-card">
             <span>Wins</span>
-            <strong>00</strong>
+            <strong>{session ? pad(myPrizes.data?.length) : '00'}</strong>
           </div>
           <div className="info-card">
             <span>Your area</span>
@@ -96,6 +98,7 @@ export default function Profile() {
             title="Location & nearby offers"
             meta={place ? `Showing offers near ${place.label}` : 'Set your area for nearby offers'}
           />
+          <ProfileRow to="/prizes" icon="🏆" title="My Prizes" meta="Your wins and claim codes" />
           <ProfileRow to="/scratch" icon="🎁" title="My Scratch & Win history" meta="Daily prize activity" />
           <ProfileRow
             to="/settings"
