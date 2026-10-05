@@ -24,8 +24,10 @@ export async function handleUpload(request: Request, env: Env): Promise<Response
 
   const folder = FOLDERS.find((f) => f === new URL(request.url).searchParams.get('folder'));
   if (!folder) return json({ error: 'Unknown folder' }, 400);
-  if (request.headers.get('Content-Type') !== 'image/webp') return json({ error: 'Images must be WebP' }, 400);
-  if (Number(request.headers.get('Content-Length')) > MAX_BYTES) return json({ error: 'Image too large' }, 413);
+  if (request.headers.get('Content-Type') !== 'image/webp')
+    return json({ error: 'Images must be WebP' }, 400);
+  if (Number(request.headers.get('Content-Length')) > MAX_BYTES)
+    return json({ error: 'Image too large' }, 413);
 
   // Supabase checks the token; RLS returns only this user's own roles.
   const rolesRes = await fetch(`${env.VITE_SUPABASE_URL}/rest/v1/user_roles?select=role`, {
