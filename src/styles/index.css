@@ -756,3 +756,251 @@
     padding: 24px;
   }
 }
+
+/* Phase 1: forms, status pills and management screens, in the prototype's style. */
+@layer components {
+  .field select,
+  .field textarea {
+    width: 100%;
+    border: 1px solid var(--color-line);
+    border-radius: 12px;
+    padding: 12px;
+    outline: none;
+    background: #fff;
+    font: inherit;
+    color: var(--color-ink);
+  }
+  .field textarea {
+    min-height: 90px;
+    resize: vertical;
+  }
+  .field select:focus,
+  .field textarea:focus {
+    border-color: #b7cdfc;
+  }
+  .field .hint {
+    font-size: 11px;
+    color: var(--color-muted);
+    margin-top: 4px;
+  }
+  .field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .check-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+  .check-row input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--color-blue);
+  }
+  .btn.block {
+    width: 100%;
+  }
+  .btn.danger {
+    background: #fff0f1;
+    color: var(--color-red);
+  }
+  .btn.small {
+    padding: 8px 12px;
+    font-size: 12px;
+    border-radius: 10px;
+  }
+  .btn-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+  }
+  .link-btn {
+    background: none;
+    border: 0;
+    padding: 4px 0;
+    color: var(--color-blue);
+    font-weight: 800;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .pill-status {
+    display: inline-block;
+    border-radius: 99px;
+    padding: 3px 9px;
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    background: #eef2f7;
+    color: var(--color-muted);
+  }
+  .pill-status.pending {
+    background: #fff4e5;
+    color: #b25d00;
+  }
+  .pill-status.approved,
+  .pill-status.live {
+    background: #e8f8ef;
+    color: #0e8a43;
+  }
+  .pill-status.rejected,
+  .pill-status.blocked {
+    background: #fff0f1;
+    color: var(--color-red);
+  }
+  .pill-status.featured {
+    background: #fff9d6;
+    color: #8a6d00;
+  }
+  .notice {
+    border-radius: 16px;
+    padding: 12px 14px;
+    font-size: 13px;
+    line-height: 1.5;
+    background: var(--color-blue-soft);
+    color: var(--color-ink);
+    margin-bottom: 12px;
+  }
+  .notice.warn {
+    background: #fff4e5;
+  }
+  .notice.bad {
+    background: #fff0f1;
+  }
+  .tabs {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    margin-bottom: 12px;
+    scrollbar-width: none;
+  }
+  .tabs a,
+  .tabs button {
+    flex: none;
+    border: 1px solid var(--color-line);
+    background: #fff;
+    border-radius: 99px;
+    padding: 8px 14px;
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--color-ink);
+    cursor: pointer;
+  }
+  .tabs .active {
+    background: var(--color-blue);
+    border-color: var(--color-blue);
+    color: #fff;
+  }
+  .image-pick {
+    position: relative;
+    border: 1px dashed #c7d3e6;
+    border-radius: 14px;
+    background: var(--color-bg);
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    color: var(--color-muted);
+    font-weight: 800;
+    font-size: 13px;
+  }
+  .image-pick img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .image-pick input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+  .image-pick.small {
+    width: 76px;
+    height: 76px;
+    flex: none;
+  }
+  .image-pick .remove {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 0;
+    background: rgba(23, 36, 63, 0.75);
+    color: #fff;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .image-pick .cover-tag {
+    position: absolute;
+    left: 4px;
+    bottom: 4px;
+    font-style: normal;
+    font-size: 9px;
+    font-weight: 900;
+    background: var(--color-yellow);
+    color: #1c3470;
+    border-radius: 6px;
+    padding: 2px 5px;
+  }
+  .image-strip {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .shop-thumb img,
+  .offer-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: inherit;
+  }
+  .manage-card {
+    border: 1px solid var(--color-line);
+    border-radius: 18px;
+    background: #fff;
+    padding: 12px;
+  }
+  .manage-card h4 {
+    margin: 0 0 4px;
+    font-size: 15px;
+  }
+  .manage-card + .manage-card {
+    margin-top: 10px;
+  }
+  .hours-row {
+    display: grid;
+    grid-template-columns: 92px 1fr 1fr;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .hours-row input[type='time'] {
+    width: 100%;
+    border: 1px solid var(--color-line);
+    border-radius: 10px;
+    padding: 8px;
+    font: inherit;
+  }
+  .hours-row .closed {
+    grid-column: 2 / 4;
+    color: var(--color-muted);
+    font-weight: 600;
+  }
+  .map-box {
+    height: 220px;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid var(--color-line);
+    margin-bottom: 8px;
+  }
+}

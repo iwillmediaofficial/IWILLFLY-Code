@@ -9,6 +9,8 @@ interface AuthState {
   roles: AppRole[];
   loading: boolean;
   signOut: () => Promise<void>;
+  /** Re-read roles, e.g. after applying as a vendor. */
+  refreshRoles: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState>({
@@ -16,6 +18,7 @@ const AuthContext = createContext<AuthState>({
   roles: [],
   loading: false,
   signOut: async () => {},
+  refreshRoles: async () => {},
 });
 
 async function fetchRoles(userId: string): Promise<AppRole[]> {
@@ -55,7 +58,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase?.auth.signOut();
   };
 
-  return <AuthContext.Provider value={{ session, roles, loading, signOut }}>{children}</AuthContext.Provider>;
+  const refreshRoles = async () => {
+    if (session) setRoles(await fetchRoles(session.user.id));
+  };
+
+  return (
+    <AuthContext.Provider value={{ session, roles, loading, signOut, refreshRoles }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 // eslint-disable-next-line react-refresh/only-export-components

@@ -1,28 +1,36 @@
+import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { shopIsOpen, type DemoShop } from '../data/demo';
+import { formatKm, openState } from '../lib/hours';
+import type { ShopResult } from '../lib/types';
+import { Thumb } from '../customer/ui';
 
-export function ShopCard({ shop, showStatus = true }: { shop: DemoShop; showStatus?: boolean }) {
-  const open = shopIsOpen(shop);
+export function ShopCard({ shop, showStatus = true }: { shop: ShopResult; showStatus?: boolean }) {
+  const state = shop.branch_id != null ? openState(shop) : null;
+  const meta = [shop.mall_name, formatKm(shop.distance_km) || shop.category_name].filter(Boolean).join(' · ');
   return (
-    <Link className="shop-card" to={`/shop/${shop.id}`}>
-      <div className="shop-thumb">{shop.icon}</div>
+    <Link className="shop-card" to={`/shop/${shop.shop_id}`}>
+      <Thumb imageKey={shop.logo_key} icon={shop.category_icon} />
       <div>
         <h4>{shop.name}</h4>
         <div className="meta">
-          {shop.mall ? `${shop.mall} · ` : ''}
-          {shop.distance} km
-          {showStatus && (
+          {meta}
+          {showStatus && state && (
             <>
-              {' · '}
-              {open ? (
-                <span style={{ color: '#16a85a' }}>Open now</span>
-              ) : (
-                <span style={{ color: '#e53a42' }}>Closed</span>
-              )}
+              {meta ? ' · ' : ''}
+              <span style={{ color: state.open ? '#16a85a' : '#e53a42' }}>{state.label}</span>
             </>
           )}
         </div>
-        <span className="offer">{shop.offer}</span>
+        {shop.top_offer ? (
+          <span className="offer">
+            {shop.top_offer}
+            {shop.offer_count > 1 ? ` +${shop.offer_count - 1} more` : ''}
+          </span>
+        ) : (
+          <span className="offer" style={{ background: '#eef2f7', color: '#6f7c91' }}>
+            No live offers right now
+          </span>
+        )}
       </div>
       <div className="chev">›</div>
     </Link>
@@ -38,7 +46,7 @@ export function EmptyState({
   emoji: string;
   title: string;
   text: string;
-  children?: React.ReactNode;
+  children?: ReactNode;
 }) {
   return (
     <div className="saved-empty">

@@ -1,22 +1,32 @@
 import { Link } from 'react-router-dom';
 import { AppShell, LogoHeader } from '../../components/AppShell';
 import { ADMIN_ROLES, useAuth } from '../../auth/AuthProvider';
+import { usePlace } from '../../lib/location';
+import { useSavedIds } from '../../lib/queries';
 
-const rows = [
-  ['📍', 'Location & nearby offers', 'Allow while using app'],
-  ['🎁', 'My Scratch & Win history', 'Daily prize activity'],
-  ['🔔', 'Notifications', 'Festival, nearby and saved offers'],
-  ['❓', 'Help & support', 'FAQs and customer assistance'],
-];
+const pad = (n: number | undefined) => (n == null ? '–' : String(n).padStart(2, '0'));
 
 export default function Profile() {
   const { session, roles, signOut } = useAuth();
+  const { place } = usePlace();
+  const savedOffers = useSavedIds('offer');
+  const savedShops = useSavedIds('shop');
   const email = session?.user.email ?? '';
   const name =
     (session?.user.user_metadata?.full_name as string | undefined) ?? (email ? email.split('@')[0] : 'Guest');
 
   return (
-    <AppShell header={<LogoHeader actions={<button className="icon-btn">⚙</button>} />}>
+    <AppShell
+      header={
+        <LogoHeader
+          actions={
+            <Link className="icon-btn" to="/settings" aria-label="Settings">
+              ⚙
+            </Link>
+          }
+        />
+      }
+    >
       <section className="hero">
         <div
           style={{
@@ -48,19 +58,19 @@ export default function Profile() {
         <div className="info-grid">
           <div className="info-card">
             <span>Offers saved</span>
-            <strong>08</strong>
+            <strong>{session ? pad(savedOffers.data?.size) : '00'}</strong>
+          </div>
+          <div className="info-card">
+            <span>Shops saved</span>
+            <strong>{session ? pad(savedShops.data?.size) : '00'}</strong>
           </div>
           <div className="info-card">
             <span>Wins</span>
-            <strong>03</strong>
+            <strong>00</strong>
           </div>
           <div className="info-card">
-            <span>Shops visited</span>
-            <strong>17</strong>
-          </div>
-          <div className="info-card">
-            <span>Vouchers used</span>
-            <strong>05</strong>
+            <span>Your area</span>
+            <strong style={{ fontSize: 16 }}>{place?.label ?? 'Not set'}</strong>
           </div>
         </div>
       </section>
@@ -72,16 +82,28 @@ export default function Profile() {
           {roles.some((r) => ADMIN_ROLES.includes(r)) && (
             <ProfileRow to="/admin" icon="🛡️" title="Admin dashboard" meta="Vendors, offers and campaigns" />
           )}
-          {rows.map(([icon, title, meta]) => (
-            <div key={title} className="shop-card">
-              <div className="shop-thumb">{icon}</div>
-              <div>
-                <h4>{title}</h4>
-                <div className="meta">{meta}</div>
-              </div>
-              <div className="chev">›</div>
-            </div>
-          ))}
+          {session && !roles.includes('vendor') && (
+            <ProfileRow
+              to="/vendor/apply"
+              icon="🏪"
+              title="Become a vendor"
+              meta="List your shop and post offers for free"
+            />
+          )}
+          <ProfileRow
+            to="/settings"
+            icon="📍"
+            title="Location & nearby offers"
+            meta={place ? `Showing offers near ${place.label}` : 'Set your area for nearby offers'}
+          />
+          <ProfileRow to="/scratch" icon="🎁" title="My Scratch & Win history" meta="Daily prize activity" />
+          <ProfileRow
+            to="/settings"
+            icon="🔔"
+            title="Notifications"
+            meta="Festival, nearby and saved offers"
+          />
+          <ProfileRow to="/settings" icon="🔒" title="Privacy & account" meta="Your data and sign out" />
           {session && (
             <button className="btn secondary" onClick={signOut}>
               Sign out
