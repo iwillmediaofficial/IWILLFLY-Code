@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "iwillfly",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-10-01",
+  // Builds the app before every deploy, so Cloudflare needs no separate build command.
+  "build": { "command": "npm run build" },
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"],
+  },
+  // Variables and secrets are set in the Cloudflare dashboard; deploys must not wipe them.
+  "keep_vars": true,
+  "observability": { "enabled": true },
+}
