@@ -72,7 +72,7 @@ export default function AdminApp() {
         }
       />
       <main className="page">
-        <nav className="tabs" aria-label="Admin sections">
+        <nav className="tabs wrap" aria-label="Admin sections">
           {visible.map((t) => (
             <NavLink key={t.label} to={t.to} end={t.end}>
               {t.label}

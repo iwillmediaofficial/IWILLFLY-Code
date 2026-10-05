@@ -64,7 +64,7 @@ export default function VendorApp() {
           </>
         ) : (
           <VendorContext.Provider value={vendor}>
-            <nav className="tabs" aria-label="Vendor sections">
+            <nav className="tabs wrap" aria-label="Vendor sections">
               {tabs
                 .filter((t) => t.staffToo || vendor.my_role !== 'staff')
                 .map((t) => (

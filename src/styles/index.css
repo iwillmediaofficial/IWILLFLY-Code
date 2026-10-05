@@ -892,6 +892,11 @@
     color: var(--color-ink);
     cursor: pointer;
   }
+  /* Long menus (admin) wrap onto more lines so every section stays visible without sideways scrolling. */
+  .tabs.wrap {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
   .tabs .active {
     background: var(--color-blue);
     border-color: var(--color-blue);
