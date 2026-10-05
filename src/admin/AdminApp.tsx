@@ -16,6 +16,7 @@ import AdminRequests from './engagement/Requests';
 import AuditLog from './audit/AuditLog';
 import BillingAdmin from './billing/BillingAdmin';
 import SupportAdmin from './support/Support';
+import AdminReports from './reports/Reports';
 import Team from './team/Team';
 import { ErrorNotice, Loading } from './ui';
 import { Vendors } from './Vendors';
@@ -36,6 +37,7 @@ const tabs: { to: string; label: string; end?: boolean; roles: AppRole[] }[] = [
   { to: '/admin/requests', label: 'Requests', roles: CAMPAIGN },
   { to: '/admin/notify', label: 'Notify', roles: CAMPAIGN },
   { to: '/admin/analytics', label: 'Analytics', roles: CAMPAIGN },
+  { to: '/admin/reports', label: 'Reports', roles: ADMIN },
   { to: '/admin/billing', label: 'Billing', roles: ADMIN },
   { to: '/admin/support', label: 'Support', roles: SUPPORT },
   { to: '/admin/team', label: 'Team', roles: ADMIN },
@@ -94,6 +96,7 @@ export default function AdminApp() {
           <Route path="requests" element={<AdminRequests />} />
           <Route path="notify" element={<AdminNotify />} />
           <Route path="analytics" element={<AdminAnalytics />} />
+          <Route path="reports" element={<AdminReports />} />
           <Route path="billing/*" element={<BillingAdmin />} />
           <Route path="support/*" element={<SupportAdmin />} />
           <Route path="team" element={<Team />} />

@@ -25,19 +25,36 @@ jobs:
           echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
           sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client-17
 
+      - uses: actions/checkout@v4
+
+      # private holds the security helper functions the policies call, so a restore needs it too.
+      # Grants are kept, so functions locked to admins stay locked after a restore.
       - name: Dump database
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
-          FILE="iwillfly-$(date -u +%Y-%m-%dT%H%MZ).dump"
-          /usr/lib/postgresql/17/bin/pg_dump "$SUPABASE_DB_URL" --format=custom --no-owner --no-privileges \
-            --schema=public --schema=auth --file="$FILE"
+          export PATH=/usr/lib/postgresql/17/bin:$PATH
+          FILE="iwillfly-$(date -u +%Y-%m-%dT%H%MZ)"
+          # Counts are taken before and after the dump; if something changed in between, dump again.
+          for try in 1 2 3; do
+            scripts/db-counts.sh "$SUPABASE_DB_URL" > before.txt
+            pg_dump "$SUPABASE_DB_URL" --format=custom --no-owner \
+              --schema=public --schema=auth --schema=private --file="$FILE.dump"
+            scripts/db-counts.sh "$SUPABASE_DB_URL" > "$FILE.counts.txt"
+            cmp -s before.txt "$FILE.counts.txt" && break
+            echo "Data changed during the dump, trying again"
+          done
           echo "FILE=$FILE" >> "$GITHUB_ENV"
 
+      # The row counts go next to the dump so the weekly restore check can prove nothing was lost.
       - name: Upload to R2
-        run: aws s3 cp "$FILE" "s3://$BUCKET/db/$FILE" --endpoint-url "$ENDPOINT"
+        run: |
+          aws s3 cp "$FILE.dump" "s3://$BUCKET/db/$FILE.dump" --endpoint-url "$ENDPOINT"
+          aws s3 cp "$FILE.counts.txt" "s3://$BUCKET/db/$FILE.counts.txt" --endpoint-url "$ENDPOINT"
 
       - name: Keep only the newest backups
         run: |
-          aws s3 ls "s3://$BUCKET/db/" --endpoint-url "$ENDPOINT" | awk '{print $4}' | sort -r | tail -n +$((KEEP + 1)) |
-            while read -r f; do aws s3 rm "s3://$BUCKET/db/$f" --endpoint-url "$ENDPOINT"; done
+          for ext in dump counts.txt; do
+            aws s3 ls "s3://$BUCKET/db/" --endpoint-url "$ENDPOINT" | awk '{print $4}' | grep "\.$ext\$" | sort -r |
+              tail -n +$((KEEP + 1)) | while read -r f; do aws s3 rm "s3://$BUCKET/db/$f" --endpoint-url "$ENDPOINT"; done
+          done

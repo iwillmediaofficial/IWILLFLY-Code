@@ -1,0 +1,8 @@
+-- One customer (picked at random from the 2,000 test customers) scratches once. Used by pgbench.
+\set n random(1, 2000)
+BEGIN;
+SELECT set_config('request.jwt.claims', '{"role":"authenticated","sub":"00000000-0000-0000-0000-' || lpad(:n::text, 12, '0') || '"}', true),
+       set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-' || lpad(:n::text, 12, '0'), true);
+SET LOCAL ROLE authenticated;
+SELECT public.play_scratch(:camp);
+END;
