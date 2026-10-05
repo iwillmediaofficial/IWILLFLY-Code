@@ -294,3 +294,197 @@ export interface CampaignPrizeStats {
   plays_total: number;
   players: number;
 }
+
+// Engagement (Phase 3) ---------------------------------------------------------------------------
+
+export type ReviewStatus = 'pending' | 'approved' | 'rejected';
+
+export interface Festival {
+  id: number;
+  name: string;
+  slug: string;
+  description: string | null;
+  banner_key: string | null;
+  /** "#rrggbb" or null for the default blue */
+  theme_color: string | null;
+  starts_on: string;
+  ends_on: string;
+  /** vendors can submit until this date; null = until ends_on */
+  submissions_close_on: string | null;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FestivalOfferRow {
+  festival_id: number;
+  offer_id: number;
+  status: ReviewStatus;
+  note: string | null;
+  submitted_at: string;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
+}
+
+/** Row from festival_offers_live(festival_id). */
+export interface FestivalOffer {
+  offer_id: number;
+  title: string;
+  discount_label: string | null;
+  original_price: number | null;
+  offer_price: number | null;
+  image_key: string | null;
+  ends_on: string | null;
+  is_featured: boolean;
+  shop_id: number;
+  shop_name: string;
+  shop_logo_key: string | null;
+  category_name: string | null;
+}
+
+export type AdLinkKind = 'none' | 'url' | 'shop' | 'offer' | 'festival' | 'mall';
+
+export interface Ad {
+  id: number;
+  pill: string | null;
+  title: string;
+  subtitle: string | null;
+  image_key: string | null;
+  /** prototype colour themes */
+  style: 'ad1' | 'ad2' | 'ad3';
+  link_kind: AdLinkKind;
+  /** url, or the shop/offer/mall id, or the festival slug */
+  link_target: string | null;
+  vendor_id: number | null;
+  starts_on: string;
+  ends_on: string | null;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export type PlacementKind = 'featured_offer' | 'home_banner' | 'festival_spotlight';
+export type RequestStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
+
+export interface PlacementRequest {
+  id: number;
+  vendor_id: number;
+  kind: PlacementKind;
+  offer_id: number | null;
+  shop_id: number | null;
+  festival_id: number | null;
+  message: string | null;
+  wanted_from: string | null;
+  wanted_to: string | null;
+  status: RequestStatus;
+  admin_note: string | null;
+  decided_at: string | null;
+  decided_by: string | null;
+  created_at: string;
+}
+
+export interface AppNotification {
+  id: number;
+  user_id: string;
+  kind:
+    'broadcast' | 'offer_review' | 'vendor_review' | 'new_winner' | 'festival_review' | 'placement_review';
+  title: string;
+  body: string | null;
+  /** in-app path */
+  link: string | null;
+  broadcast_id: number | null;
+  push_status: 'pending' | 'sent' | 'skipped';
+  created_at: string;
+  read_at: string | null;
+}
+
+export type BroadcastAudience = 'everyone' | 'customers' | 'vendors';
+
+export interface Broadcast {
+  id: number;
+  title: string;
+  body: string | null;
+  link: string | null;
+  audience: BroadcastAudience;
+  location_id: number | null;
+  category_id: number | null;
+  with_push: boolean;
+  recipients: number;
+  created_by: string | null;
+  created_at: string;
+}
+
+export type TrackEvent = 'view' | 'click' | 'whatsapp' | 'call' | 'directions';
+
+export interface StatTotals {
+  views: number;
+  clicks: number;
+  saves: number;
+  whatsapp: number;
+  calls: number;
+  directions: number;
+}
+
+export interface StatDay extends StatTotals {
+  day: string;
+}
+
+/** vendor_analytics(from, to) */
+export interface VendorAnalytics {
+  from: string;
+  to: string;
+  totals: StatTotals;
+  daily: StatDay[];
+  offers: {
+    offer_id: number;
+    title: string;
+    views: number;
+    clicks: number;
+    saves: number;
+    whatsapp: number;
+  }[];
+  scratch: { won: number; claimed: number };
+}
+
+/** admin_analytics(from, to) */
+export interface AdminAnalytics {
+  from: string;
+  to: string;
+  totals: StatTotals;
+  daily: StatDay[];
+  top_offers: {
+    offer_id: number;
+    title: string;
+    shop_name: string;
+    views: number;
+    clicks: number;
+    whatsapp: number;
+  }[];
+  top_shops: {
+    shop_id: number;
+    name: string;
+    views: number;
+    whatsapp: number;
+    calls: number;
+    saves: number;
+  }[];
+  scratch_daily: { day: string; plays: number; wins: number; claims: number }[];
+  new_users: { day: string; users: number }[];
+}
+
+/** Row from my_offer_history(). */
+export interface HistoryOffer {
+  offer_id: number;
+  title: string;
+  discount_label: string | null;
+  original_price: number | null;
+  offer_price: number | null;
+  image_key: string | null;
+  ends_on: string | null;
+  shop_id: number;
+  shop_name: string;
+  shop_logo_key: string | null;
+  viewed_at: string;
+}

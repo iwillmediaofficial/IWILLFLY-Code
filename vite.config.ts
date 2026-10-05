@@ -27,6 +27,8 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,png,jpg,svg,woff2}'],
         navigateFallbackDenylist: [/^\/api\//],
+        // Shows web push notifications and opens the app when one is tapped.
+        importScripts: ['/push-sw.js'],
       },
     }),
   ],
