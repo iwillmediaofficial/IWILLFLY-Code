@@ -9,7 +9,7 @@ import type { Shop } from '../lib/types';
 import { useBranches, useMyShops, VENDOR_KEY } from './api';
 import { useReadOnly, useVendor } from './context';
 import { errorMessage, orNull, phoneError } from './format';
-import { BlockedNote, ErrorNote, Loading, Lockable, NotFound, PageHead } from './ui';
+import { BlockedNote, ErrorNote, FormError, Loading, Lockable, NotFound, PageHead } from './ui';
 
 export default function ShopEditor() {
   const { id } = useParams();
@@ -171,7 +171,7 @@ function ShopForm({ shop }: { shop: Shop | null }) {
             />
             Show this shop to customers
           </label>
-          {error && <p className="error-text">{error}</p>}
+          <FormError error={error} />
           <div className="btn-row">
             <button className="btn" type="submit" disabled={save.isPending} style={{ flex: 1 }}>
               {save.isPending ? 'Saving…' : shop ? 'Save shop' : 'Add shop'}

@@ -107,6 +107,7 @@ export default function Profile() {
             title="Notifications"
             meta="Festival, nearby and saved offers"
           />
+          <ProfileRow to="/help" icon="💬" title="Help & support" meta="Ask the IWILLFLY team a question" />
           <ProfileRow to="/settings" icon="🔒" title="Privacy & account" meta="Your data and sign out" />
           {session && (
             <button className="btn secondary" onClick={signOut}>

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useToast } from '../../components/Toast';
 import type { Festival, Offer, PlacementKind, PlacementRequest, Shop } from '../../lib/types';
 import { useMyOffers } from '../api';
-import { useVendor } from '../context';
+import { useReadOnly, useVendor } from '../context';
 import { errorMessage, formatDate, offerPhase, orNull, todayIST } from '../format';
 import { formatDateTime } from '../scratch/format';
 import { BlockedNote, ErrorNote, Loading, PageHead } from '../ui';
@@ -14,6 +14,7 @@ const kinds = Object.keys(kindInfo) as PlacementKind[];
 
 export default function VendorPromote() {
   const vendor = useVendor();
+  const readOnly = useReadOnly();
   const { offers, shops, isPending, error } = useMyOffers();
   const festivals = useActiveFestivals();
   const requests = useMyPlacementRequests();
@@ -25,7 +26,7 @@ export default function VendorPromote() {
         <div className="section-head">
           <h2>Request featured placement</h2>
         </div>
-        {vendor.status === 'blocked' ? (
+        {readOnly ? (
           <BlockedNote />
         ) : vendor.status !== 'approved' ? (
           <div className="notice warn">
@@ -62,7 +63,7 @@ export default function VendorPromote() {
                 offers={offers ?? []}
                 shops={shops ?? []}
                 festivals={festivals.data ?? []}
-                canCancel={vendor.status !== 'blocked'}
+                canCancel={!readOnly}
               />
             ))}
           </div>
@@ -160,8 +161,12 @@ function RequestForm({
   return (
     <form className="form-card" onSubmit={submit} noValidate>
       <div className="notice">
-        Requests are free for now and reviewed by the IWILLFLY team. Paid plans come later. You get an alert
-        when we decide.
+        Requests are free and reviewed by the IWILLFLY team. You get an alert when we decide. For a guaranteed
+        spot, buy a featured shop or promoted offer add-on in{' '}
+        <Link to="/vendor/billing" style={{ color: 'var(--color-blue)', fontWeight: 800 }}>
+          Plan & billing
+        </Link>
+        .
       </div>
       <div className="field">
         <label htmlFor="pr-kind">What would you like? *</label>

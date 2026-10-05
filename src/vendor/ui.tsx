@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { useVendor } from './context';
 import { errorMessage } from './format';
 
 export function Loading({ text = 'Loading…' }: { text?: string }) {
@@ -45,10 +46,39 @@ export function Lockable({ locked, children }: { locked: boolean; children: Reac
   );
 }
 
+/** Why changes are switched off: the business is blocked, or the user is Staff. */
 export function BlockedNote() {
+  const vendor = useVendor();
+  if (vendor.status !== 'blocked' && vendor.my_role === 'staff') {
+    return (
+      <div className="notice">
+        You are Staff on this team, so you can look but not change anything here. Ask the owner or a manager
+        to make changes.
+      </div>
+    );
+  }
   return (
     <div className="notice bad">
       Your account is blocked, so changes are switched off. See the dashboard for details.
     </div>
+  );
+}
+
+/** A form error; plan-limit errors ("Your Basic plan allows 3 shop(s)...") get a link to the plans. */
+export function FormError({ error }: { error: string }) {
+  if (!error) return null;
+  const planLimit = /^Your .+ plan allows /.test(error);
+  return (
+    <p className="error-text">
+      {error}
+      {planLimit && (
+        <>
+          {' '}
+          <Link to="/vendor/billing" style={{ color: 'var(--color-blue)', fontWeight: 800 }}>
+            See plans
+          </Link>
+        </>
+      )}
+    </p>
   );
 }

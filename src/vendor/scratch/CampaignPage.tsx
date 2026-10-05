@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useToast } from '../../components/Toast';
 import { mediaUrl } from '../../lib/supabase';
 import type { ClaimStatus, ScratchCampaign, ScratchPrize } from '../../lib/types';
-import { useVendor } from '../context';
+import { useReadOnly, useVendor } from '../context';
 import { errorMessage } from '../format';
 import { ErrorNote, Loading, Lockable, NotFound, PageHead } from '../ui';
 import { useCampaignLists, useJoinCampaign, useMyPrizes, useVendorWinners } from './api';
@@ -30,8 +30,8 @@ function CampaignDetail({ campaign, joined }: { campaign: ScratchCampaign; joine
   const winners = useVendorWinners(campaign.id);
   const [editing, setEditing] = useState<number | 'new' | null>(null);
   const [filter, setFilter] = useState<ClaimStatus>('unclaimed');
-  const locked = vendor.status === 'blocked';
-  const canJoin = vendor.status === 'approved' && campaign.is_active;
+  const locked = useReadOnly();
+  const canJoin = vendor.status === 'approved' && campaign.is_active && !locked;
   const myPrizes = prizes.data ?? [];
 
   const join = () =>

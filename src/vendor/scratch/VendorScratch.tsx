@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, Route, Routes } from 'react-router-dom';
 import { useToast } from '../../components/Toast';
 import type { ClaimStatus, ScratchCampaign } from '../../lib/types';
-import { useVendor } from '../context';
+import { useReadOnly, useVendor } from '../context';
 import { errorMessage } from '../format';
 import { ErrorNote, Loading, Lockable, PageHead } from '../ui';
 import { useCampaignLists, useJoinCampaign, useVendorWinners } from './api';
@@ -24,6 +24,7 @@ export default function VendorScratch() {
 
 function ScratchHome() {
   const vendor = useVendor();
+  const readOnly = useReadOnly();
   const { joined, available, isPending, error } = useCampaignLists();
   const winners = useVendorWinners(null);
   const [filter, setFilter] = useState<ClaimStatus>('unclaimed');
@@ -118,10 +119,14 @@ function ScratchHome() {
               No other campaigns are running right now. New ones appear here when IWILLFLY starts them.
             </p>
           ) : (
-            <Lockable locked={vendor.status === 'blocked'}>
+            <Lockable locked={readOnly}>
               <div className="list">
                 {available.map((c) => (
-                  <AvailableCampaign key={c.id} campaign={c} canJoin={vendor.status === 'approved'} />
+                  <AvailableCampaign
+                    key={c.id}
+                    campaign={c}
+                    canJoin={vendor.status === 'approved' && !readOnly}
+                  />
                 ))}
               </div>
             </Lockable>
