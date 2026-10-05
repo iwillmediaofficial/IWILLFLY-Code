@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import type { Session } from '@supabase/supabase-js';
+import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 
 export type AppRole = 'customer' | 'vendor' | 'admin' | 'super_admin' | 'support' | 'campaign_manager';
@@ -28,6 +28,32 @@ async function fetchRoles(userId: string): Promise<AppRole[]> {
   return data.map((r) => r.role as AppRole);
 }
 
+const profileChecked = new Set<string>();
+
+/**
+ * Copies the name, mobile and area given at password sign-up into the profile row.
+ * Runs on sign-in because with email confirmation on there is no session at sign-up time.
+ * Only fills empty fields, so later edits are never overwritten.
+ */
+async function fillProfileFromSignup(user: User) {
+  const m = user.user_metadata ?? {};
+  const phone = typeof m.phone === 'string' ? m.phone : null;
+  const locationId = typeof m.location_id === 'number' ? m.location_id : null;
+  if (!supabase || (!phone && locationId == null) || profileChecked.has(user.id)) return;
+  profileChecked.add(user.id);
+  const { data } = await supabase
+    .from('profiles')
+    .select('full_name, phone, location_id')
+    .eq('id', user.id)
+    .maybeSingle();
+  if (!data) return;
+  const patch: Record<string, string | number> = {};
+  if (!data.full_name && typeof m.full_name === 'string') patch.full_name = m.full_name;
+  if (!data.phone && phone) patch.phone = phone;
+  if (data.location_id == null && locationId != null) patch.location_id = locationId;
+  if (Object.keys(patch).length) await supabase.from('profiles').update(patch).eq('id', user.id);
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
@@ -37,6 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!supabase) return;
     let active = true;
     const apply = async (s: Session | null) => {
+      if (s) void fillProfileFromSignup(s.user);
       const r = s ? await fetchRoles(s.user.id) : [];
       if (!active) return;
       setSession(s);
