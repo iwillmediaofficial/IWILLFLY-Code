@@ -5,7 +5,7 @@ export type UploadFolder = 'shops' | 'offers' | 'ads' | 'prizes' | 'test';
 
 /**
  * Compresses an image to WebP (max 1600 px) on the device, asks the upload-url
- * Pages Function for a short-lived signed URL, then PUTs straight to R2.
+ * Worker route for a short-lived signed URL, then PUTs straight to R2.
  * Returns the object key to store in the database.
  */
 export async function uploadImage(file: File, folder: UploadFolder): Promise<string> {

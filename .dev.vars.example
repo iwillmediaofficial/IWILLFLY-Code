@@ -1,4 +1,4 @@
-# Copy to .dev.vars to run the Pages Function locally with `npx wrangler pages dev`. Never commit .dev.vars.
+# Copy to .dev.vars to run the Worker locally with `npx wrangler dev`. Never commit .dev.vars.
 R2_ACCOUNT_ID=
 R2_BUCKET=iwillfly-media
 R2_ACCESS_KEY_ID=

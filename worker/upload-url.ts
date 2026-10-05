@@ -1,6 +1,7 @@
 import { AwsClient } from 'aws4fetch';
 
-interface Env {
+export interface Env {
+  ASSETS: Fetcher;
   R2_ACCOUNT_ID: string;
   R2_BUCKET: string;
   R2_ACCESS_KEY_ID: string;
@@ -21,7 +22,7 @@ const json = (body: unknown, status = 200) =>
  * POST /api/upload-url  { folder, size }  with  Authorization: Bearer <supabase access token>
  * Returns a 5-minute presigned PUT URL for a new WebP object in the media bucket.
  */
-export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
+export async function handleUploadUrl(request: Request, env: Env): Promise<Response> {
   const token = request.headers.get('Authorization')?.replace(/^Bearer /, '');
   if (!token) return json({ error: 'Sign in required' }, 401);
 
@@ -64,4 +65,4 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   });
 
   return json({ url: signed.url, key, headers });
-};
+}
