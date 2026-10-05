@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState, type FormEvent } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { AreaPicker } from '../components/AreaPicker';
@@ -272,7 +272,15 @@ type ShopRef = { id: number; name: string };
 type BranchRef = { id: number; name: string; address: string | null; shop: ShopRef | ShopRef[] | null };
 type MallShopRow = { branch_id: number; floor: string | null; branch: BranchRef | BranchRef[] | null };
 type MallRef = { mall_id: number; mall: { name: string } | { name: string }[] | null };
-type BranchSearchRow = BranchRef & { mall_shops: MallRef | MallRef[] | null };
+type VendorRef = { business_name: string; status: string };
+type ShopWithVendor = ShopRef & { vendor: VendorRef | VendorRef[] | null };
+type BranchSearchRow = {
+  id: number;
+  name: string;
+  address: string | null;
+  shop: ShopWithVendor | ShopWithVendor[] | null;
+  mall_shops: MallRef | MallRef[] | null;
+};
 
 function MallShops({ mallId }: { mallId: number }) {
   const toast = useToast();
@@ -319,7 +327,9 @@ function MallShops({ mallId }: { mallId: number }) {
       <AddShop mallId={mallId} onAdded={() => invalidate(...keys)} />
       {rows.isPending && <Loading />}
       {rows.error && <ErrorNotice error={rows.error} />}
-      {rows.data?.length === 0 && <p className="meta">No shops added yet. Search above to add one.</p>}
+      {rows.data?.length === 0 && (
+        <p className="meta">No shops added yet. Click "Find shops" above to pick some.</p>
+      )}
       <div style={{ marginTop: 10 }}>
         {sorted.map((r) => {
           const branch = one(r.branch);
@@ -356,118 +366,228 @@ function MallShops({ mallId }: { mallId: number }) {
   );
 }
 
+/**
+ * Pick one or more vendor shop branches and add them to the mall in one go.
+ * The list opens when the search box is clicked and closes when clicking elsewhere.
+ */
 function AddShop({ mallId, onAdded }: { mallId: number; onAdded: () => void }) {
   const toast = useToast();
+  const boxRef = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
   const [term, setTerm] = useState('');
   const [floor, setFloor] = useState('');
   const [error, setError] = useState('');
+  const [onlyFree, setOnlyFree] = useState(true);
+  const [picked, setPicked] = useState<Map<number, string>>(new Map());
 
   useEffect(() => {
     const t = window.setTimeout(() => setTerm(q.trim()), 300);
     return () => window.clearTimeout(t);
   }, [q]);
 
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent) => {
+      if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    document.addEventListener('mousedown', close);
+    document.addEventListener('keydown', esc);
+    return () => {
+      document.removeEventListener('mousedown', close);
+      document.removeEventListener('keydown', esc);
+    };
+  }, [open]);
+
   const results = useQuery({
     queryKey: ['admin', 'branch_search', term],
     queryFn: async () => {
-      const pattern = `%${term.replace(/[%_,()\\]/g, ' ')}%`;
-      return must<BranchSearchRow[]>(
-        await db()
-          .from('branches')
-          .select('id, name, address, shop:shops!inner(id, name), mall_shops(mall_id, mall:malls(name))')
-          .ilike('shop.name', pattern)
-          .order('name')
-          .limit(20),
+      let query = db()
+        .from('branches')
+        .select(
+          'id, name, address, shop:shops!inner(id, name, vendor:vendors(business_name, status)), mall_shops(mall_id, mall:malls(name))',
+        )
+        .order('name')
+        .limit(term ? 50 : 500);
+      if (term) query = query.ilike('shop.name', `%${term.replace(/[%_,()\\]/g, ' ')}%`);
+      const rows = must<BranchSearchRow[]>(await query);
+      return rows.sort(
+        (a, b) =>
+          (one(a.shop)?.name ?? '').localeCompare(one(b.shop)?.name ?? '') || a.name.localeCompare(b.name),
       );
     },
-    enabled: term.length >= 2,
+    enabled: open && (term.length === 0 || term.length >= 2),
+  });
+  const listed = (results.data ?? []).filter((b) => {
+    const m = one(b.mall_shops);
+    return !onlyFree || !m || m.mall_id === mallId;
   });
 
+  const toggle = (id: number, label: string) =>
+    setPicked((cur) => {
+      const next = new Map(cur);
+      if (next.has(id)) next.delete(id);
+      else next.set(id, label);
+      return next;
+    });
+
   const add = useMutation({
-    mutationFn: async (branchId: number) => {
+    mutationFn: async () => {
+      const f = floor.trim() || null;
       must(
         await db()
           .from('mall_shops')
-          .insert({ mall_id: mallId, branch_id: branchId, floor: floor.trim() || null }),
+          .insert([...picked.keys()].map((branch_id) => ({ mall_id: mallId, branch_id, floor: f }))),
       );
     },
     onSuccess: () => {
-      toast('Shop added to mall');
+      toast(picked.size === 1 ? 'Shop added to mall' : `${picked.size} shops added to mall`);
+      setPicked(new Map());
       setFloor('');
       setError('');
+      setOpen(false);
       onAdded();
     },
     onError: (e) =>
-      setError(friendlyError(e, 'That branch is already listed in a mall. Remove it there first.')),
+      setError(friendlyError(e, 'One of these branches is already listed in a mall. Remove it there first.')),
   });
 
   return (
     <div className="form-card">
-      <div className="field-row">
-        <div className="field">
-          <label htmlFor="branch-q">Find a shop</label>
+      <div ref={boxRef} style={{ position: 'relative' }}>
+        <div className="field" style={{ marginBottom: 0 }}>
+          <label htmlFor="branch-q">Find shops</label>
           <input
             id="branch-q"
             type="search"
-            placeholder="Shop name…"
+            placeholder="Click to see all vendor shops, or type a name…"
+            autoComplete="off"
             value={q}
-            onChange={(e) => setQ(e.target.value)}
+            onFocus={() => setOpen(true)}
+            onClick={() => setOpen(true)}
+            onChange={(e) => {
+              setQ(e.target.value);
+              setOpen(true);
+            }}
+            aria-expanded={open}
+            aria-controls="branch-list"
           />
         </div>
-        <div className="field">
-          <label htmlFor="branch-floor">Floor (optional)</label>
-          <input
-            id="branch-floor"
-            placeholder="e.g. Ground, 2nd"
-            maxLength={40}
-            value={floor}
-            onChange={(e) => setFloor(e.target.value)}
-          />
-        </div>
-      </div>
-      {error && <p className="error-text">{error}</p>}
-      {term.length >= 2 && results.isPending && <Loading what="Searching…" />}
-      {results.error && <ErrorNotice error={results.error} />}
-      {results.data?.length === 0 && <p className="meta">No shops match “{term}”.</p>}
-      {results.data?.map((b) => {
-        const shop = one(b.shop);
-        const inMall = one(b.mall_shops);
-        const here = inMall?.mall_id === mallId;
-        return (
+        {open && (
           <div
-            key={b.id}
+            id="branch-list"
+            role="listbox"
+            aria-multiselectable="true"
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              padding: '8px 0',
-              borderTop: '1px solid var(--color-line)',
+              position: 'absolute',
+              zIndex: 20,
+              left: 0,
+              right: 0,
+              top: '100%',
+              marginTop: 4,
+              background: '#fff',
+              border: '1px solid var(--color-line)',
+              borderRadius: 12,
+              boxShadow: '0 10px 30px rgba(15, 23, 42, 0.15)',
+              padding: '8px 12px',
             }}
           >
-            <div className="grow" style={{ minWidth: 0 }}>
-              <b style={{ fontSize: 13 }}>{shop?.name}</b>
-              <div className="meta">
-                {b.name}
-                {b.address ? ` · ${b.address}` : ''}
-                {inMall && !here && ` · already in ${one(inMall.mall)?.name ?? 'another mall'}`}
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+              <span className="meta grow">
+                {term ? `Matching “${term}”` : 'All vendor shops'}
+                {results.data ? ` · ${listed.length}` : ''}
+              </span>
+              <label className="meta" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <input type="checkbox" checked={onlyFree} onChange={(e) => setOnlyFree(e.target.checked)} />
+                Hide shops in other malls
+              </label>
             </div>
-            {here ? (
-              <span className="pill-status approved">Added</span>
-            ) : (
-              <button
-                className="btn small"
-                disabled={add.isPending || Boolean(inMall)}
-                title={inMall ? 'A branch can be in one mall only' : undefined}
-                onClick={() => add.mutate(b.id)}
-              >
-                Add
-              </button>
+            {results.isPending && <Loading what={term ? 'Searching…' : 'Loading shops…'} />}
+            {results.error && <ErrorNotice error={results.error} />}
+            {results.data && listed.length === 0 && (
+              <p className="meta">{term ? `No shops match “${term}”.` : 'No vendor shops to add yet.'}</p>
             )}
+            <div style={{ maxHeight: 320, overflowY: 'auto' }}>
+              {listed.map((b) => {
+                const shop = one(b.shop);
+                const vendor = one(shop?.vendor ?? null);
+                const inMall = one(b.mall_shops);
+                const here = inMall?.mall_id === mallId;
+                const blocked = Boolean(inMall);
+                const label = `${shop?.name ?? 'Shop'} (${b.name})`;
+                return (
+                  <label
+                    key={b.id}
+                    role="option"
+                    aria-selected={picked.has(b.id)}
+                    aria-disabled={blocked}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      padding: '8px 0',
+                      borderTop: '1px solid var(--color-line)',
+                      cursor: blocked ? 'default' : 'pointer',
+                      opacity: blocked && !here ? 0.55 : 1,
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={here || picked.has(b.id)}
+                      disabled={blocked}
+                      onChange={() => toggle(b.id, label)}
+                    />
+                    <div className="grow" style={{ minWidth: 0 }}>
+                      <b style={{ fontSize: 13 }}>{shop?.name}</b>
+                      <div className="meta">
+                        {vendor &&
+                          `🏪 ${vendor.business_name}${vendor.status !== 'approved' ? ` (${vendor.status})` : ''} · `}
+                        {b.name}
+                        {b.address ? ` · ${b.address}` : ''}
+                        {here && ' · already in this mall'}
+                        {inMall && !here && ` · in ${one(inMall.mall)?.name ?? 'another mall'}`}
+                      </div>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+            <div className="btn-row" style={{ marginTop: 8 }}>
+              <button type="button" className="btn small secondary" onClick={() => setOpen(false)}>
+                Done{picked.size ? ` (${picked.size} selected)` : ''}
+              </button>
+              {picked.size > 0 && (
+                <button type="button" className="btn small secondary" onClick={() => setPicked(new Map())}>
+                  Clear selection
+                </button>
+              )}
+            </div>
           </div>
-        );
-      })}
+        )}
+      </div>
+
+      {picked.size > 0 && (
+        <div style={{ marginTop: 12 }}>
+          <div className="meta" style={{ marginBottom: 6 }}>
+            <b>{picked.size} selected:</b> {[...picked.values()].join(', ')}
+          </div>
+          <div className="field">
+            <label htmlFor="branch-floor">Floor for these shops (optional)</label>
+            <input
+              id="branch-floor"
+              placeholder="e.g. Ground, 2nd"
+              maxLength={40}
+              value={floor}
+              onChange={(e) => setFloor(e.target.value)}
+            />
+          </div>
+          <button type="button" className="btn" disabled={add.isPending} onClick={() => add.mutate()}>
+            {add.isPending ? 'Adding…' : `Add ${picked.size} shop${picked.size === 1 ? '' : 's'} to mall`}
+          </button>
+        </div>
+      )}
+      {error && <p className="error-text">{error}</p>}
     </div>
   );
 }
