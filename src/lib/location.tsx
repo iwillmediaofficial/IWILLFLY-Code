@@ -14,8 +14,8 @@ export interface PlaceState {
 interface LocationApi {
   place: PlaceState | null;
   locating: boolean;
-  /** Ask the browser for the current position. Resolves false if denied or unavailable. */
-  locate: () => Promise<boolean>;
+  /** Ask the browser for the current position. Resolves the new place, or null if denied or unavailable. */
+  locate: () => Promise<PlaceState | null>;
   setPlace: (p: PlaceState | null) => void;
 }
 
@@ -33,7 +33,7 @@ const GPS_OPTIONS: PositionOptions = { enableHighAccuracy: true, maximumAge: 30_
 const LocationContext = createContext<LocationApi>({
   place: null,
   locating: false,
-  locate: async () => false,
+  locate: async () => null,
   setPlace: () => {},
 });
 
@@ -66,9 +66,10 @@ export function LocationProvider({ children }: { children: ReactNode }) {
     setLocating(true);
     const pos = await readGps();
     setLocating(false);
-    if (!pos) return false;
-    setPlace(gpsPlace(pos));
-    return true;
+    if (!pos) return null;
+    const next = gpsPlace(pos);
+    setPlace(next);
+    return next;
   }, [setPlace]);
 
   // A saved "Near you" point goes stale when the person moves, so read the GPS again each time the app

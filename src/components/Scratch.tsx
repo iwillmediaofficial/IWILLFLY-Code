@@ -1,15 +1,71 @@
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { closedLabel, formatDay, useCampaignPrizes, type ScratchCard } from '../customer/scratch';
 import { errorText } from '../customer/util';
+import { useProfileArea } from '../lib/profileArea';
 import { formatCode, formatTime } from '../lib/scratch';
 import { mediaUrl } from '../lib/supabase';
-import type { PlayResult } from '../lib/types';
+import type { PlayResult, TodayCampaign } from '../lib/types';
+import { ScratchLocationSheet } from './ScratchLocation';
 import { useToast } from './Toast';
 
-/** The daily button: green = play now, red = played today, gray = nothing to play right now. */
+/**
+ * The daily button: green = play now, red = played today, gray = nothing to play right now.
+ * Signed-in customers must set their area first (from their phone's location or by picking it); the button
+ * asks for it and opens the card as soon as it is saved.
+ */
 export function ScratchButton({ card, style }: { card: ScratchCard; style?: CSSProperties }) {
+  const toast = useToast();
+  const { session } = useAuth();
+  const { areaId, known } = useProfileArea();
+  const qc = useQueryClient();
+  const [asking, setAsking] = useState(false);
+  const c = card.campaign;
+
+  // Saving the area re-reads today's campaigns for it first, so the cache already says whether it can be
+  // played there; if so, open the card straight away.
+  const afterSave = (areaName: string) => {
+    setAsking(false);
+    if (!c) return;
+    const fresh =
+      qc
+        .getQueryData<TodayCampaign[]>(['scratch_today', session?.user.id ?? null])
+        ?.find((x) => x.id === c.id) ?? c;
+    if (!fresh.eligible)
+      toast(`This Scratch & Win isn’t running in ${areaName}. Check back for games in your area.`);
+    else if (fresh.is_open_now && !card.result) card.setOpen(true);
+  };
+
+  return (
+    <>
+      <ScratchButtonFace
+        card={card}
+        style={style}
+        needsArea={Boolean(session) && known && areaId == null}
+        onAskArea={() => setAsking(true)}
+      />
+      <ScratchLocationSheet
+        open={asking}
+        onClose={() => setAsking(false)}
+        onSaved={(area) => afterSave(area.name)}
+      />
+    </>
+  );
+}
+
+function ScratchButtonFace({
+  card,
+  style,
+  needsArea,
+  onAskArea,
+}: {
+  card: ScratchCard;
+  style?: CSSProperties;
+  needsArea: boolean;
+  onAskArea: () => void;
+}) {
   const toast = useToast();
   const navigate = useNavigate();
   const { session } = useAuth();
@@ -45,25 +101,34 @@ export function ScratchButton({ card, style }: { card: ScratchCard; style?: CSSP
       </button>
     );
   }
+  if (needsArea) {
+    return (
+      <button className={`scratch-btn ${c.is_open_now ? 'green' : 'gray'}`} style={style} onClick={onAskArea}>
+        <div style={{ fontSize: 13, fontWeight: 800 }}>📍 SET YOUR LOCATION</div>
+        <div className="big">
+          SCRATCH
+          <br />& WIN
+        </div>
+        <small>
+          Tap to set your area
+          <br />
+          and play today’s card
+        </small>
+      </button>
+    );
+  }
   if (session && !c.eligible) {
     return (
-      <button
-        className="scratch-btn gray"
-        style={style}
-        onClick={() => {
-          toast('Set your area in Settings to play this Scratch & Win.');
-          navigate('/settings');
-        }}
-      >
+      <button className="scratch-btn gray" style={style} onClick={onAskArea}>
         <div style={{ fontSize: 13, fontWeight: 800 }}>NOT IN YOUR AREA</div>
         <div className="big">
           SCRATCH
           <br />& WIN
         </div>
         <small>
-          Set your area in Settings
+          This game is for another area
           <br />
-          to see if you can play
+          Tap to change your area
         </small>
       </button>
     );

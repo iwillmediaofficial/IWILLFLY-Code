@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { usePlace } from '../lib/location';
 import { useLocations } from '../lib/queries';
-import type { LocationNode } from '../lib/types';
+import { pointFor } from '../lib/profileArea';
 import { AreaPicker } from './AreaPicker';
 import { useToast } from './Toast';
 import { NeedsBackend, Sheet } from '../customer/ui';
@@ -91,15 +91,4 @@ export function LocationChooser({
       </NeedsBackend>
     </div>
   );
-}
-
-/** The area's own map point, or its nearest parent's (city, district) when the area has none. */
-function pointFor(all: LocationNode[], area: LocationNode) {
-  const byId = new Map(all.map((l) => [l.id, l]));
-  let cur: LocationNode | undefined = area;
-  while (cur) {
-    if (cur.lat != null && cur.lng != null) return { lat: cur.lat, lng: cur.lng };
-    cur = cur.parent_id != null ? byId.get(cur.parent_id) : undefined;
-  }
-  return null;
 }
