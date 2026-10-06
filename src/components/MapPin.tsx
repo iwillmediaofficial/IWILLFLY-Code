@@ -77,8 +77,11 @@ export function MapPin({
         type="button"
         className="link-btn"
         onClick={() =>
-          navigator.geolocation?.getCurrentPosition((p) =>
-            onChange({ lat: p.coords.latitude, lng: p.coords.longitude }),
+          // High accuracy so a shop pin lands on the shop, not on a Wi-Fi or mobile-network guess.
+          navigator.geolocation?.getCurrentPosition(
+            (p) => onChange({ lat: p.coords.latitude, lng: p.coords.longitude }),
+            undefined,
+            { enableHighAccuracy: true, maximumAge: 0, timeout: 15_000 },
           )
         }
       >

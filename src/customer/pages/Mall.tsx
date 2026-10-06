@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { AppShell, BackHeader } from '../../components/AppShell';
 import { EmptyState, ShopCard } from '../../components/ShopCard';
 import { formatKm, haversineKm } from '../../lib/hours';
-import { usePlace } from '../../lib/location';
+import { isApprox, usePlace } from '../../lib/location';
 import { usePageMeta } from '../../lib/pageMeta';
 import { db, must, useShopSearch } from '../../lib/queries';
 import { mediaUrl, supabase } from '../../lib/supabase';
@@ -79,7 +79,9 @@ export default function Mall() {
         <h1>{m.name}</h1>
         {m.description && <p>{m.description}</p>}
         {(m.address || km != null) && (
-          <p style={{ marginTop: 6 }}>{[formatKm(km), m.address].filter(Boolean).join(' · ')}</p>
+          <p style={{ marginTop: 6 }}>
+            {[formatKm(km, isApprox(place)), m.address].filter(Boolean).join(' · ')}
+          </p>
         )}
         <span className="hero-pill">
           {offers} live {offers === 1 ? 'offer' : 'offers'}

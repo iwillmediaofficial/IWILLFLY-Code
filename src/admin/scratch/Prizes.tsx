@@ -1,9 +1,11 @@
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { ImageField } from '../../components/ImageField';
 import { useToast } from '../../components/Toast';
+import { locationPath } from '../../lib/locationPath';
+import { useLocations } from '../../lib/queries';
 import { mediaUrl } from '../../lib/supabase';
-import type { ScratchPrize } from '../../lib/types';
+import type { LocationNode, ScratchPrize } from '../../lib/types';
 import { Empty, ErrorNotice, Loading } from '../ui';
 import { one, toNumber, useInvalidate } from '../util';
 import {
@@ -14,6 +16,7 @@ import {
   updatePrize,
   useCampaignVendors,
   usePrizes,
+  type AdminPrize,
   type PrizeInput,
 } from './api';
 
@@ -127,13 +130,15 @@ function PrizeCard({
   sponsorName,
   onEdit,
 }: {
-  prize: ScratchPrize;
+  prize: AdminPrize;
   sponsorName: string;
   onEdit: () => void;
 }) {
   const toast = useToast();
   const invalidate = useInvalidate();
   const review = needsReview(p);
+  const { data: locations = [] } = useLocations();
+  const areas = p.location_ids.map((id) => locations.find((l) => l.id === id)?.name ?? 'Area').join(', ');
 
   const toggle = useMutation({
     mutationFn: () => updatePrize(p.id, { is_active: !p.is_active }),
@@ -168,6 +173,15 @@ function PrizeCard({
               {p.remaining}/{p.quantity}
             </b>{' '}
             left · <b style={{ color: 'var(--color-ink)' }}>{toPercent(p.probability)}%</b> chance
+            {p.daily_limit != null && (
+              <>
+                {' '}
+                · max <b style={{ color: 'var(--color-ink)' }}>{p.daily_limit}</b>/day
+              </>
+            )}
+          </div>
+          <div className="meta">
+            📍 {p.location_ids.length ? `Won only in: ${areas}` : 'Can be won everywhere'}
           </div>
           {p.description && (
             <p style={{ fontSize: 13, margin: '6px 0 0', whiteSpace: 'pre-wrap' }}>{p.description}</p>
@@ -198,6 +212,8 @@ type Form = {
   quantity: string;
   remaining: string;
   chance: string; // percent
+  dailyLimit: string; // '' = no limit
+  locations: number[]; // empty = everywhere
   is_active: boolean;
 };
 
@@ -209,7 +225,7 @@ function PrizeForm({
   onDone,
 }: {
   campaignId: number;
-  prize?: ScratchPrize;
+  prize?: AdminPrize;
   sponsors: { id: number; name: string }[];
   vendorNames: Map<number, string>;
   onDone: () => void;
@@ -224,6 +240,8 @@ function PrizeForm({
     quantity: prize ? String(prize.quantity) : '',
     remaining: prize ? String(prize.remaining) : '',
     chance: prize ? toPercent(prize.probability) : '',
+    dailyLimit: prize?.daily_limit != null ? String(prize.daily_limit) : '',
+    locations: prize?.location_ids ?? [],
     is_active: prize?.is_active ?? true,
   }));
   const [error, setError] = useState('');
@@ -239,7 +257,8 @@ function PrizeForm({
   }
 
   const save = useMutation({
-    mutationFn: (row: PrizeInput) => savePrize(campaignId, prize?.id ?? null, row),
+    mutationFn: (row: PrizeInput) =>
+      savePrize(campaignId, prize?.id ?? null, row, f.locations, prize?.location_ids ?? []),
     onSuccess: () => {
       invalidate(...SCRATCH_KEYS);
       toast(prize ? 'Prize saved' : 'Prize added');
@@ -270,6 +289,7 @@ function PrizeForm({
     const quantity = toNumber(f.quantity);
     const chance = toNumber(f.chance);
     const remaining = prize ? toNumber(f.remaining) : null;
+    const dailyLimit = f.dailyLimit.trim() === '' ? null : toNumber(f.dailyLimit);
     if (f.name.trim().length < 2) return setError('Enter the prize name.');
     if (quantity == null || !Number.isInteger(quantity) || quantity < 0 || quantity > 100000)
       return setError('Quantity must be a whole number from 0 to 100000.');
@@ -279,6 +299,8 @@ function PrizeForm({
       if (remaining > quantity) return setError('Stock left cannot be more than the quantity.');
     }
     if (chance == null || chance < 0 || chance > 100) return setError('Chance must be between 0 and 100%.');
+    if (f.dailyLimit.trim() !== '' && (dailyLimit == null || !Number.isInteger(dailyLimit) || dailyLimit < 1))
+      return setError('Daily limit must be a whole number of 1 or more, or left blank for no limit.');
     const row: PrizeInput = {
       name: f.name.trim(),
       description: f.description.trim() || null,
@@ -286,6 +308,7 @@ function PrizeForm({
       sponsor_vendor_id: f.sponsor ? Number(f.sponsor) : null,
       quantity,
       probability: fromPercent(chance),
+      daily_limit: dailyLimit,
       is_active: f.is_active,
     };
     // Sending the unchanged value lets the database move stock along with a quantity change.
@@ -395,6 +418,24 @@ function PrizeForm({
           </div>
         </div>
       )}
+      <div className="field">
+        <label htmlFor="pz-daily">Daily limit (optional)</label>
+        <input
+          id="pz-daily"
+          type="number"
+          min={1}
+          step={1}
+          inputMode="numeric"
+          placeholder="No limit"
+          value={f.dailyLimit}
+          onChange={(e) => set({ dailyLimit: e.target.value })}
+        />
+        <div className="hint">
+          Most times this prize can be won per day (India time). Leave blank for no limit. Once the limit is
+          reached, scratches that land on this prize lose until tomorrow.
+        </div>
+      </div>
+      <LocationPicker value={f.locations} onChange={(locations) => set({ locations })} />
       <label className="check-row">
         <input type="checkbox" checked={f.is_active} onChange={(e) => set({ is_active: e.target.checked })} />
         Prize on (included in the draw)
@@ -423,5 +464,83 @@ function PrizeForm({
         )}
       </div>
     </form>
+  );
+}
+
+/**
+ * Tick the areas where a prize can be won. Ticking a city or district covers every area inside it.
+ * Nothing ticked = everywhere.
+ */
+function LocationPicker({ value, onChange }: { value: number[]; onChange: (ids: number[]) => void }) {
+  const { data: all = [], isPending, error } = useLocations();
+  const [q, setQ] = useState('');
+  const rows = useMemo(
+    () =>
+      all
+        .map((l: LocationNode) => ({ l, path: locationPath(all, l.id) }))
+        .sort((a, b) => a.path.localeCompare(b.path)),
+    [all],
+  );
+  const term = q.trim().toLowerCase();
+  const shown = term ? rows.filter((r) => r.path.toLowerCase().includes(term)) : rows;
+  const picked = new Set(value);
+  const toggle = (id: number) => onChange(picked.has(id) ? value.filter((v) => v !== id) : [...value, id]);
+  const names = value.map((id) => all.find((l) => l.id === id)?.name ?? 'Area').join(', ');
+
+  return (
+    <div className="field">
+      <label htmlFor="pz-loc-q">Where can it be won?</label>
+      <div className="hint" style={{ marginTop: 0, marginBottom: 6 }}>
+        {value.length === 0
+          ? 'Nothing ticked: it can be won everywhere.'
+          : `Only players whose area is inside: ${names}.`}{' '}
+        Ticking a city or district covers every area inside it.
+      </div>
+      <input
+        id="pz-loc-q"
+        type="search"
+        placeholder="Search locations…"
+        autoComplete="off"
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+      />
+      {isPending && <Loading what="Loading locations…" />}
+      {error && <ErrorNotice error={error} />}
+      <div
+        role="group"
+        aria-label="Win locations"
+        style={{
+          maxHeight: 220,
+          overflowY: 'auto',
+          border: '1px solid var(--color-line)',
+          borderRadius: 12,
+          marginTop: 6,
+          padding: '2px 10px',
+        }}
+      >
+        {!isPending && shown.length === 0 && <p className="meta">No locations match “{q}”.</p>}
+        {shown.map(({ l, path }) => (
+          <label
+            key={l.id}
+            className="meta"
+            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', cursor: 'pointer' }}
+          >
+            <input type="checkbox" checked={picked.has(l.id)} onChange={() => toggle(l.id)} />
+            <span style={{ color: 'var(--color-ink)' }}>{path}</span>
+            {!l.is_active && <span>(hidden)</span>}
+          </label>
+        ))}
+      </div>
+      {value.length > 0 && (
+        <button
+          type="button"
+          className="btn small secondary"
+          style={{ marginTop: 6 }}
+          onClick={() => onChange([])}
+        >
+          Clear (can be won everywhere)
+        </button>
+      )}
+    </div>
   );
 }

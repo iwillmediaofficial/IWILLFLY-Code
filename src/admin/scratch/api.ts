@@ -72,9 +72,17 @@ export function usePrizes(campaignId: number) {
   return useQuery({
     queryKey: [SCRATCH_KEY, 'prizes', campaignId],
     queryFn: async () =>
-      must<ScratchPrize[]>(
-        await db().from('scratch_prizes').select('*').eq('campaign_id', campaignId).order('id'),
-      ).map((p) => ({ ...p, probability: Number(p.probability) })),
+      must<(ScratchPrize & { scratch_prize_locations: { location_id: number }[] | null })[]>(
+        await db()
+          .from('scratch_prizes')
+          .select('*, scratch_prize_locations(location_id)')
+          .eq('campaign_id', campaignId)
+          .order('id'),
+      ).map(({ scratch_prize_locations, ...p }) => ({
+        ...p,
+        probability: Number(p.probability),
+        location_ids: (scratch_prize_locations ?? []).map((l) => l.location_id),
+      })),
   });
 }
 
@@ -168,27 +176,63 @@ export async function deleteCampaign(id: number) {
 
 export type PrizeInput = Pick<
   ScratchPrize,
-  'sponsor_vendor_id' | 'name' | 'description' | 'image_key' | 'quantity' | 'probability' | 'is_active'
+  | 'sponsor_vendor_id'
+  | 'name'
+  | 'description'
+  | 'image_key'
+  | 'quantity'
+  | 'probability'
+  | 'daily_limit'
+  | 'is_active'
 > & { remaining?: number };
 
-export async function savePrize(campaignId: number, id: number | null, row: PrizeInput) {
+/** A prize with the locations where it can be won (empty = everywhere). */
+export type AdminPrize = ScratchPrize & { location_ids: number[] };
+
+/** Saves the prize, then makes its win locations match `locationIds` (empty = everywhere). */
+export async function savePrize(
+  campaignId: number,
+  id: number | null,
+  row: PrizeInput,
+  locationIds: number[],
+  previousLocationIds: number[] = [],
+) {
+  let prizeId = id;
   if (id != null) {
     must(await db().from('scratch_prizes').update(row).eq('id', id));
-    return;
+  } else {
+    // remaining is set from quantity by the database on insert
+    prizeId = must<{ id: number }>(
+      await db()
+        .from('scratch_prizes')
+        .insert({
+          campaign_id: campaignId,
+          sponsor_vendor_id: row.sponsor_vendor_id,
+          name: row.name,
+          description: row.description,
+          image_key: row.image_key,
+          quantity: row.quantity,
+          probability: row.probability,
+          daily_limit: row.daily_limit,
+          is_active: row.is_active,
+        })
+        .select('id')
+        .single(),
+    ).id;
   }
-  // remaining is set from quantity by the database on insert
-  must(
-    await db().from('scratch_prizes').insert({
-      campaign_id: campaignId,
-      sponsor_vendor_id: row.sponsor_vendor_id,
-      name: row.name,
-      description: row.description,
-      image_key: row.image_key,
-      quantity: row.quantity,
-      probability: row.probability,
-      is_active: row.is_active,
-    }),
-  );
+  const keep = new Set(locationIds);
+  const removed = previousLocationIds.filter((l) => !keep.has(l));
+  const added = locationIds.filter((l) => !previousLocationIds.includes(l));
+  if (removed.length)
+    must(
+      await db().from('scratch_prize_locations').delete().eq('prize_id', prizeId!).in('location_id', removed),
+    );
+  if (added.length)
+    must(
+      await db()
+        .from('scratch_prize_locations')
+        .insert(added.map((location_id) => ({ prize_id: prizeId!, location_id }))),
+    );
 }
 
 export async function updatePrize(
