@@ -276,6 +276,7 @@ export function scratchError(err: unknown, inUse: string) {
   if (/duplicate key|unique constraint/i.test(msg)) return 'That is already added.';
   if (/active_to|active_from/i.test(msg)) return 'The daily end time must be after the start time.';
   if (/ends_on|starts_on/i.test(msg)) return 'The end date cannot be before the start date.';
+  if (/daily_limit_within_quantity/i.test(msg)) return 'The daily limit cannot be more than the quantity.';
   if (/remaining/i.test(msg)) return 'Stock left cannot be more than the quantity.';
   if (/violates check constraint/i.test(msg)) return 'Some values are too long or out of range.';
   return msg;
