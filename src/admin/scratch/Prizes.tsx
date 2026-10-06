@@ -312,6 +312,8 @@ function PrizeForm({
     if (chance == null || chance < 0 || chance > 100) return setError('Chance must be between 0 and 100%.');
     if (f.dailyLimit.trim() !== '' && (dailyLimit == null || !Number.isInteger(dailyLimit) || dailyLimit < 1))
       return setError('Daily limit must be a whole number of 1 or more, or left blank for no limit.');
+    if (dailyLimit != null && dailyLimit > quantity)
+      return setError(`Daily limit (${dailyLimit}) cannot be more than the quantity (${quantity}).`);
     const row: PrizeInput = {
       name: f.name.trim(),
       description: f.description.trim() || null,
@@ -436,15 +438,23 @@ function PrizeForm({
             id="pz-daily"
             type="number"
             min={1}
+            max={toNumber(f.quantity) ?? undefined}
             step={1}
             inputMode="numeric"
             placeholder="No limit"
             value={f.dailyLimit}
             onChange={(e) => set({ dailyLimit: e.target.value })}
           />
+          {(() => {
+            const limit = toNumber(f.dailyLimit);
+            const qty = toNumber(f.quantity);
+            return limit != null && qty != null && limit > qty ? (
+              <p className="error-text">Cannot be more than the quantity ({qty}).</p>
+            ) : null;
+          })()}
           <div className="hint">
-            Most times this prize can be won per day (India time). Leave blank for no limit. Once the limit is
-            reached, scratches that land on this prize lose until tomorrow.
+            Most times this prize can be won per day (India time), up to the quantity. Leave blank for no
+            limit. Once the limit is reached, scratches that land on this prize lose until tomorrow.
           </div>
         </div>
       )}
