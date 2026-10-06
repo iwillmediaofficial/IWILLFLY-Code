@@ -1,66 +1,46 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthProvider';
 import { AppShell, BackHeader } from '../../components/AppShell';
-import { locationPath } from '../../lib/locationPath';
 import { LocationChooser } from '../../components/LocationButton';
+import { AreaLocationPicker } from '../../components/ScratchLocation';
 import { useToast } from '../../components/Toast';
 import { usePlace } from '../../lib/location';
-import { db, must, useLocations } from '../../lib/queries';
-import { supabase } from '../../lib/supabase';
-import { errorText } from '../util';
-
-function useProfileArea(userId: string | undefined) {
-  const qc = useQueryClient();
-  const query = useQuery({
-    queryKey: ['profile-area', userId],
-    queryFn: async () =>
-      must<{ location_id: number | null } | null>(
-        await db().from('profiles').select('location_id').eq('id', userId!).maybeSingle(),
-      ),
-    enabled: Boolean(supabase && userId),
-  });
-  const save = useMutation({
-    mutationFn: async (locationId: number) => {
-      must(await db().from('profiles').update({ location_id: locationId }).eq('id', userId!));
-    },
-    onSettled: () => qc.invalidateQueries({ queryKey: ['profile-area', userId] }),
-  });
-  return { area: query.data?.location_id ?? null, save };
-}
+import { useProfileArea } from '../../lib/profileArea';
 
 export default function Settings() {
   const { session, signOut } = useAuth();
   const { place, setPlace } = usePlace();
+  const { areaId, known } = useProfileArea();
   const toast = useToast();
   const navigate = useNavigate();
-  const userId = session?.user.id;
-  const { area, save } = useProfileArea(userId);
-  const { data: locations = [] } = useLocations();
-
-  const onArea = (id: number) => {
-    if (!userId) return;
-    save.mutate(id, {
-      onSuccess: () => toast('Saved as your preferred area'),
-      onError: (e) => toast(errorText(e)),
-    });
-  };
 
   return (
     <AppShell
       header={<BackHeader back="/profile" title="Settings" subtitle="Location, notifications & privacy" />}
     >
-      <section className="section form-card">
-        <h3 style={{ marginTop: 0 }}>📍 Location</h3>
-        <p className="meta" style={{ lineHeight: 1.6, marginTop: 0 }}>
-          Your location is used only to show the nearest shops and offers first. It is kept on this device; an
-          area you pick while signed in is also saved to your account.
-        </p>
-        <LocationChooser onArea={onArea} />
-        {session && area != null && locations.length > 0 && (
-          <div className="meta" style={{ marginTop: 4 }}>
-            Saved to your account: {locationPath(locations, area)}
-          </div>
+      <section className="section form-card" id="location">
+        <h3 style={{ marginTop: 0 }}>📍 Your location</h3>
+        {session ? (
+          <>
+            <p className="meta" style={{ lineHeight: 1.6, marginTop: 0 }}>
+              Your area decides which Scratch & Win games and prizes you can play, and shows the nearest shops
+              and offers first. It is saved to your account.
+            </p>
+            {known && areaId == null && (
+              <div className="notice warn">
+                <b>Set your area to play Scratch & Win.</b> Use your current location or pick it below.
+              </div>
+            )}
+            <AreaLocationPicker />
+          </>
+        ) : (
+          <>
+            <p className="meta" style={{ lineHeight: 1.6, marginTop: 0 }}>
+              Your location is used only to show the nearest shops and offers first, and is kept on this
+              device. <Link to="/login">Sign in</Link> to save your area and play Scratch & Win.
+            </p>
+            <LocationChooser />
+          </>
         )}
         {place && (
           <button
@@ -68,7 +48,7 @@ export default function Settings() {
             style={{ marginTop: 8 }}
             onClick={() => {
               setPlace(null);
-              toast('Location cleared');
+              toast('Location cleared on this device');
             }}
           >
             Clear location on this device
