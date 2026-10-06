@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import { ContactButtons } from '../../components/ContactButtons';
 import type { ClaimStatus, VendorWinner } from '../../lib/types';
+import { useVendor } from '../context';
 import { ErrorNote, Loading } from '../ui';
 import { claimClass, claimLabel, formatDateTime } from './format';
 
@@ -80,6 +82,11 @@ export function WinnersList({
 }
 
 function WinnerRow({ winner: w, showCampaign }: { winner: VendorWinner; showCampaign: boolean }) {
+  const vendor = useVendor();
+  const message =
+    w.claim_status === 'unclaimed'
+      ? `Hi ${w.customer_name}, this is ${vendor.business_name} on IWILLFLY. Congratulations on winning "${w.prize_name}" in Scratch & Win! Please visit us with your claim code before ${formatDateTime(w.expires_at)}.`
+      : `Hi ${w.customer_name}, this is ${vendor.business_name} on IWILLFLY, about your Scratch & Win prize "${w.prize_name}".`;
   return (
     <div className="manage-card" style={{ marginTop: 0 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'start' }}>
@@ -100,6 +107,13 @@ function WinnerRow({ winner: w, showCampaign }: { winner: VendorWinner; showCamp
         {w.claim_status === 'unclaimed' && ` · Collect by ${formatDateTime(w.expires_at)}`}
         {w.claim_status === 'expired' && ` · Expired ${formatDateTime(w.expires_at)}`}
       </div>
+      {w.customer_phone ? (
+        <ContactButtons phone={w.customer_phone} message={message} />
+      ) : (
+        <div className="meta" style={{ marginTop: 8 }}>
+          No phone number on file for this winner.
+        </div>
+      )}
     </div>
   );
 }

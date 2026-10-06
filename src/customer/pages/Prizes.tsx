@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthProvider';
 import { AppShell, LogoHeader } from '../../components/AppShell';
 import { EmptyState } from '../../components/ShopCard';
+import { SponsorContact } from '../../components/SponsorContact';
 import { formatCode, useMyPrizes } from '../../lib/scratch';
 import { supabase } from '../../lib/supabase';
 import type { ClaimStatus, PlayResult } from '../../lib/types';
@@ -195,6 +196,7 @@ function ClaimView({ prize: p }: { prize: PlayResult }) {
       <div className="meta" style={{ marginTop: 8 }}>
         The shop scans the QR code or types the code to hand over your prize.
       </div>
+      <SponsorContact result={p} />
     </div>
   );
 }

@@ -9,6 +9,7 @@ import { formatCode, formatTime } from '../lib/scratch';
 import { mediaUrl } from '../lib/supabase';
 import type { PlayResult, TodayCampaign } from '../lib/types';
 import { ScratchLocationSheet } from './ScratchLocation';
+import { SponsorContact } from './SponsorContact';
 import { useToast } from './Toast';
 
 /**
@@ -304,6 +305,7 @@ function ResultScreen({ result, onClose }: { result: PlayResult; onClose: () => 
       <Link className="btn block" to="/prizes" style={{ display: 'block', textAlign: 'center' }}>
         View in My Prizes
       </Link>
+      <SponsorContact result={result} />
     </div>
   );
 }
