@@ -171,10 +171,7 @@ function BusinessCard({ vendor: v }: { vendor: Vendor }) {
         </div>
         <div className="field">
           <label>Badge</label>
-          <label
-            className="meta"
-            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0' }}
-          >
+          <label className="check-row" style={{ padding: '12px 0' }}>
             <input type="checkbox" checked={verified} onChange={(e) => setVerified(e.target.checked)} />✓
             Verified business
           </label>

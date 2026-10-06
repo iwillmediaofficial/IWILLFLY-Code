@@ -50,7 +50,8 @@ export function Prizes({ campaignId }: { campaignId: number }) {
     .filter((v): v is NonNullable<typeof v> => v != null && v.status === 'approved')
     .map((v) => ({ id: v.id, name: v.business_name }));
 
-  const list = prizes.data ?? [];
+  const list = prizes.data?.list ?? [];
+  const upgraded = prizes.data?.upgraded ?? true;
   const activeTotal = list.filter((p) => p.is_active).reduce((sum, p) => sum + p.probability, 0);
   const totalPct = Math.round(activeTotal * 100_000) / 1000;
   const reviewCount = list.filter(needsReview).length;
@@ -87,14 +88,21 @@ export function Prizes({ campaignId }: { campaignId: number }) {
           campaignId={campaignId}
           sponsors={sponsors}
           vendorNames={vendorNames}
+          upgraded={upgraded}
           onDone={() => setEditing(null)}
         />
       )}
 
+      {!upgraded && (
+        <div className="notice warn">
+          Daily limits and win locations need the latest database update. Until it is applied, prizes save
+          without them.
+        </div>
+      )}
       {prizes.isPending && <Loading />}
       {prizes.error && <ErrorNotice error={prizes.error} />}
       {vendors.error && <ErrorNotice error={vendors.error} />}
-      {prizes.data?.length === 0 && editing !== 'new' && (
+      {prizes.data?.list.length === 0 && editing !== 'new' && (
         <Empty emoji="🎁" title="No prizes yet">
           Add the prizes customers can win, with stock and a chance for each.
         </Empty>
@@ -108,6 +116,7 @@ export function Prizes({ campaignId }: { campaignId: number }) {
             prize={p}
             sponsors={sponsors}
             vendorNames={vendorNames}
+            upgraded={upgraded}
             onDone={() => setEditing(null)}
           />
         ) : (
@@ -222,12 +231,14 @@ function PrizeForm({
   prize,
   sponsors,
   vendorNames,
+  upgraded,
   onDone,
 }: {
   campaignId: number;
   prize?: AdminPrize;
   sponsors: { id: number; name: string }[];
   vendorNames: Map<number, string>;
+  upgraded: boolean;
   onDone: () => void;
 }) {
   const toast = useToast();
@@ -258,7 +269,7 @@ function PrizeForm({
 
   const save = useMutation({
     mutationFn: (row: PrizeInput) =>
-      savePrize(campaignId, prize?.id ?? null, row, f.locations, prize?.location_ids ?? []),
+      savePrize(campaignId, prize?.id ?? null, row, upgraded ? f.locations : null, prize?.location_ids ?? []),
     onSuccess: () => {
       invalidate(...SCRATCH_KEYS);
       toast(prize ? 'Prize saved' : 'Prize added');
@@ -308,7 +319,7 @@ function PrizeForm({
       sponsor_vendor_id: f.sponsor ? Number(f.sponsor) : null,
       quantity,
       probability: fromPercent(chance),
-      daily_limit: dailyLimit,
+      ...(upgraded && { daily_limit: dailyLimit }),
       is_active: f.is_active,
     };
     // Sending the unchanged value lets the database move stock along with a quantity change.
@@ -418,24 +429,26 @@ function PrizeForm({
           </div>
         </div>
       )}
-      <div className="field">
-        <label htmlFor="pz-daily">Daily limit (optional)</label>
-        <input
-          id="pz-daily"
-          type="number"
-          min={1}
-          step={1}
-          inputMode="numeric"
-          placeholder="No limit"
-          value={f.dailyLimit}
-          onChange={(e) => set({ dailyLimit: e.target.value })}
-        />
-        <div className="hint">
-          Most times this prize can be won per day (India time). Leave blank for no limit. Once the limit is
-          reached, scratches that land on this prize lose until tomorrow.
+      {upgraded && (
+        <div className="field">
+          <label htmlFor="pz-daily">Daily limit (optional)</label>
+          <input
+            id="pz-daily"
+            type="number"
+            min={1}
+            step={1}
+            inputMode="numeric"
+            placeholder="No limit"
+            value={f.dailyLimit}
+            onChange={(e) => set({ dailyLimit: e.target.value })}
+          />
+          <div className="hint">
+            Most times this prize can be won per day (India time). Leave blank for no limit. Once the limit is
+            reached, scratches that land on this prize lose until tomorrow.
+          </div>
         </div>
-      </div>
-      <LocationPicker value={f.locations} onChange={(locations) => set({ locations })} />
+      )}
+      {upgraded && <LocationPicker value={f.locations} onChange={(locations) => set({ locations })} />}
       <label className="check-row">
         <input type="checkbox" checked={f.is_active} onChange={(e) => set({ is_active: e.target.checked })} />
         Prize on (included in the draw)
@@ -506,30 +519,21 @@ function LocationPicker({ value, onChange }: { value: number[]; onChange: (ids: 
       />
       {isPending && <Loading what="Loading locations…" />}
       {error && <ErrorNotice error={error} />}
-      <div
-        role="group"
-        aria-label="Win locations"
-        style={{
-          maxHeight: 220,
-          overflowY: 'auto',
-          border: '1px solid var(--color-line)',
-          borderRadius: 12,
-          marginTop: 6,
-          padding: '2px 10px',
-        }}
-      >
+      <div className="check-list" role="group" aria-label="Win locations">
         {!isPending && shown.length === 0 && <p className="meta">No locations match “{q}”.</p>}
-        {shown.map(({ l, path }) => (
-          <label
-            key={l.id}
-            className="meta"
-            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', cursor: 'pointer' }}
-          >
-            <input type="checkbox" checked={picked.has(l.id)} onChange={() => toggle(l.id)} />
-            <span style={{ color: 'var(--color-ink)' }}>{path}</span>
-            {!l.is_active && <span>(hidden)</span>}
-          </label>
-        ))}
+        {shown.map(({ l, path }) => {
+          const above = path.split(' › ').slice(0, -1).join(' › ');
+          return (
+            <label key={l.id}>
+              <input type="checkbox" checked={picked.has(l.id)} onChange={() => toggle(l.id)} />
+              <span style={{ minWidth: 0 }}>
+                {l.name} <span className="sub">· {l.kind}</span>
+                {!l.is_active && <span className="sub"> · hidden</span>}
+                {above && <div className="sub">{above}</div>}
+              </span>
+            </label>
+          );
+        })}
       </div>
       {value.length > 0 && (
         <button

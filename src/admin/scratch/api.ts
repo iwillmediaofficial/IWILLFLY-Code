@@ -71,18 +71,26 @@ export function useCampaign(id: number | null) {
 export function usePrizes(campaignId: number) {
   return useQuery({
     queryKey: [SCRATCH_KEY, 'prizes', campaignId],
-    queryFn: async () =>
-      must<(ScratchPrize & { scratch_prize_locations: { location_id: number }[] | null })[]>(
-        await db()
-          .from('scratch_prizes')
-          .select('*, scratch_prize_locations(location_id)')
-          .eq('campaign_id', campaignId)
-          .order('id'),
-      ).map(({ scratch_prize_locations, ...p }) => ({
+    queryFn: async () => {
+      type Row = ScratchPrize & { scratch_prize_locations?: { location_id: number }[] | null };
+      let res = await db()
+        .from('scratch_prizes')
+        .select('*, scratch_prize_locations(location_id)')
+        .eq('campaign_id', campaignId)
+        .order('id');
+      // Before the prize-limits migration is applied the table doesn't exist (PGRST200: no relationship).
+      // Keep the page working with the old columns and hide the new fields.
+      const upgraded = res.error?.code !== 'PGRST200';
+      if (!upgraded)
+        res = await db().from('scratch_prizes').select('*').eq('campaign_id', campaignId).order('id');
+      const list: AdminPrize[] = must<Row[]>(res).map(({ scratch_prize_locations, ...p }) => ({
         ...p,
         probability: Number(p.probability),
+        daily_limit: p.daily_limit ?? null,
         location_ids: (scratch_prize_locations ?? []).map((l) => l.location_id),
-      })),
+      }));
+      return { list, upgraded };
+    },
   });
 }
 
@@ -176,25 +184,21 @@ export async function deleteCampaign(id: number) {
 
 export type PrizeInput = Pick<
   ScratchPrize,
-  | 'sponsor_vendor_id'
-  | 'name'
-  | 'description'
-  | 'image_key'
-  | 'quantity'
-  | 'probability'
-  | 'daily_limit'
-  | 'is_active'
-> & { remaining?: number };
+  'sponsor_vendor_id' | 'name' | 'description' | 'image_key' | 'quantity' | 'probability' | 'is_active'
+> & { remaining?: number; daily_limit?: number | null };
 
 /** A prize with the locations where it can be won (empty = everywhere). */
 export type AdminPrize = ScratchPrize & { location_ids: number[] };
 
-/** Saves the prize, then makes its win locations match `locationIds` (empty = everywhere). */
+/**
+ * Saves the prize, then makes its win locations match `locationIds` (empty = everywhere).
+ * Pass `locationIds` null to leave locations alone (before the prize-limits migration).
+ */
 export async function savePrize(
   campaignId: number,
   id: number | null,
   row: PrizeInput,
-  locationIds: number[],
+  locationIds: number[] | null,
   previousLocationIds: number[] = [],
 ) {
   let prizeId = id;
@@ -213,13 +217,14 @@ export async function savePrize(
           image_key: row.image_key,
           quantity: row.quantity,
           probability: row.probability,
-          daily_limit: row.daily_limit,
+          ...(row.daily_limit !== undefined && { daily_limit: row.daily_limit }),
           is_active: row.is_active,
         })
         .select('id')
         .single(),
     ).id;
   }
+  if (locationIds == null) return;
   const keep = new Set(locationIds);
   const removed = previousLocationIds.filter((l) => !keep.has(l));
   const added = locationIds.filter((l) => !previousLocationIds.includes(l));
