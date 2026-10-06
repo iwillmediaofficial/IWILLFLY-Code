@@ -203,6 +203,8 @@ export interface ScratchPrize {
   remaining: number;
   /** 0..1 chance of winning this prize on one scratch */
   probability: number;
+  /** Most wins per India day; null = no daily limit */
+  daily_limit: number | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;

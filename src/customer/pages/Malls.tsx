@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { AppShell, BackHeader } from '../../components/AppShell';
 import { EmptyState } from '../../components/ShopCard';
 import { formatKm } from '../../lib/hours';
-import { usePlace } from '../../lib/location';
+import { isApprox, usePlace } from '../../lib/location';
 import { useMalls } from '../../lib/queries';
 import { supabase } from '../../lib/supabase';
 import type { MallResult } from '../../lib/types';
@@ -65,13 +65,14 @@ export default function Malls() {
 }
 
 export function MallCard({ mall: m }: { mall: MallResult }) {
+  const approx = isApprox(usePlace().place);
   return (
     <Link className="shop-card" to={`/mall/${m.mall_id}`}>
       <Thumb imageKey={m.cover_key} icon="🏬" />
       <div>
         <h4>{m.name}</h4>
         <div className="meta">
-          {[formatKm(m.distance_km), `${m.shop_count} ${m.shop_count === 1 ? 'shop' : 'shops'}`]
+          {[formatKm(m.distance_km, approx), `${m.shop_count} ${m.shop_count === 1 ? 'shop' : 'shops'}`]
             .filter(Boolean)
             .join(' · ')}
         </div>

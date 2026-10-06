@@ -5,6 +5,7 @@ import { LocationButton } from '../../components/LocationButton';
 import { CampaignPrizes, ScratchButton, ScratchModal } from '../../components/Scratch';
 import { EmptyState } from '../../components/ShopCard';
 import { formatKm } from '../../lib/hours';
+import { isApprox, usePlace } from '../../lib/location';
 import { useCategories, useMalls, useOfferSearch } from '../../lib/queries';
 import { formatTime, useScratchToday } from '../../lib/scratch';
 import { supabase } from '../../lib/supabase';
@@ -126,6 +127,7 @@ function CategoryGrid() {
 }
 
 function NearOffers() {
+  const approx = isApprox(usePlace().place);
   const { data, isLoading, error, refetch } = useOfferSearch({ limit: 10 });
   if (!supabase) return null;
   if (isLoading) return <Loading text="Finding offers near you…" />;
@@ -147,7 +149,7 @@ function NearOffers() {
           badge={o.discount_label ?? (o.is_featured ? 'FEATURED' : 'OFFER')}
           tone={toneFor(i)}
           title={o.shop_name}
-          meta={[formatKm(o.distance_km), o.title].filter(Boolean).join(' · ')}
+          meta={[formatKm(o.distance_km, approx), o.title].filter(Boolean).join(' · ')}
         />
       ))}
     </div>
@@ -155,6 +157,7 @@ function NearOffers() {
 }
 
 function TopMalls() {
+  const approx = isApprox(usePlace().place);
   const { data, isLoading, error, refetch } = useMalls();
   if (!supabase) return null;
   if (isLoading) return <Loading />;
@@ -176,7 +179,7 @@ function TopMalls() {
           <div>
             <h4>{m.name}</h4>
             <div className="meta">
-              {[formatKm(m.distance_km), `${m.shop_count} ${m.shop_count === 1 ? 'shop' : 'shops'}`]
+              {[formatKm(m.distance_km, approx), `${m.shop_count} ${m.shop_count === 1 ? 'shop' : 'shops'}`]
                 .filter(Boolean)
                 .join(' · ')}
             </div>

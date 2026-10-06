@@ -821,6 +821,54 @@
     height: 18px;
     accent-color: var(--color-blue);
   }
+  /* A tick box inside a .field keeps its own size instead of the full-width text-input style. */
+  .field .check-row {
+    display: flex;
+    margin-bottom: 0;
+  }
+  .field .check-row input {
+    width: 18px;
+    flex: none;
+    padding: 0;
+  }
+  /* Scrolling list of tick boxes (e.g. prize win locations). */
+  .check-list {
+    max-height: 240px;
+    overflow-y: auto;
+    border: 1px solid var(--color-line);
+    border-radius: 12px;
+    background: #fff;
+    margin-top: 6px;
+    padding: 0 12px;
+  }
+  .field .check-list label,
+  .check-list label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    padding: 9px 0;
+    border-top: 1px solid var(--color-line);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .check-list label:first-child {
+    border-top: 0;
+  }
+  .field .check-list input,
+  .check-list input {
+    width: 18px;
+    height: 18px;
+    flex: none;
+    padding: 0;
+    accent-color: var(--color-blue);
+  }
+  .check-list .sub {
+    color: var(--color-muted);
+    font-weight: 500;
+    font-size: 12px;
+  }
   .btn.block {
     width: 100%;
   }

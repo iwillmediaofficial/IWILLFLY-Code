@@ -72,9 +72,11 @@ export function openState(
   };
 }
 
-export function formatKm(km: number | null | undefined) {
+/** "850 m", "2.4 km"; with `approx` (an imprecise GPS fix, see isApprox) "approx. 2.4 km". */
+export function formatKm(km: number | null | undefined, approx = false) {
   if (km == null) return '';
-  return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`;
+  const text = km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`;
+  return approx ? `approx. ${text}` : text;
 }
 
 /** Straight-line distance in km. */

@@ -71,10 +71,26 @@ export function useCampaign(id: number | null) {
 export function usePrizes(campaignId: number) {
   return useQuery({
     queryKey: [SCRATCH_KEY, 'prizes', campaignId],
-    queryFn: async () =>
-      must<ScratchPrize[]>(
-        await db().from('scratch_prizes').select('*').eq('campaign_id', campaignId).order('id'),
-      ).map((p) => ({ ...p, probability: Number(p.probability) })),
+    queryFn: async () => {
+      type Row = ScratchPrize & { scratch_prize_locations?: { location_id: number }[] | null };
+      let res = await db()
+        .from('scratch_prizes')
+        .select('*, scratch_prize_locations(location_id)')
+        .eq('campaign_id', campaignId)
+        .order('id');
+      // Before the prize-limits migration is applied the table doesn't exist (PGRST200: no relationship).
+      // Keep the page working with the old columns and hide the new fields.
+      const upgraded = res.error?.code !== 'PGRST200';
+      if (!upgraded)
+        res = await db().from('scratch_prizes').select('*').eq('campaign_id', campaignId).order('id');
+      const list: AdminPrize[] = must<Row[]>(res).map(({ scratch_prize_locations, ...p }) => ({
+        ...p,
+        probability: Number(p.probability),
+        daily_limit: p.daily_limit ?? null,
+        location_ids: (scratch_prize_locations ?? []).map((l) => l.location_id),
+      }));
+      return { list, upgraded };
+    },
   });
 }
 
@@ -169,26 +185,59 @@ export async function deleteCampaign(id: number) {
 export type PrizeInput = Pick<
   ScratchPrize,
   'sponsor_vendor_id' | 'name' | 'description' | 'image_key' | 'quantity' | 'probability' | 'is_active'
-> & { remaining?: number };
+> & { remaining?: number; daily_limit?: number | null };
 
-export async function savePrize(campaignId: number, id: number | null, row: PrizeInput) {
+/** A prize with the locations where it can be won (empty = everywhere). */
+export type AdminPrize = ScratchPrize & { location_ids: number[] };
+
+/**
+ * Saves the prize, then makes its win locations match `locationIds` (empty = everywhere).
+ * Pass `locationIds` null to leave locations alone (before the prize-limits migration).
+ */
+export async function savePrize(
+  campaignId: number,
+  id: number | null,
+  row: PrizeInput,
+  locationIds: number[] | null,
+  previousLocationIds: number[] = [],
+) {
+  let prizeId = id;
   if (id != null) {
     must(await db().from('scratch_prizes').update(row).eq('id', id));
-    return;
+  } else {
+    // remaining is set from quantity by the database on insert
+    prizeId = must<{ id: number }>(
+      await db()
+        .from('scratch_prizes')
+        .insert({
+          campaign_id: campaignId,
+          sponsor_vendor_id: row.sponsor_vendor_id,
+          name: row.name,
+          description: row.description,
+          image_key: row.image_key,
+          quantity: row.quantity,
+          probability: row.probability,
+          ...(row.daily_limit !== undefined && { daily_limit: row.daily_limit }),
+          is_active: row.is_active,
+        })
+        .select('id')
+        .single(),
+    ).id;
   }
-  // remaining is set from quantity by the database on insert
-  must(
-    await db().from('scratch_prizes').insert({
-      campaign_id: campaignId,
-      sponsor_vendor_id: row.sponsor_vendor_id,
-      name: row.name,
-      description: row.description,
-      image_key: row.image_key,
-      quantity: row.quantity,
-      probability: row.probability,
-      is_active: row.is_active,
-    }),
-  );
+  if (locationIds == null) return;
+  const keep = new Set(locationIds);
+  const removed = previousLocationIds.filter((l) => !keep.has(l));
+  const added = locationIds.filter((l) => !previousLocationIds.includes(l));
+  if (removed.length)
+    must(
+      await db().from('scratch_prize_locations').delete().eq('prize_id', prizeId!).in('location_id', removed),
+    );
+  if (added.length)
+    must(
+      await db()
+        .from('scratch_prize_locations')
+        .insert(added.map((location_id) => ({ prize_id: prizeId!, location_id }))),
+    );
 }
 
 export async function updatePrize(
@@ -227,6 +276,7 @@ export function scratchError(err: unknown, inUse: string) {
   if (/duplicate key|unique constraint/i.test(msg)) return 'That is already added.';
   if (/active_to|active_from/i.test(msg)) return 'The daily end time must be after the start time.';
   if (/ends_on|starts_on/i.test(msg)) return 'The end date cannot be before the start date.';
+  if (/daily_limit_within_quantity/i.test(msg)) return 'The daily limit cannot be more than the quantity.';
   if (/remaining/i.test(msg)) return 'Stock left cannot be more than the quantity.';
   if (/violates check constraint/i.test(msg)) return 'Some values are too long or out of range.';
   return msg;

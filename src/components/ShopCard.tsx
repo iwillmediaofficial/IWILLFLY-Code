@@ -2,12 +2,16 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { track } from '../lib/engagement';
 import { formatKm, openState } from '../lib/hours';
+import { isApprox, usePlace } from '../lib/location';
 import type { ShopResult } from '../lib/types';
 import { Thumb } from '../customer/ui';
 
 export function ShopCard({ shop, showStatus = true }: { shop: ShopResult; showStatus?: boolean }) {
   const state = shop.branch_id != null ? openState(shop) : null;
-  const meta = [shop.mall_name, formatKm(shop.distance_km) || shop.category_name].filter(Boolean).join(' · ');
+  const approx = isApprox(usePlace().place);
+  const meta = [shop.mall_name, formatKm(shop.distance_km, approx) || shop.category_name]
+    .filter(Boolean)
+    .join(' · ');
   return (
     <Link className="shop-card" to={`/shop/${shop.shop_id}`} onClick={() => track('click', shop.shop_id)}>
       <Thumb imageKey={shop.logo_key} icon={shop.category_icon} />

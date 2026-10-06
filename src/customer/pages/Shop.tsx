@@ -5,7 +5,7 @@ import { AppShell, BackHeader } from '../../components/AppShell';
 import { EmptyState } from '../../components/ShopCard';
 import { track } from '../../lib/engagement';
 import { DAYS, formatKm, formatPrice, formatTime, haversineKm, nowIST, openState } from '../../lib/hours';
-import { usePlace } from '../../lib/location';
+import { isApprox, usePlace } from '../../lib/location';
 import { usePageMeta } from '../../lib/pageMeta';
 import { db, must, useSavedIds } from '../../lib/queries';
 import { mediaUrl, supabase } from '../../lib/supabase';
@@ -69,6 +69,7 @@ export default function Shop() {
   const id = Number(useParams().id);
   const valid = Number.isInteger(id) && id > 0;
   const { place } = usePlace();
+  const approx = isApprox(place);
   const [params, setParams] = useSearchParams();
   const { shop, branches, malls, offers } = useShopData(id, valid);
   const savedShops = useSavedIds('shop');
@@ -212,7 +213,7 @@ export default function Shop() {
         )}
         <h1>{s.name}</h1>
         <p>
-          {[s.category?.name, mall?.mall?.name, formatKm(branch?.km)].filter(Boolean).join(' · ')}
+          {[s.category?.name, mall?.mall?.name, formatKm(branch?.km, approx)].filter(Boolean).join(' · ')}
           {state && (
             <>
               {' · '}
@@ -235,7 +236,7 @@ export default function Shop() {
           <div className="info-card">
             <span>Distance</span>
             <strong style={{ fontSize: 16 }}>
-              {branch?.km != null ? formatKm(branch.km) : place ? '—' : 'Set location'}
+              {branch?.km != null ? formatKm(branch.km, approx) : place ? '—' : 'Set location'}
             </strong>
           </div>
         </div>
@@ -323,7 +324,9 @@ export default function Shop() {
                   <div>
                     <h4>{b.name}</h4>
                     <div className="meta">
-                      {[mallOf(b.id)?.mall?.name, b.address, formatKm(b.km)].filter(Boolean).join(' · ')}
+                      {[mallOf(b.id)?.mall?.name, b.address, formatKm(b.km, approx)]
+                        .filter(Boolean)
+                        .join(' · ')}
                     </div>
                     <div className="meta" style={{ marginTop: 3, color: st.open ? '#16a85a' : '#e53a42' }}>
                       {st.label}
