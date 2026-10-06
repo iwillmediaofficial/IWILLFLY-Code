@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
+import { ContactButtons } from '../../components/ContactButtons';
 import { useToast } from '../../components/Toast';
+import { formatPhone } from '../../lib/contact';
 import { formatCode } from '../../lib/scratch';
 import { mediaUrl } from '../../lib/supabase';
 import type { ClaimLookup } from '../../lib/types';
@@ -209,6 +211,7 @@ function ResultCard({
   confirming: boolean;
   onHandOver: () => void;
 }) {
+  const vendor = useVendor();
   const flagged = r.status === 'flagged' || (r.status === 'unclaimed' && r.fraud_flag);
   return (
     <>
@@ -261,6 +264,7 @@ function ResultCard({
         {r.prize?.description && <p style={{ fontSize: 13, margin: '10px 0 0' }}>{r.prize.description}</p>}
         <div className="info-grid" style={{ marginTop: 12 }}>
           <Info label="Customer" value={r.customer_name} />
+          <Info label="Phone" value={r.customer_phone ? formatPhone(r.customer_phone) : 'Not given'} />
           <Info label="Claim code" value={formatCode(r.claim_code ?? code)} />
           <Info label="Won on" value={formatDateTime(r.played_at)} />
           {r.status === 'claimed' || r.status === 'claimed_now' ? (
@@ -272,6 +276,13 @@ function ResultCard({
             />
           )}
         </div>
+        {r.customer_phone && (
+          <ContactButtons
+            phone={r.customer_phone}
+            showNumber={false}
+            message={`Hi ${r.customer_name}, this is ${vendor.business_name} on IWILLFLY, about your Scratch & Win prize "${r.prize?.name ?? 'prize'}".`}
+          />
+        )}
         {r.status === 'unclaimed' && !flagged && (
           <button
             type="button"

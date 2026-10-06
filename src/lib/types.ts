@@ -218,7 +218,14 @@ export interface PlayResult {
   played_at: string;
   won: boolean;
   prize: { id: number; name: string; description: string | null; image_key: string | null } | null;
-  sponsor: { vendor_id: number; name: string } | null;
+  /** The shop that hands the prize over, with its business contact and first active shop. */
+  sponsor: {
+    vendor_id: number;
+    name: string;
+    phone?: string | null;
+    whatsapp?: string | null;
+    shop_id?: number | null;
+  } | null;
   claim_code: string | null;
   /** already 'expired' when past expires_at, even before the hourly job runs */
   claim_status: ClaimStatus | null;
@@ -253,6 +260,7 @@ export type ClaimLookup =
   | (Omit<PlayResult, 'sponsor'> & {
       status: ClaimStatus | 'claimed_now' | 'flagged';
       customer_name: string;
+      customer_phone?: string | null;
       fraud_flag: boolean;
     });
 
@@ -264,6 +272,8 @@ export interface VendorWinner {
   prize_id: number;
   prize_name: string;
   customer_name: string;
+  /** The winner's mobile, so the shop can contact them. */
+  customer_phone: string | null;
   played_at: string;
   claim_status: ClaimStatus;
   expires_at: string;

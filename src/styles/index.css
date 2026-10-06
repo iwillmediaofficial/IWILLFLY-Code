@@ -887,6 +887,71 @@
     flex-wrap: wrap;
     margin-top: 10px;
   }
+  /* Call / WhatsApp buttons between a Scratch & Win winner and the sponsor shop. */
+  .contact-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+  }
+  .contact-number {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--color-ink);
+  }
+  .contact-btns {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .contact-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 12px;
+    border-radius: 99px;
+    font-size: 12px;
+    font-weight: 800;
+    text-decoration: none;
+    border: 1px solid var(--color-line);
+    background: #fff;
+    color: var(--color-ink);
+    cursor: pointer;
+  }
+  .contact-btn.call {
+    background: #eaf1ff;
+    border-color: #cfe0ff;
+    color: var(--color-blue);
+  }
+  .contact-btn.wa {
+    background: #e8f8ee;
+    border-color: #c6eed5;
+    color: #128c4a;
+  }
+  .contact-card {
+    margin-top: 14px;
+    padding: 12px;
+    border: 1px solid var(--color-line);
+    border-radius: 14px;
+    background: #f8fbff;
+    text-align: left;
+  }
+  .contact-card .contact-row {
+    justify-content: flex-start;
+  }
+  .contact-icon {
+    width: 40px;
+    height: 40px;
+    flex: none;
+    display: grid;
+    place-items: center;
+    border-radius: 12px;
+    background: #fff;
+    border: 1px solid var(--color-line);
+    font-size: 20px;
+  }
   .link-btn {
     background: none;
     border: 0;
