@@ -21,6 +21,7 @@ const PRIVATE_PATHS = [
   '/notifications',
   '/history',
   '/help',
+  '/points',
 ];
 
 type BranchRow = {

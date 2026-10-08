@@ -1448,6 +1448,79 @@
     line-height: 1.6;
     margin-top: 0;
   }
+
+  /* Customer points: wallet balance, progress to the first cash-out, bill photos */
+  .points-balance {
+    font-size: 40px;
+    font-weight: 900;
+    line-height: 1.1;
+    margin: 4px 0 2px;
+  }
+  .points-bar {
+    height: 12px;
+    border-radius: 99px;
+    background: rgba(255, 255, 255, 0.25);
+    overflow: hidden;
+    margin: 14px 0 8px;
+  }
+  .points-bar > i {
+    display: block;
+    height: 100%;
+    border-radius: 99px;
+    background: var(--color-yellow);
+    transition: width 0.4s ease;
+  }
+  .points-plus {
+    color: var(--color-green);
+    font-weight: 900;
+    white-space: nowrap;
+  }
+  .points-minus {
+    color: var(--color-red);
+    font-weight: 900;
+    white-space: nowrap;
+  }
+  .bill-photo {
+    display: grid;
+    place-items: center;
+    min-height: 220px;
+    border-radius: var(--radius-card);
+    border: 1px solid var(--color-line);
+    background: #fff;
+    overflow: hidden;
+  }
+  .bill-photo img {
+    display: block;
+    width: 100%;
+    max-height: 70vh;
+    object-fit: contain;
+  }
+  .bill-review {
+    display: grid;
+    gap: 14px;
+  }
+  @media (min-width: 700px) {
+    .bill-review {
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+      align-items: start;
+    }
+  }
+  .bill-facts {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 6px 12px;
+    font-size: 13px;
+    margin: 0 0 12px;
+  }
+  .bill-facts dt {
+    color: var(--color-muted);
+  }
+  .bill-facts dd {
+    margin: 0;
+    font-weight: 700;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
 }
 
 /* Phase 4: printing an invoice shows only the invoice, without the app's header, tabs and buttons. */

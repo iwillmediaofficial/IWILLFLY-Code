@@ -32,6 +32,8 @@ const TABLES: Record<string, string> = {
   addon_purchases: 'add-on purchase',
   support_tickets: 'support ticket',
   vendor_staff: 'vendor team member',
+  bill_submissions: 'customer bill',
+  points_settings: 'points settings',
 };
 
 const VERB = { insert: 'added', update: 'changed', delete: 'removed' } as const;
@@ -130,7 +132,7 @@ function Entry({ entry: e }: { entry: AuditEntry }) {
           {VERB[e.action][0].toUpperCase() + VERB[e.action].slice(1)}
         </span>{' '}
         {thing}
-        {e.row_id && e.table_name !== 'billing_settings' ? ` #${e.row_id}` : ''}
+        {e.row_id && !e.table_name.endsWith('_settings') ? ` #${e.row_id}` : ''}
       </h4>
       {e.action === 'update' ? (
         <div style={{ fontSize: 12, display: 'grid', gap: 2, overflowWrap: 'anywhere' }}>

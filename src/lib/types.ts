@@ -411,7 +411,16 @@ export interface AppNotification {
   id: number;
   user_id: string;
   kind:
-    'broadcast' | 'offer_review' | 'vendor_review' | 'new_winner' | 'festival_review' | 'placement_review';
+    | 'broadcast'
+    | 'offer_review'
+    | 'vendor_review'
+    | 'new_winner'
+    | 'festival_review'
+    | 'placement_review'
+    | 'billing'
+    | 'support_reply'
+    | 'staff'
+    | 'points';
   title: string;
   body: string | null;
   /** in-app path */
@@ -725,4 +734,111 @@ export interface AuditEntry {
   /** update: {column: [old, new]}; insert/delete: the whole row */
   changes: Record<string, unknown>;
   created_at: string;
+}
+
+// Customer points --------------------------------------------------------------------------------
+
+/** points_settings (one row) */
+export interface PointsSettings {
+  id: 1;
+  /** earn rate: 1 point for every this many rupees on a bill */
+  rupees_per_point: number;
+  /** rupees one point is worth */
+  point_value: number;
+  min_redeem_points: number;
+  redeem_step_points: number;
+  validity_months: number;
+  /** a bill must be added within this many days of its date */
+  bill_age_days: number;
+  updated_at: string;
+}
+
+/** points_wallet() */
+export interface PointsWallet {
+  balance: number;
+  value: number;
+  rupees_per_point: number;
+  point_value: number;
+  min_redeem_points: number;
+  redeem_step_points: number;
+  validity_months: number;
+  bill_age_days: number;
+  next_expiry: { expires_at: string; points: number } | null;
+  pending_bills: number;
+  pending_points: number;
+  lifetime_points: number;
+}
+
+export type BillStatus = 'pending' | 'approved' | 'rejected';
+export type BillRejectReason = 'blurry' | 'wrong_shop' | 'duplicate' | 'amount_mismatch';
+
+/** my_bills() */
+export interface MyBill {
+  id: number;
+  shop_id: number;
+  shop_name: string;
+  bill_number: string;
+  bill_date: string;
+  amount: number;
+  approved_amount: number | null;
+  status: BillStatus;
+  reject_reason: BillRejectReason | null;
+  admin_note: string | null;
+  points: number | null;
+  resubmit_of: number | null;
+  can_resubmit: boolean;
+  created_at: string;
+  decided_at: string | null;
+}
+
+/** my_points_history() */
+export interface PointsEntry {
+  id: number;
+  kind: 'earn' | 'expire' | 'redeem' | 'refund' | 'adjust';
+  points: number;
+  points_remaining: number | null;
+  expires_at: string | null;
+  bill_id: number | null;
+  shop_name: string | null;
+  bill_amount: number | null;
+  note: string | null;
+  created_at: string;
+}
+
+/** points_shops() */
+export interface PointsShop {
+  id: number;
+  name: string;
+  logo_key: string | null;
+  area: string | null;
+}
+
+/** admin_bills() */
+export interface AdminBill {
+  id: number;
+  customer_id: string;
+  customer_name: string;
+  customer_email: string | null;
+  customer_phone: string | null;
+  shop_id: number;
+  shop_name: string;
+  bill_number: string;
+  bill_date: string;
+  amount: number;
+  approved_amount: number | null;
+  photo_key: string;
+  photo_deleted: boolean;
+  status: BillStatus;
+  reject_reason: BillRejectReason | null;
+  admin_note: string | null;
+  points: number | null;
+  resubmit_of: number | null;
+  previous_reason: BillRejectReason | null;
+  created_at: string;
+  decided_at: string | null;
+  reviewer_email: string | null;
+  /** this customer's bills from the same shop in the 7 days up to this one (this one included) */
+  same_shop_week: number;
+  customer_bills: number;
+  customer_rejected: number;
 }

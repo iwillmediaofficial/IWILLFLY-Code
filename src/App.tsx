@@ -13,6 +13,7 @@ const Malls = lazy(() => import('./customer/pages/Malls'));
 const Shop = lazy(() => import('./customer/pages/Shop'));
 const Saved = lazy(() => import('./customer/pages/Saved'));
 const Prizes = lazy(() => import('./customer/pages/Prizes'));
+const Points = lazy(() => import('./customer/pages/Points'));
 const Notifications = lazy(() => import('./customer/pages/Notifications'));
 const Festival = lazy(() => import('./customer/pages/Festival'));
 const History = lazy(() => import('./customer/pages/History'));
@@ -44,6 +45,7 @@ export default function App() {
                 <Route path="/shop/:id" element={<Shop />} />
                 <Route path="/saved" element={<Saved />} />
                 <Route path="/prizes" element={<Prizes />} />
+                <Route path="/points/*" element={<Points />} />
                 <Route path="/notifications" element={<Notifications />} />
                 <Route path="/festival/:slug" element={<Festival />} />
                 <Route path="/history" element={<History />} />

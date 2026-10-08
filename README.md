@@ -66,7 +66,10 @@ To test uploads locally, copy `.dev.vars.example` to `.dev.vars`, fill it in, th
    add `{{ .Token }}` to the Magic Link email template.
 2. **First admin**: sign in once, then run in the SQL editor:
    `insert into public.user_roles (user_id, role) select id, 'super_admin' from auth.users where email = 'you@example.com';`
-3. **Cloudflare R2**: follow the R2 setup guide (buckets, CORS, API token).
+3. **Cloudflare R2**: follow the R2 setup guide (buckets, CORS, API token). Also create a second bucket named
+   `iwillfly-bills` and leave its public access **off**: it holds customers' bill photos for points, which admins
+   open through 10-minute signed links (`worker/bills.ts`). Those links and the daily photo clean-up need the
+   Worker's `SUPABASE_SERVICE_ROLE_KEY`.
 4. **Cloudflare Workers**: Workers & Pages > Create > Import a repository, pick this repo. Leave the build command
    empty and keep the deploy command `npx wrangler deploy` (wrangler.jsonc runs `npm run build` itself).
    Then in the Worker's Settings:
