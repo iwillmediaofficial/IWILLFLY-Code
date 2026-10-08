@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AppShell, LogoHeader, NotificationBell } from '../../components/AppShell';
 import { AdSlider } from '../../components/AdSlider';
@@ -103,27 +103,59 @@ function ScratchStatus({ card }: { card: ScratchCard }) {
   );
 }
 
+/** One row of category tiles that scrolls sideways; the arrow scrolls on and hides at the end. */
 function CategoryGrid() {
   const { data, isLoading } = useCategories();
+  const scroller = useRef<HTMLDivElement>(null);
+  const [more, setMore] = useState(false);
+
+  const update = useCallback(() => {
+    const el = scroller.current;
+    if (el) setMore(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  }, []);
+
+  useEffect(() => {
+    const el = scroller.current;
+    if (!el) return;
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [update, data]);
+
   if (!supabase) return <NoBackend />;
+  if (isLoading) return <Loading />;
   const tiles = [
-    ...(data ?? []).slice(0, 6).map((c) => ({
+    ...(data ?? []).map((c) => ({
+      key: c.slug,
       icon: (<CategoryIcon category={c} fill />) as ReactNode,
       label: c.name,
       to: `/explore?cat=${encodeURIComponent(c.slug)}`,
     })),
-    { icon: '🏬' as ReactNode, label: 'Malls', to: '/malls' },
-    { icon: '•••' as ReactNode, label: 'More', to: '/explore' },
+    { key: 'malls', icon: '🏬' as ReactNode, label: 'Malls', to: '/malls' },
   ];
-  if (isLoading) return <Loading />;
   return (
-    <div className="category-grid">
-      {tiles.map((t) => (
-        <Link key={t.to} className="cat" to={t.to}>
-          <div className="ico">{t.icon}</div>
-          <span>{t.label}</span>
-        </Link>
-      ))}
+    <div className="cat-row">
+      <div className="cat-row-scroll" ref={scroller} onScroll={update}>
+        {tiles.map((t) => (
+          <Link key={t.key} className="cat-tile" to={t.to}>
+            <div className="cat-tile-ico">{t.icon}</div>
+            <span>{t.label}</span>
+          </Link>
+        ))}
+      </div>
+      {more && (
+        <button
+          type="button"
+          className="cat-row-next"
+          aria-label="More categories"
+          onClick={() =>
+            scroller.current?.scrollBy({ left: scroller.current.clientWidth * 0.8, behavior: 'smooth' })
+          }
+        >
+          ›
+        </button>
+      )}
     </div>
   );
 }
