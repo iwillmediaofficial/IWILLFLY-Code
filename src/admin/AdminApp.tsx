@@ -8,6 +8,7 @@ import { Locations } from './Locations';
 import { MallEdit, Malls } from './Malls';
 import { Offers } from './Offers';
 import ScratchAdmin from './scratch/ScratchAdmin';
+import PointsAdmin from './points/PointsAdmin';
 import AdminAds from './engagement/Ads';
 import AdminAnalytics from './engagement/Analytics';
 import AdminFestivals from './engagement/Festivals';
@@ -39,6 +40,7 @@ const tabs: { to: string; label: string; end?: boolean; roles: AppRole[] }[] = [
   { to: '/admin/notify', label: 'Notify', roles: CAMPAIGN },
   { to: '/admin/analytics', label: 'Analytics', roles: CAMPAIGN },
   { to: '/admin/reports', label: 'Reports', roles: ADMIN },
+  { to: '/admin/points', label: 'Points', roles: ADMIN },
   { to: '/admin/billing', label: 'Billing', roles: ADMIN },
   { to: '/admin/support', label: 'Support', roles: SUPPORT },
   { to: '/admin/team', label: 'Team', roles: ADMIN },
@@ -100,6 +102,7 @@ export default function AdminApp() {
           <Route path="notify" element={<AdminNotify />} />
           <Route path="analytics" element={<AdminAnalytics />} />
           <Route path="reports" element={<AdminReports />} />
+          <Route path="points/*" element={<PointsAdmin />} />
           <Route path="billing/*" element={<BillingAdmin />} />
           <Route path="support/*" element={<SupportAdmin />} />
           <Route path="team" element={<Team />} />
@@ -139,17 +142,25 @@ function Dashboard() {
   const attention = useQuery({
     queryKey: ['admin-attention', isAdmin],
     queryFn: async () => {
-      const [invoices, tickets] = await Promise.all([
+      const [invoices, bills, tickets] = await Promise.all([
         isAdmin
           ? countRows(
               db().from('invoices').select('id', { count: 'exact', head: true }).eq('status', 'submitted'),
+            )
+          : Promise.resolve(null),
+        isAdmin
+          ? countRows(
+              db()
+                .from('bill_submissions')
+                .select('id', { count: 'exact', head: true })
+                .eq('status', 'pending'),
             )
           : Promise.resolve(null),
         countRows(
           db().from('support_tickets').select('id', { count: 'exact', head: true }).eq('status', 'open'),
         ),
       ]);
-      return { invoices, tickets };
+      return { invoices, bills, tickets };
     },
     enabled: isSupport,
   });
@@ -176,7 +187,10 @@ function Dashboard() {
   ];
   const attentionTiles: { label: string; value: number | null | undefined; to: string }[] = [
     ...(isAdmin
-      ? [{ label: 'Payments to check', value: a?.invoices, to: '/admin/billing/invoices?status=submitted' }]
+      ? [
+          { label: 'Payments to check', value: a?.invoices, to: '/admin/billing/invoices?status=submitted' },
+          { label: 'Customer bills to check', value: a?.bills, to: '/admin/points/bills?status=pending' },
+        ]
       : []),
     { label: 'Open help tickets', value: a?.tickets, to: '/admin/support?status=open' },
   ];

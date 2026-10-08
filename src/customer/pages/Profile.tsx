@@ -3,6 +3,7 @@ import { AppShell, LogoHeader } from '../../components/AppShell';
 import { ADMIN_ROLES, useAuth } from '../../auth/AuthProvider';
 import { usePlace } from '../../lib/location';
 import { useSavedIds } from '../../lib/queries';
+import { usePointsWallet } from '../../lib/points';
 import { useMyPrizes } from '../../lib/scratch';
 
 const pad = (n: number | undefined) => (n == null ? '–' : String(n).padStart(2, '0'));
@@ -13,6 +14,7 @@ export default function Profile() {
   const savedOffers = useSavedIds('offer');
   const savedShops = useSavedIds('shop');
   const myPrizes = useMyPrizes();
+  const wallet = usePointsWallet();
   const email = session?.user.email ?? '';
   const name =
     (session?.user.user_metadata?.full_name as string | undefined) ?? (email ? email.split('@')[0] : 'Guest');
@@ -97,6 +99,16 @@ export default function Profile() {
             icon="📍"
             title="Location & nearby offers"
             meta={place ? `Showing offers near ${place.label}` : 'Set your area for nearby offers'}
+          />
+          <ProfileRow
+            to="/points"
+            icon="💰"
+            title="My Points"
+            meta={
+              wallet.data
+                ? `${wallet.data.balance.toLocaleString('en-IN')} points = ₹${wallet.data.value.toLocaleString('en-IN')} · add bills to earn`
+                : 'Earn 1 point for every ₹50 on your bills'
+            }
           />
           <ProfileRow to="/prizes" icon="🏆" title="My Prizes" meta="Your wins and claim codes" />
           <ProfileRow to="/scratch" icon="🎁" title="My Scratch & Win history" meta="Daily prize activity" />

@@ -23,16 +23,26 @@ export async function uploadImage(
   const token = data.session?.access_token;
   if (!token) throw new Error('Please sign in first');
 
-  const webp = options.square
-    ? await squareWebp(file, options.square)
-    : await imageCompression(file, {
-        maxWidthOrHeight: 1600,
-        maxSizeMB: 0.4,
-        fileType: 'image/webp',
-        initialQuality: 0.8,
-        useWebWorker: true,
-      });
+  const webp = options.square ? await squareWebp(file, options.square) : await photoWebp(file);
+  return sendWebp(webp, folder, token);
+}
 
+/**
+ * The usual photo pipeline: WebP, at most 1600 px, about 400 KB (1 MB at most). Re-saving also drops hidden
+ * photo data such as the GPS location.
+ */
+export async function photoWebp(file: File): Promise<Blob> {
+  return imageCompression(file, {
+    maxWidthOrHeight: 1600,
+    maxSizeMB: 0.4,
+    fileType: 'image/webp',
+    initialQuality: 0.8,
+    useWebWorker: true,
+  });
+}
+
+/** Posts a WebP to /api/upload and returns the stored object's key. */
+export async function sendWebp(webp: Blob, folder: UploadFolder | 'bills', token: string): Promise<string> {
   const res = await fetch(`/api/upload?folder=${folder}`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'image/webp' },

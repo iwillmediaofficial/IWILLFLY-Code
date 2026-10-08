@@ -244,6 +244,16 @@ export default function Shop() {
           </div>
         </div>
       </section>
+      <section className="section">
+        <Link className="shop-card" to={`/points/add?shop=${s.id}`}>
+          <div className="shop-thumb">💰</div>
+          <div>
+            <h4>Bought something here?</h4>
+            <div className="meta">Add your bill and earn 1 point for every ₹50 (1 point = ₹1)</div>
+          </div>
+          <div className="chev">›</div>
+        </Link>
+      </section>
       {s.description && (
         <section className="section">
           <p className="meta" style={{ fontSize: 13, lineHeight: 1.6, margin: 0 }}>
