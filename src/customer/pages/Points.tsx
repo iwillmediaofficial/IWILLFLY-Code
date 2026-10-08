@@ -23,6 +23,7 @@ import { db, must } from '../../lib/queries';
 import { supabase } from '../../lib/supabase';
 import type { MyBill, PointsEntry, PointsWallet } from '../../lib/types';
 import { formatDay } from '../scratch';
+import { PointsTerms, Redeem } from './PointsRedeem';
 import { ErrorNotice, Loading, NoBackend, Thumb } from '../ui';
 import { errorText, formatDate } from '../util';
 
@@ -50,6 +51,8 @@ export default function Points() {
           <Route path="add" element={<AddBill />} />
           <Route path="bills" element={<MyBills />} />
           <Route path="history" element={<History />} />
+          <Route path="redeem" element={<Redeem />} />
+          <Route path="terms" element={<PointsTerms />} />
           <Route path="*" element={<Navigate to="/points" replace />} />
         </Routes>
       )}
@@ -57,13 +60,14 @@ export default function Points() {
   );
 }
 
-function SubNav() {
+export function SubNav() {
   return (
     <nav className="tabs" aria-label="Points">
       <NavLink to="/points" end>
         Wallet
       </NavLink>
       <NavLink to="/points/bills">My bills</NavLink>
+      <NavLink to="/points/redeem">Cash out</NavLink>
       <NavLink to="/points/history">History</NavLink>
     </nav>
   );
@@ -90,14 +94,21 @@ function WalletView({ w }: { w: PointsWallet }) {
   const cashable = reached ? Math.floor(w.balance / w.redeem_step_points) * w.redeem_step_points : 0;
   const toGo = Math.max(goal - w.balance, 0);
   const pct = Math.min(100, Math.round((w.balance / goal) * 100));
+  const hold = w.on_hold ?? 0;
+  const total = w.balance + hold;
   return (
     <>
       <section className="hero">
         <p>Your points</p>
-        <div className="points-balance">{w.balance.toLocaleString('en-IN')}</div>
+        <div className="points-balance">{total.toLocaleString('en-IN')}</div>
         <p>
-          {pointsText(w.balance)} = <b style={{ color: '#fff' }}>{rupees(w.value)}</b>
+          {pointsText(total)} = <b style={{ color: '#fff' }}>{rupees(total * w.point_value)}</b>
         </p>
+        {hold > 0 && (
+          <p>
+            Available {w.balance.toLocaleString('en-IN')} · Cash-out pending {hold.toLocaleString('en-IN')}
+          </p>
+        )}
         <div
           className="points-bar"
           role="progressbar"
@@ -114,7 +125,9 @@ function WalletView({ w }: { w: PointsWallet }) {
             : `${w.balance.toLocaleString('en-IN')} / ${goal.toLocaleString('en-IN')}: add ${rupees(toGo * w.rupees_per_point)} more in bills to unlock ${rupees(goal * w.point_value)}.`}
         </p>
         {reached ? (
-          <span className="hero-pill">Cash-out to UPI is coming soon</span>
+          <Link className="hero-pill" to="/points/redeem">
+            Cash out {rupees(cashable * w.point_value)} to UPI ›
+          </Link>
         ) : (
           <Link className="hero-pill" to="/points/add">
             ＋ Add a bill
@@ -169,7 +182,10 @@ function WalletView({ w }: { w: PointsWallet }) {
         </div>
         <div className="meta">
           Bills under {rupees(w.rupees_per_point)} do not earn points. Each bill can be added only once.
-          {w.lifetime_points > 0 && ` You have earned ${pointsText(w.lifetime_points)} so far.`}
+          {w.lifetime_points > 0 && ` You have earned ${pointsText(w.lifetime_points)} so far.`}{' '}
+          <Link to="/points/terms" style={{ color: 'var(--color-blue)', fontWeight: 700 }}>
+            Points Terms
+          </Link>
         </div>
       </section>
     </>
@@ -599,9 +615,11 @@ function entryTitle(e: PointsEntry) {
     case 'expire':
       return 'Points expired';
     case 'redeem':
-      return 'Cashed out';
+      return 'Cashed out to UPI';
+    case 'redeem_pending':
+      return 'Cash-out pending';
     case 'refund':
-      return 'Points returned';
+      return 'Returned from a cash-out';
     default:
       return e.note ?? 'Adjustment';
   }
@@ -630,6 +648,8 @@ function History() {
                   <h4 style={{ margin: '0 0 2px' }}>{entryTitle(e)}</h4>
                   <div className="meta">
                     {formatDay(e.created_at)}
+                    {e.kind === 'redeem_pending' ? ' · on hold until it is paid' : ''}
+                    {e.kind === 'redeem' && e.note ? ` · ${e.note}` : ''}
                     {live && e.points_remaining != null && e.points_remaining < e.points
                       ? ` · ${e.points_remaining.toLocaleString('en-IN')} left`
                       : ''}
@@ -639,10 +659,16 @@ function History() {
                       : ''}
                   </div>
                 </div>
-                <span className={e.points > 0 ? 'points-plus' : 'points-minus'}>
-                  {e.points > 0 ? '+' : '−'}
-                  {Math.abs(e.points).toLocaleString('en-IN')}
-                </span>
+                {e.kind === 'redeem_pending' ? (
+                  <span className="meta" style={{ whiteSpace: 'nowrap', fontWeight: 800 }}>
+                    {Math.abs(e.points).toLocaleString('en-IN')} on hold
+                  </span>
+                ) : (
+                  <span className={e.points > 0 ? 'points-plus' : 'points-minus'}>
+                    {e.points > 0 ? '+' : '−'}
+                    {Math.abs(e.points).toLocaleString('en-IN')}
+                  </span>
+                )}
               </div>
             </div>
           );

@@ -16,11 +16,14 @@ import { db, must } from '../../lib/queries';
 import type { AdminBill, BillRejectReason, BillStatus, PointsSettings } from '../../lib/types';
 import { Empty, ErrorNotice, Loading } from '../ui';
 import { formatDate, friendlyError, toNumber, useInvalidate } from '../util';
+import { Holidays, Payouts, Report } from './Payouts';
 
 const KEYS = [['admin_bills'], ['points_settings'], ['admin-attention']];
 
 const SUB_TABS = [
   { to: '/admin/points/bills', label: 'Bill queue' },
+  { to: '/admin/points/payouts', label: 'Cash-outs' },
+  { to: '/admin/points/report', label: 'Report' },
   { to: '/admin/points/settings', label: 'Settings' },
 ];
 
@@ -38,6 +41,8 @@ export default function PointsAdmin() {
         <Route index element={<Navigate to="/admin/points/bills" replace />} />
         <Route path="bills" element={<Bills />} />
         <Route path="bills/:id" element={<BillReview />} />
+        <Route path="payouts" element={<Payouts />} />
+        <Route path="report" element={<Report />} />
         <Route path="settings" element={<Settings />} />
         <Route path="*" element={<Navigate to="/admin/points/bills" replace />} />
       </Routes>
@@ -437,6 +442,7 @@ function Settings() {
       {settings.isPending && <Loading />}
       {settings.error && <ErrorNotice error={settings.error} />}
       {settings.data && <SettingsForm key={settings.data.updated_at} s={settings.data} />}
+      <Holidays />
     </>
   );
 }
