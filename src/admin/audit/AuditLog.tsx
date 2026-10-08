@@ -34,6 +34,8 @@ const TABLES: Record<string, string> = {
   vendor_staff: 'vendor team member',
   bill_submissions: 'customer bill',
   points_settings: 'points settings',
+  redemptions: 'cash-out',
+  holidays: 'holiday',
 };
 
 const VERB = { insert: 'added', update: 'changed', delete: 'removed' } as const;

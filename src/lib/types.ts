@@ -842,3 +842,60 @@ export interface AdminBill {
   customer_bills: number;
   customer_rejected: number;
 }
+
+export type RedemptionStatus = 'requested' | 'paid' | 'rejected';
+
+/** my_redemptions() */
+export interface Redemption {
+  id: number;
+  points: number;
+  amount: number;
+  upi_id: string;
+  status: RedemptionStatus;
+  requested_at: string;
+  /** end of the 2nd business day after the request */
+  due_at: string;
+  utr: string | null;
+  reject_reason: string | null;
+  decided_at: string | null;
+}
+
+/** my_upi() */
+export interface MyUpi {
+  upi_id: string;
+  /** a changed UPI ID can be used 24 hours after it was saved */
+  usable_from: string;
+}
+
+/** admin_redemptions() */
+export interface AdminRedemption extends Redemption {
+  customer_id: string;
+  customer_name: string;
+  customer_email: string | null;
+  customer_phone: string | null;
+  decider_email: string | null;
+  upi_changed_at: string | null;
+  upi_first_set: boolean | null;
+  /** other accounts that saved or were paid to the same UPI ID */
+  upi_other_accounts: number;
+  bills_approved: number;
+  points_earned: number;
+  previous_paid: number;
+}
+
+/** points_report() */
+export interface PointsReportRow {
+  month: string;
+  points_issued: number;
+  bills_approved: number;
+  points_redeemed: number;
+  rupees_paid: number;
+  payouts: number;
+  points_expired: number;
+  points_pending: number;
+}
+
+export interface Holiday {
+  day: string;
+  name: string;
+}

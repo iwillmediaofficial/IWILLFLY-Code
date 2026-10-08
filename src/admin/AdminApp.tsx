@@ -142,7 +142,7 @@ function Dashboard() {
   const attention = useQuery({
     queryKey: ['admin-attention', isAdmin],
     queryFn: async () => {
-      const [invoices, bills, tickets] = await Promise.all([
+      const [invoices, bills, payouts, tickets] = await Promise.all([
         isAdmin
           ? countRows(
               db().from('invoices').select('id', { count: 'exact', head: true }).eq('status', 'submitted'),
@@ -156,11 +156,16 @@ function Dashboard() {
                 .eq('status', 'pending'),
             )
           : Promise.resolve(null),
+        isAdmin
+          ? countRows(
+              db().from('redemptions').select('id', { count: 'exact', head: true }).eq('status', 'requested'),
+            )
+          : Promise.resolve(null),
         countRows(
           db().from('support_tickets').select('id', { count: 'exact', head: true }).eq('status', 'open'),
         ),
       ]);
-      return { invoices, bills, tickets };
+      return { invoices, bills, payouts, tickets };
     },
     enabled: isSupport,
   });
@@ -190,6 +195,7 @@ function Dashboard() {
       ? [
           { label: 'Payments to check', value: a?.invoices, to: '/admin/billing/invoices?status=submitted' },
           { label: 'Customer bills to check', value: a?.bills, to: '/admin/points/bills?status=pending' },
+          { label: 'Cash-outs to pay', value: a?.payouts, to: '/admin/points/payouts?status=requested' },
         ]
       : []),
     { label: 'Open help tickets', value: a?.tickets, to: '/admin/support?status=open' },

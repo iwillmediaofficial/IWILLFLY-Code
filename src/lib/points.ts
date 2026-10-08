@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../auth/AuthProvider';
 import { db, must } from './queries';
 import { supabase } from './supabase';
-import type { MyBill, PointsEntry, PointsShop, PointsWallet } from './types';
+import type { MyBill, MyUpi, PointsEntry, PointsShop, PointsWallet, Redemption } from './types';
 import { photoWebp, sendWebp } from './upload';
 
 export const POINTS_KEYS = [['points_wallet'], ['my_bills'], ['my_points_history']];
@@ -172,4 +172,59 @@ export function addDays(day: string, n: number) {
   const d = new Date(`${day}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() + n);
   return d.toISOString().slice(0, 10);
+}
+
+// Cash-outs ---------------------------------------------------------------------------------------
+
+export const REDEEM_KEYS = [['my_upi'], ['my_redemptions'], ...POINTS_KEYS];
+
+export function useMyUpi() {
+  const { session } = useAuth();
+  return useQuery({
+    queryKey: ['my_upi', session?.user.id ?? null],
+    queryFn: async () => must<MyUpi | null>(await db().rpc('my_upi')),
+    enabled: Boolean(supabase && session),
+  });
+}
+
+export function useMyRedemptions() {
+  const { session } = useAuth();
+  return useQuery({
+    queryKey: ['my_redemptions', session?.user.id ?? null],
+    queryFn: async () => must<Redemption[]>(await db().rpc('my_redemptions')),
+    enabled: Boolean(supabase && session),
+  });
+}
+
+export function useSaveUpi() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (upi: string) => must<MyUpi>(await db().rpc('save_upi', { p_upi_id: upi })),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['my_upi'] }),
+  });
+}
+
+export function useRequestRedemption() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (points: number) =>
+      must<number>(await db().rpc('request_redemption', { p_points: points })),
+    onSuccess: () => REDEEM_KEYS.forEach((queryKey) => qc.invalidateQueries({ queryKey })),
+  });
+}
+
+/** Same rule as the database: name@bank, bank starting with a letter. */
+export function isUpiId(s: string) {
+  return /^[a-z0-9._-]{2,200}@[a-z][a-z0-9]{1,63}$/.test(s.trim().toLowerCase());
+}
+
+/** "8 Oct, 11:59 PM" style, India time. */
+export function formatWhen(iso: string) {
+  return new Date(iso).toLocaleString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    day: 'numeric',
+    month: 'short',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
 }
