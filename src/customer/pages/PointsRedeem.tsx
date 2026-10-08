@@ -15,7 +15,7 @@ import {
 } from '../../lib/points';
 import type { MyUpi, PointsWallet, Redemption } from '../../lib/types';
 import { formatDay } from '../scratch';
-import { ErrorNotice, Loading } from '../ui';
+import { ErrorNotice, Loading, Sheet } from '../ui';
 import { errorText } from '../util';
 import { SubNav } from './Points';
 
@@ -29,6 +29,8 @@ export function Redeem() {
   const loading = wallet.isPending || upi.isPending || list.isPending;
   const error = wallet.error ?? upi.error ?? list.error;
   const open = list.data?.find((r) => r.status === 'requested');
+  // shown once, right after a successful request
+  const [done, setDone] = useState<{ amount: number; upi: string; points: number } | null>(null);
   return (
     <>
       <SubNav />
@@ -38,15 +40,16 @@ export function Redeem() {
         <>
           {open ? (
             <section className="hero">
-              <p>Cash-out on its way</p>
+              <p>Cash-out pending</p>
               <div className="points-balance">{rupees(open.amount)}</div>
               <p>
-                {pointsText(open.points)} to <b style={{ color: '#fff' }}>{open.upi_id}</b>. We send it by{' '}
-                {dueDay(open.due_at)} (2 business days) and show the UPI transaction ID here.
+                To <b style={{ color: '#fff' }}>{open.upi_id}</b>. It reaches your account within 2 business
+                days (by {dueDay(open.due_at)}). Your {pointsText(open.points)} are on hold and are taken only
+                when the money is sent. The UPI transaction ID will show here.
               </p>
             </section>
           ) : (
-            <RedeemForm key={upi.data?.upi_id ?? 'none'} w={wallet.data} upi={upi.data} />
+            <RedeemForm key={upi.data?.upi_id ?? 'none'} w={wallet.data} upi={upi.data} onDone={setDone} />
           )}
           <section className="section">
             <div className="section-head">
@@ -64,11 +67,34 @@ export function Redeem() {
           </section>
         </>
       )}
+      <Sheet open={done != null} onClose={() => setDone(null)} title="Request successful">
+        {done && (
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 48, lineHeight: 1 }}>✅</div>
+            <h3 style={{ margin: '10px 0 6px' }}>{rupees(done.amount)} cash-out requested</h3>
+            <p className="meta" style={{ fontSize: 14, lineHeight: 1.6, margin: '0 0 14px' }}>
+              It takes up to 2 business days to reflect in your account ({done.upi}). Your{' '}
+              {pointsText(done.points)} are on hold until then. We will let you know when the money is sent.
+            </p>
+            <button className="btn block" onClick={() => setDone(null)}>
+              OK
+            </button>
+          </div>
+        )}
+      </Sheet>
     </>
   );
 }
 
-function RedeemForm({ w, upi }: { w: PointsWallet; upi: MyUpi | null }) {
+function RedeemForm({
+  w,
+  upi,
+  onDone,
+}: {
+  w: PointsWallet;
+  upi: MyUpi | null;
+  onDone: (d: { amount: number; upi: string; points: number }) => void;
+}) {
   const toast = useToast();
   const save = useSaveUpi();
   const request = useRequestRedemption();
@@ -127,7 +153,7 @@ function RedeemForm({ w, upi }: { w: PointsWallet; upi: MyUpi | null }) {
     if (waiting) return setError(`Your new UPI ID can be used from ${formatWhen(upi.usable_from)}.`);
     if (!agree) return setError('Please read and accept the Points Terms.');
     request.mutate(points, {
-      onSuccess: () => toast(`Cash-out of ${rupees(points * w.point_value)} requested`),
+      onSuccess: () => onDone({ amount: points * w.point_value, upi: upi.upi_id, points }),
       onError: (err) => setError(errorText(err)),
     });
   };
@@ -207,8 +233,9 @@ function RedeemForm({ w, upi }: { w: PointsWallet; upi: MyUpi | null }) {
         </button>
       </div>
       <div className="meta" style={{ marginTop: 10 }}>
-        The points are set aside straight away. We send the money within 2 business days (not counting Sundays
-        and holidays). If we cannot send it, the points come back with their original expiry dates.
+        The points go on hold straight away and are taken only when the money is sent. We send it within 2
+        business days (not counting Sundays and holidays). If we cannot send it, the hold is lifted and
+        nothing is taken.
       </div>
     </form>
   );
@@ -238,11 +265,17 @@ function RedemptionRow({ r }: { r: Redemption }) {
           )}
           {r.status === 'rejected' && (
             <div className="meta" style={{ color: 'var(--color-red)' }}>
-              {r.reject_reason}. The points were returned to your wallet.
+              {r.reject_reason}. Nothing was taken from your points.
             </div>
           )}
         </div>
-        <span className="points-minus">−{r.points.toLocaleString('en-IN')}</span>
+        {r.status === 'paid' ? (
+          <span className="points-minus">−{r.points.toLocaleString('en-IN')}</span>
+        ) : r.status === 'requested' ? (
+          <span className="meta" style={{ whiteSpace: 'nowrap', fontWeight: 800 }}>
+            {r.points.toLocaleString('en-IN')} on hold
+          </span>
+        ) : null}
       </div>
     </div>
   );
@@ -295,13 +328,14 @@ export function PointsTerms() {
             cash-out at a time.
           </li>
           <li>
-            Points are set aside as soon as you ask. We send the money within 2 business days (Sundays and
-            holidays do not count) and show the UPI transaction ID (UTR).
+            Points go on hold as soon as you ask and are taken from your wallet only when the money is sent.
+            We send the money within 2 business days (Sundays and holidays do not count) and show the UPI
+            transaction ID (UTR).
           </li>
           <li>For your safety, a new or changed UPI ID can be used 24 hours after you save it.</li>
           <li>
-            If we cannot send a cash-out, we tell you why and the points come back with their original expiry
-            dates.
+            If we cannot send a cash-out, we tell you why and lift the hold: nothing is taken and the points
+            keep their original expiry dates.
           </li>
         </ul>
         <h3>Fair use</h3>

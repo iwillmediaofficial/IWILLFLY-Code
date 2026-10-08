@@ -48,7 +48,8 @@ export function Payouts() {
         <div className="notice">
           Send each amount from your UPI app to the customer's UPI ID, then type the UPI transaction ID (UTR)
           here and mark it paid. The promise is 2 business days (Sundays and your holiday list do not count).
-          If you cannot pay, reject it with a reason: the points go back to the customer.
+          If you cannot pay, reject it with a reason: the hold on the customer's points is lifted. Points are
+          only taken when you mark a cash-out paid.
         </div>
       )}
       <div className="filter-bar" role="tablist" style={{ marginTop: 0 }}>
@@ -101,7 +102,7 @@ function PayoutCard({ r }: { r: AdminRedemption }) {
     mutationFn: async () => must(await db().rpc('reject_redemption', { p_id: r.id, p_reason: reason })),
     onSuccess: () => {
       invalidate(...KEYS);
-      toast('Cash-out rejected. The points went back to the customer.');
+      toast('Cash-out rejected. Nothing was taken from the customer.');
     },
     onError: (e) => setError(friendlyError(e)),
   });
@@ -227,7 +228,7 @@ function PayoutCard({ r }: { r: AdminRedemption }) {
                   reject.mutate();
                 }}
               >
-                {reject.isPending ? 'Rejecting…' : 'Reject and return points'}
+                {reject.isPending ? 'Rejecting…' : 'Reject and release points'}
               </button>
               <button className="btn small secondary" type="button" onClick={() => setRejecting(false)}>
                 Back

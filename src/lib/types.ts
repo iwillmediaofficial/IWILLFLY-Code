@@ -767,6 +767,8 @@ export interface PointsWallet {
   pending_bills: number;
   pending_points: number;
   lifetime_points: number;
+  /** points held for a cash-out that is not paid yet (not part of balance) */
+  on_hold: number;
 }
 
 export type BillStatus = 'pending' | 'approved' | 'rejected';
@@ -794,7 +796,8 @@ export interface MyBill {
 /** my_points_history() */
 export interface PointsEntry {
   id: number;
-  kind: 'earn' | 'expire' | 'redeem' | 'refund' | 'adjust';
+  /** redeem_pending: a cash-out on hold, not paid yet */
+  kind: 'earn' | 'expire' | 'redeem' | 'redeem_pending' | 'refund' | 'adjust';
   points: number;
   points_remaining: number | null;
   expires_at: string | null;

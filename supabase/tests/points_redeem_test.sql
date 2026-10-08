@@ -81,7 +81,10 @@ select pg_temp.refused($$select public.request_redemption(1500)$$, 'steps of 100
 select pg_temp.refused($$select public.request_redemption(4000)$$, 'enough points', 'more than the balance is refused');
 insert into ids select 'r1', public.request_redemption(2000);
 select pg_temp.check((public.points_wallet() ->> 'balance')::int = 1200,
-  'requested points are taken straight away (3,200 - 2,000 = 1,200)');
+  'requested points are on hold, not usable (3,200 - 2,000 = 1,200 usable)');
+select pg_temp.check((public.points_wallet() ->> 'on_hold')::int = 2000, 'wallet shows 2,000 points on hold');
+select pg_temp.check((select kind = 'redeem_pending' and points = -2000 from public.my_points_history() limit 1),
+  'history shows the cash-out as pending, not cashed out');
 select pg_temp.check((select array_agg(points_remaining order by expires_at) from public.points_ledger
                       where kind = 'earn' and customer_id = '00000000-0000-0000-0000-0000000000c1') = array[0, 0, 1200],
   'the oldest batches are used first (800 + 900 + 300)');
@@ -100,6 +103,16 @@ select pg_temp.refused($$select * from public.admin_redemptions()$$, 'not allowe
 select pg_temp.refused($$select public.mark_redemption_paid((select id from ids where name = 'r1'), 'UTR123456')$$,
   'not allowed', 'customers cannot mark a cash-out paid');
 reset role;
+
+-- Held points cannot expire while the cash-out waits
+update public.points_ledger set expires_at = now() - interval '1 hour'
+  where customer_id = '00000000-0000-0000-0000-0000000000c1' and kind = 'earn' and points in (800, 900);
+select public.points_daily();
+select pg_temp.check(not exists (select 1 from public.points_ledger
+                                 where customer_id = '00000000-0000-0000-0000-0000000000c1' and kind = 'expire'),
+  'points on hold are not expired by the nightly job');
+update public.points_ledger set expires_at = now() + interval '10 days'
+  where customer_id = '00000000-0000-0000-0000-0000000000c1' and kind = 'earn' and points in (800, 900);
 
 -- Customer 2 uses the same UPI ID -> flag (not a limit)
 select pg_temp.act_as('00000000-0000-0000-0000-0000000000c2');
@@ -140,17 +153,23 @@ select pg_temp.check((select count(*) from public.admin_redemptions('requested')
 reset role;
 
 select pg_temp.check(private.points_balance('00000000-0000-0000-0000-0000000000c2') = 1200,
-  'rejected cash-out returns the points');
-select pg_temp.check((select expires_at::date from public.points_ledger
-                      where customer_id = '00000000-0000-0000-0000-0000000000c2' and kind = 'refund')
-                     = (now() + interval '33 days')::date, 'returned points keep their original expiry');
-select pg_temp.check((select sum(points) from public.points_ledger where customer_id = '00000000-0000-0000-0000-0000000000c2')
+  'rejecting releases the hold');
+select pg_temp.check((select points_remaining = 1200 and expires_at::date = (now() + interval '33 days')::date
+                      from public.points_ledger
+                      where customer_id = '00000000-0000-0000-0000-0000000000c2' and kind = 'earn'),
+  'released points go back into their own batch with its original expiry');
+select pg_temp.check((select sum(l.points) from public.points_ledger l
+                      left join public.redemptions x on x.debit_id = l.id
+                      where l.customer_id = '00000000-0000-0000-0000-0000000000c2' and x.status is distinct from 'rejected')
                      = (select sum(points_remaining) from public.points_ledger where customer_id = '00000000-0000-0000-0000-0000000000c2'),
-  'ledger total = points left in batches after a return');
+  'ledger total (without released holds) = points left in batches');
 
 select pg_temp.act_as('00000000-0000-0000-0000-0000000000c1');
 set local role authenticated;
-select pg_temp.check((select utr from public.my_redemptions()) = '412356789012', 'customer sees the UTR');
+select pg_temp.check((select utr from public.my_redemptions() where status = 'paid') = '412356789012', 'customer sees the UTR');
+select pg_temp.check((select kind = 'redeem' and points = -2000 and note = 'UTR 412356789012'
+                      from public.my_points_history() where kind like 'redeem%' limit 1),
+  'once paid, history shows "cashed out -2,000" with the UTR');
 select pg_temp.check((select count(*) from public.notifications where title = 'Cash-out sent: ₹2,000'
                       and body like '%UTR%412356789012%') = 1, 'customer is told the money was sent, with the UTR');
 -- changing the UPI ID after the payout: usable after 24 hours
@@ -166,10 +185,12 @@ reset role;
 
 select pg_temp.act_as('00000000-0000-0000-0000-0000000000c2');
 set local role authenticated;
-select pg_temp.check((select count(*) from public.notifications where title = 'Cash-out not sent: points returned'
-                      and body like '%someone else%original expiry%') = 1, 'customer is told why, and that points are back');
+select pg_temp.check((select count(*) from public.notifications where title = 'Cash-out not sent'
+                      and body like '%someone else%no longer on hold%') = 1, 'customer is told why, and that the points are free again');
 select pg_temp.check((select count(*) from public.my_redemptions()) = 1, 'customers see only their own cash-outs');
-select pg_temp.check((select count(*) from public.my_points_history() where kind = 'refund') = 1, 'history shows the returned points');
+select pg_temp.check((select count(*) from public.my_points_history() where kind like 'redeem%') = 0,
+  'a rejected cash-out leaves nothing in the history');
+select pg_temp.check((public.points_wallet() ->> 'on_hold')::int = 0, 'nothing on hold after a rejection');
 reset role;
 
 -- Report -----------------------------------------------------------------------------------------------

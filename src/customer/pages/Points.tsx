@@ -94,14 +94,21 @@ function WalletView({ w }: { w: PointsWallet }) {
   const cashable = reached ? Math.floor(w.balance / w.redeem_step_points) * w.redeem_step_points : 0;
   const toGo = Math.max(goal - w.balance, 0);
   const pct = Math.min(100, Math.round((w.balance / goal) * 100));
+  const hold = w.on_hold ?? 0;
+  const total = w.balance + hold;
   return (
     <>
       <section className="hero">
         <p>Your points</p>
-        <div className="points-balance">{w.balance.toLocaleString('en-IN')}</div>
+        <div className="points-balance">{total.toLocaleString('en-IN')}</div>
         <p>
-          {pointsText(w.balance)} = <b style={{ color: '#fff' }}>{rupees(w.value)}</b>
+          {pointsText(total)} = <b style={{ color: '#fff' }}>{rupees(total * w.point_value)}</b>
         </p>
+        {hold > 0 && (
+          <p>
+            Available {w.balance.toLocaleString('en-IN')} · Cash-out pending {hold.toLocaleString('en-IN')}
+          </p>
+        )}
         <div
           className="points-bar"
           role="progressbar"
@@ -609,6 +616,8 @@ function entryTitle(e: PointsEntry) {
       return 'Points expired';
     case 'redeem':
       return 'Cashed out to UPI';
+    case 'redeem_pending':
+      return 'Cash-out pending';
     case 'refund':
       return 'Returned from a cash-out';
     default:
@@ -639,6 +648,8 @@ function History() {
                   <h4 style={{ margin: '0 0 2px' }}>{entryTitle(e)}</h4>
                   <div className="meta">
                     {formatDay(e.created_at)}
+                    {e.kind === 'redeem_pending' ? ' · on hold until it is paid' : ''}
+                    {e.kind === 'redeem' && e.note ? ` · ${e.note}` : ''}
                     {live && e.points_remaining != null && e.points_remaining < e.points
                       ? ` · ${e.points_remaining.toLocaleString('en-IN')} left`
                       : ''}
@@ -648,10 +659,16 @@ function History() {
                       : ''}
                   </div>
                 </div>
-                <span className={e.points > 0 ? 'points-plus' : 'points-minus'}>
-                  {e.points > 0 ? '+' : '−'}
-                  {Math.abs(e.points).toLocaleString('en-IN')}
-                </span>
+                {e.kind === 'redeem_pending' ? (
+                  <span className="meta" style={{ whiteSpace: 'nowrap', fontWeight: 800 }}>
+                    {Math.abs(e.points).toLocaleString('en-IN')} on hold
+                  </span>
+                ) : (
+                  <span className={e.points > 0 ? 'points-plus' : 'points-minus'}>
+                    {e.points > 0 ? '+' : '−'}
+                    {Math.abs(e.points).toLocaleString('en-IN')}
+                  </span>
+                )}
               </div>
             </div>
           );
