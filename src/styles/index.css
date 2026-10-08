@@ -343,6 +343,75 @@
     place-items: center;
     font-size: 23px;
     background: #f5f8ff;
+    overflow: hidden;
+  }
+  /* A category's picture (CategoryIcon); the emoji shows when there is none. */
+  .cat-img {
+    display: block;
+    flex: none;
+    object-fit: cover;
+    background: #fff;
+  }
+  .cat .ico .cat-img {
+    border-radius: inherit;
+  }
+  .chip .cat-img {
+    display: inline-block;
+    vertical-align: -4px;
+    margin-right: 6px;
+  }
+  .offer-image .offer-icon .cat-img {
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+  }
+  /* Admin: category picture in the list and in the form. */
+  .cat-thumb {
+    width: 48px;
+    height: 48px;
+    flex: none;
+    display: grid;
+    place-items: center;
+    border-radius: 14px;
+    background: #f5f8ff;
+    font-size: 26px;
+    overflow: hidden;
+  }
+  .cat-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .cat-image-field {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+  }
+  .cat-image-preview {
+    position: relative;
+    width: 96px;
+    height: 96px;
+    flex: none;
+    display: grid;
+    place-items: center;
+    border-radius: 22px;
+    border: 1px dashed #b7cdfc;
+    background: #f5f8ff;
+    font-size: 40px;
+    overflow: hidden;
+  }
+  .cat-image-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .cat-image-busy {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background: rgba(255, 255, 255, 0.85);
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--color-blue);
   }
   .cat span {
     font-size: 11px;

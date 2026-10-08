@@ -1,6 +1,8 @@
+import type { ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AppShell, LogoHeader, NotificationBell } from '../../components/AppShell';
 import { AdSlider } from '../../components/AdSlider';
+import { CategoryIcon } from '../../components/CategoryIcon';
 import { LocationButton } from '../../components/LocationButton';
 import { CampaignPrizes, ScratchButton, ScratchModal } from '../../components/Scratch';
 import { EmptyState } from '../../components/ShopCard';
@@ -106,12 +108,12 @@ function CategoryGrid() {
   if (!supabase) return <NoBackend />;
   const tiles = [
     ...(data ?? []).slice(0, 6).map((c) => ({
-      icon: c.icon ?? '🏷️',
+      icon: (<CategoryIcon category={c} fill />) as ReactNode,
       label: c.name,
       to: `/explore?cat=${encodeURIComponent(c.slug)}`,
     })),
-    { icon: '🏬', label: 'Malls', to: '/malls' },
-    { icon: '•••', label: 'More', to: '/explore' },
+    { icon: '🏬' as ReactNode, label: 'Malls', to: '/malls' },
+    { icon: '•••' as ReactNode, label: 'More', to: '/explore' },
   ];
   if (isLoading) return <Loading />;
   return (
@@ -145,7 +147,13 @@ function NearOffers() {
           shopId={o.shop_id}
           offerId={o.offer_id}
           imageKey={o.image_key}
-          icon={o.category_icon}
+          icon={
+            <CategoryIcon
+              category={{ slug: o.category_slug, icon: o.category_icon }}
+              fallback="🎁"
+              size={56}
+            />
+          }
           badge={o.discount_label ?? (o.is_featured ? 'FEATURED' : 'OFFER')}
           tone={toneFor(i)}
           title={o.shop_name}

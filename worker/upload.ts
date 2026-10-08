@@ -1,6 +1,6 @@
 import { json, rolesFor, type Env } from './env';
 
-const FOLDERS = ['shops', 'offers', 'ads', 'prizes', 'support', 'test'] as const;
+const FOLDERS = ['shops', 'offers', 'ads', 'prizes', 'support', 'categories', 'test'] as const;
 const UPLOAD_ROLES = ['vendor', 'admin', 'super_admin', 'campaign_manager'];
 const MAX_BYTES = 1024 * 1024; // images arrive as ~150 KB WebP; 1 MB is a hard ceiling
 

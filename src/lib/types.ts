@@ -10,6 +10,8 @@ export interface Category {
   name: string;
   slug: string;
   icon: string | null;
+  /** R2 key of a 512x512 WebP picture; the emoji icon is the fallback. */
+  image_key?: string | null;
   sort_order: number;
   is_active: boolean;
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { AppShell, LogoHeader } from '../../components/AppShell';
+import { CategoryIcon } from '../../components/CategoryIcon';
 import { LocationButton } from '../../components/LocationButton';
 import { EmptyState, ShopCard } from '../../components/ShopCard';
 import { useToast } from '../../components/Toast';
@@ -86,7 +87,7 @@ export default function Explore() {
             className={`chip${cat === c.slug ? ' active' : ''}`}
             onClick={() => setCat(c.slug)}
           >
-            {c.icon ? `${c.icon} ` : ''}
+            {c.image_key ? <CategoryIcon category={c} size={18} /> : c.icon ? `${c.icon} ` : ''}
             {c.name}
           </button>
         ))}
