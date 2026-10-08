@@ -4,6 +4,7 @@ import { track } from '../lib/engagement';
 import { formatKm, openState } from '../lib/hours';
 import { isApprox, usePlace } from '../lib/location';
 import type { ShopResult } from '../lib/types';
+import { CategoryIcon } from './CategoryIcon';
 import { Thumb } from '../customer/ui';
 
 export function ShopCard({ shop, showStatus = true }: { shop: ShopResult; showStatus?: boolean }) {
@@ -14,7 +15,16 @@ export function ShopCard({ shop, showStatus = true }: { shop: ShopResult; showSt
     .join(' · ');
   return (
     <Link className="shop-card" to={`/shop/${shop.shop_id}`} onClick={() => track('click', shop.shop_id)}>
-      <Thumb imageKey={shop.logo_key} icon={shop.category_icon} />
+      <Thumb
+        imageKey={shop.logo_key}
+        icon={
+          <CategoryIcon
+            category={{ slug: shop.category_slug, icon: shop.category_icon }}
+            fallback="🏪"
+            fill
+          />
+        }
+      />
       <div>
         <h4>{shop.name}</h4>
         <div className="meta">

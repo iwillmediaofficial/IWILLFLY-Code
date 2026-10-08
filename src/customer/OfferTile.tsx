@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { track } from '../lib/engagement';
 import { OfferImage } from './ui';
@@ -16,7 +17,7 @@ export function OfferTile({
   shopId: number;
   offerId: number;
   imageKey?: string | null;
-  icon?: string | null;
+  icon?: ReactNode;
   badge: string;
   tone: string;
   title: string;

@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { AppShell, BackHeader } from '../../components/AppShell';
+import { CategoryIcon } from '../../components/CategoryIcon';
 import { EmptyState } from '../../components/ShopCard';
 import { track } from '../../lib/engagement';
 import { DAYS, formatKm, formatPrice, formatTime, haversineKm, nowIST, openState } from '../../lib/hours';
@@ -209,7 +210,9 @@ export default function Shop() {
             style={{ width: 64, height: 64, borderRadius: 16, objectFit: 'cover', background: '#fff' }}
           />
         ) : (
-          <div style={{ fontSize: 52 }}>{s.category?.icon ?? '🏪'}</div>
+          <div style={{ fontSize: 52 }}>
+            <CategoryIcon category={s.category} fallback="🏪" size={64} style={{ background: '#fff' }} />
+          </div>
         )}
         <h1>{s.name}</h1>
         <p>
@@ -265,7 +268,7 @@ export default function Shop() {
                 <article key={o.id} className="offer-card" onClick={() => showOffer(o.id)}>
                   <OfferImage
                     imageKey={o.image_keys[0]}
-                    icon={s.category?.icon}
+                    icon={<CategoryIcon category={s.category} fallback="🎁" size={56} />}
                     badge={o.discount_label ?? (o.is_featured ? 'FEATURED' : 'OFFER')}
                     tone={toneFor(i)}
                   />
@@ -433,7 +436,7 @@ export default function Shop() {
         {openOffer && (
           <OfferDetails
             offer={openOffer}
-            icon={s.category?.icon}
+            icon={<CategoryIcon category={s.category} fallback="🎁" size={56} />}
             saved={Boolean(savedOffers.data?.has(openOffer.id))}
             saving={saveOffer.pending}
             onSave={(saved) => saveOffer.run(openOffer.id, saved)}
@@ -452,7 +455,7 @@ function OfferDetails({
   onSave,
 }: {
   offer: Offer;
-  icon?: string | null;
+  icon?: ReactNode;
   saved: boolean;
   saving: boolean;
   onSave: (saved: boolean) => void;

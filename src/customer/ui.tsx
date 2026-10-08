@@ -36,8 +36,8 @@ export function ErrorNotice({ error, onRetry }: { error: unknown; onRetry?: () =
   );
 }
 
-/** Square thumbnail: an uploaded image when there is one, otherwise an emoji icon. */
-export function Thumb({ imageKey, icon }: { imageKey?: string | null; icon?: string | null }) {
+/** Square thumbnail: an uploaded image when there is one, otherwise an icon (emoji or category picture). */
+export function Thumb({ imageKey, icon }: { imageKey?: string | null; icon?: ReactNode }) {
   return (
     <div className="shop-thumb">
       {imageKey ? (
@@ -61,7 +61,7 @@ export function OfferImage({
   style,
 }: {
   imageKey?: string | null;
-  icon?: string | null;
+  icon?: ReactNode;
   badge?: string | null;
   tone?: string;
   style?: CSSProperties;
@@ -79,7 +79,7 @@ export function OfferImage({
       ) : (
         <span />
       )}
-      {!imageKey && <b>{icon ?? '🎁'}</b>}
+      {!imageKey && <b className="offer-icon">{icon ?? '🎁'}</b>}
     </div>
   );
 }

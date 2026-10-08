@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthProvider';
 import { AppShell, LogoHeader } from '../../components/AppShell';
+import { CategoryIcon } from '../../components/CategoryIcon';
 import { EmptyState } from '../../components/ShopCard';
 import { track } from '../../lib/engagement';
 import { formatPrice } from '../../lib/hours';
@@ -20,7 +21,7 @@ interface SavedOfferRow {
     offer_price: number | null;
     ends_on: string | null;
     image_keys: string[];
-    shop: { id: number; name: string; category: { icon: string | null } | null } | null;
+    shop: { id: number; name: string; category: { id: number; icon: string | null } | null } | null;
   } | null;
 }
 
@@ -31,7 +32,7 @@ interface SavedShopRow {
     id: number;
     name: string;
     logo_key: string | null;
-    category: { name: string; icon: string | null } | null;
+    category: { id: number; name: string; icon: string | null } | null;
   } | null;
 }
 
@@ -43,7 +44,7 @@ function useSavedOffers(userId: string | undefined) {
         await db()
           .from('saved_offers')
           .select(
-            'offer_id, created_at, offer:offers(id, title, discount_label, offer_price, ends_on, image_keys, shop:shops(id, name, category:categories(icon)))',
+            'offer_id, created_at, offer:offers(id, title, discount_label, offer_price, ends_on, image_keys, shop:shops(id, name, category:categories(id, icon)))',
           )
           .order('created_at', { ascending: false })
           .overrideTypes<SavedOfferRow[], { merge: false }>(),
@@ -67,7 +68,7 @@ function useSavedShops(userId: string | undefined) {
       must<SavedShopRow[]>(
         await db()
           .from('saved_shops')
-          .select('shop_id, created_at, shop:shops(id, name, logo_key, category:categories(name, icon))')
+          .select('shop_id, created_at, shop:shops(id, name, logo_key, category:categories(id, name, icon))')
           .order('created_at', { ascending: false })
           .overrideTypes<SavedShopRow[], { merge: false }>(),
       ),
@@ -156,7 +157,10 @@ function SavedLists({ userId }: { userId: string }) {
             const o = r.offer;
             const body = (
               <>
-                <Thumb imageKey={o?.image_keys[0]} icon={o?.shop?.category?.icon ?? '🎁'} />
+                <Thumb
+                  imageKey={o?.image_keys[0]}
+                  icon={<CategoryIcon category={o?.shop?.category} fallback="🎁" fill />}
+                />
                 <div>
                   <h4>{o?.title ?? 'Offer no longer available'}</h4>
                   <div className="meta">
@@ -212,7 +216,10 @@ function SavedLists({ userId }: { userId: string }) {
               <div key={r.shop_id} className="shop-card" style={{ cursor: 'default' }}>
                 {r.shop ? (
                   <Link to={`/shop/${r.shop.id}`} style={{ display: 'contents' }}>
-                    <Thumb imageKey={r.shop.logo_key} icon={r.shop.category?.icon} />
+                    <Thumb
+                      imageKey={r.shop.logo_key}
+                      icon={<CategoryIcon category={r.shop.category} fallback="🏪" fill />}
+                    />
                     <div>
                       <h4>{r.shop.name}</h4>
                       <div className="meta">{r.shop.category?.name ?? 'Shop'}</div>
