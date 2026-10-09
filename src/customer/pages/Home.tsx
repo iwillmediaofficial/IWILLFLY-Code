@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { AppShell, LogoHeader, NotificationBell } from '../../components/AppShell';
 import { AdSlider } from '../../components/AdSlider';
 import { CategoryIcon } from '../../components/CategoryIcon';
+import { LegalLinks } from '../../components/LegalLinks';
 import { LocationButton } from '../../components/LocationButton';
 import { CampaignPrizes, ScratchButton, ScratchModal } from '../../components/Scratch';
 import { EmptyState } from '../../components/ShopCard';
@@ -72,6 +73,7 @@ export default function Home() {
         </div>
         <TopMalls />
       </section>
+      <LegalLinks />
       <ScratchModal card={card} title="Daily Scratch & Win" subtitle="One chance every day">
         <h3>Possible prizes today</h3>
         <CampaignPrizes campaignId={card.campaign?.id} />

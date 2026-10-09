@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AppShell, LogoHeader } from '../components/AppShell';
 import { AreaPicker } from '../components/AreaPicker';
+import { LegalLinks } from '../components/LegalLinks';
 import { supabase } from '../lib/supabase';
 import { homeFor, useAuth } from './AuthProvider';
 import { EmailCodeForm, EmailField, normalisePhone, PasswordInput, passwordSignInError } from './forms';
@@ -236,6 +237,7 @@ export default function Login() {
         Shop owner? <Link to="/vendor/signup">Register your business</Link> ·{' '}
         <Link to="/vendor/login">Vendor sign in</Link>
       </p>
+      <LegalLinks />
     </AppShell>
   );
 }

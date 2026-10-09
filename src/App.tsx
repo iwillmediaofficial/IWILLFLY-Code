@@ -21,6 +21,8 @@ const Help = lazy(() => import('./customer/pages/Help'));
 const Profile = lazy(() => import('./customer/pages/Profile'));
 const Mall = lazy(() => import('./customer/pages/Mall'));
 const Settings = lazy(() => import('./customer/pages/Settings'));
+const Privacy = lazy(() => import('./customer/pages/Legal').then((m) => ({ default: m.Privacy })));
+const Terms = lazy(() => import('./customer/pages/Legal').then((m) => ({ default: m.Terms })));
 const Login = lazy(() => import('./auth/Login'));
 const AdminLogin = lazy(() => import('./auth/AdminLogin'));
 const VendorApply = lazy(() => import('./vendor/VendorApply'));
@@ -52,6 +54,8 @@ export default function App() {
                 <Route path="/help/*" element={<Help />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/settings" element={<Settings />} />
+                <Route path="/privacy" element={<Privacy />} />
+                <Route path="/terms" element={<Terms />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/admin/login" element={<AdminLogin />} />
                 <Route path="/vendor/apply" element={<VendorApply />} />

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { EmailField, normalisePhone, PasswordInput } from '../auth/forms';
 import { AppShell, LogoHeader } from '../components/AppShell';
+import { LegalLinks } from '../components/LegalLinks';
 import { supabase } from '../lib/supabase';
 
 /**
@@ -211,6 +212,7 @@ export default function VendorSignup() {
       <p className="meta" style={{ textAlign: 'center' }}>
         Already a vendor? <Link to="/vendor/login">Sign in</Link>
       </p>
+      <LegalLinks />
     </AppShell>
   );
 }

@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthProvider';
 import { AppShell, BackHeader } from '../../components/AppShell';
+import { LegalLinks } from '../../components/LegalLinks';
 import { LocationChooser } from '../../components/LocationButton';
 import { AreaLocationPicker } from '../../components/ScratchLocation';
 import { useToast } from '../../components/Toast';
@@ -75,6 +76,7 @@ export default function Settings() {
           Your account keeps your sign-in email, the offers and shops you save, and your preferred area. Your
           location is used only to find nearby offers and is not shared with shops.
         </p>
+        <LegalLinks />
       </section>
       <section className="section">
         {session ? (
