@@ -1,11 +1,16 @@
+import { useState, type FormEvent } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthProvider';
+import { normalisePhone } from '../../auth/forms';
 import { AppShell, BackHeader } from '../../components/AppShell';
 import { LegalLinks } from '../../components/LegalLinks';
 import { LocationChooser } from '../../components/LocationButton';
 import { AreaLocationPicker } from '../../components/ScratchLocation';
 import { useToast } from '../../components/Toast';
 import { usePlace } from '../../lib/location';
+import { useMyProfile, type MyProfile } from '../../lib/profile';
+import { db, must } from '../../lib/queries';
 import { useProfileArea } from '../../lib/profileArea';
 
 export default function Settings() {
@@ -56,6 +61,7 @@ export default function Settings() {
           </button>
         )}
       </section>
+      {session && <MobileSection />}
       <section className="section form-card">
         <h3 style={{ marginTop: 0 }}>🔔 Notifications</h3>
         <p className="meta" style={{ lineHeight: 1.6, marginTop: 0 }}>
@@ -97,5 +103,69 @@ export default function Settings() {
         )}
       </section>
     </AppShell>
+  );
+}
+
+/** View and change the mobile number shops use to reach you about prizes. */
+function MobileSection() {
+  const profile = useMyProfile();
+  return (
+    <section className="section form-card" id="mobile">
+      <h3 style={{ marginTop: 0 }}>📱 Mobile number</h3>
+      <p className="meta" style={{ lineHeight: 1.6, marginTop: 0 }}>
+        Shops use this to reach you when you win a prize.
+      </p>
+      {profile.data ? <MobileForm profile={profile.data} /> : <p className="meta">Loading…</p>}
+    </section>
+  );
+}
+
+function MobileForm({ profile }: { profile: MyProfile }) {
+  const { session } = useAuth();
+  const toast = useToast();
+  const qc = useQueryClient();
+  const saved = profile.phone?.replace(/^\+91/, '') ?? '';
+  const [phone, setPhone] = useState(saved);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  const save = async (e: FormEvent) => {
+    e.preventDefault();
+    const mobile = normalisePhone(phone);
+    if (!mobile) return setError('Please enter a valid 10-digit mobile number.');
+    setError('');
+    setBusy(true);
+    try {
+      const userId = session!.user.id;
+      must(await db().from('profiles').update({ phone: mobile }).eq('id', userId));
+      await qc.invalidateQueries({ queryKey: ['my-profile', userId] });
+      setPhone(mobile.replace(/^\+91/, ''));
+      toast('Mobile number saved');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save. Please try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <form onSubmit={save}>
+      <div className="field">
+        <label htmlFor="settings-phone">Mobile number</label>
+        <input
+          id="settings-phone"
+          type="tel"
+          inputMode="tel"
+          autoComplete="tel"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          placeholder="98765 43210"
+        />
+      </div>
+      {error && <p className="error-text">{error}</p>}
+      <button className="btn" disabled={busy || phone.trim() === saved}>
+        {busy ? 'Saving…' : 'Save mobile number'}
+      </button>
+    </form>
   );
 }
