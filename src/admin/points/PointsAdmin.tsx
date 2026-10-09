@@ -15,7 +15,7 @@ import { REJECT_REASONS, pointsText, rupees, useBillPhoto } from '../../lib/poin
 import { db, must } from '../../lib/queries';
 import type { AdminBill, BillRejectReason, BillStatus, PointsSettings } from '../../lib/types';
 import { Empty, ErrorNotice, Loading } from '../ui';
-import { formatDate, friendlyError, toNumber, useInvalidate } from '../util';
+import { formatDate, friendlyError, toNumber, useDesktop, useInvalidate } from '../util';
 import { Holidays, Payouts, Report } from './Payouts';
 
 const KEYS = [['admin_bills'], ['points_settings'], ['admin-attention']];
@@ -40,7 +40,7 @@ export default function PointsAdmin() {
       <Routes>
         <Route index element={<Navigate to="/admin/points/bills" replace />} />
         <Route path="bills" element={<Bills />} />
-        <Route path="bills/:id" element={<BillReview />} />
+        <Route path="bills/:id" element={<BillOpen />} />
         <Route path="payouts" element={<Payouts />} />
         <Route path="report" element={<Report />} />
         <Route path="settings" element={<Settings />} />
@@ -77,10 +77,34 @@ function BillPill({ status }: { status: BillStatus }) {
   return <span className={`pill-status ${status}`}>{text}</span>;
 }
 
-function Bills() {
+/** On desktop an open bill shows in a panel beside the queue; on phones it gets the whole page. */
+function BillOpen() {
+  const desktop = useDesktop();
+  const { id } = useParams();
+  if (!desktop) return <BillReview />;
+  return (
+    <div className="bill-split">
+      <div style={{ minWidth: 0 }}>
+        <Bills selected={id} />
+      </div>
+      <aside className="bill-panel">
+        <BillReview />
+      </aside>
+    </div>
+  );
+}
+
+function Bills({ selected }: { selected?: string }) {
   const [params, setParams] = useSearchParams();
-  const filter = FILTERS.find((f) => f.key === params.get('status'))?.key ?? 'pending';
+  const navigate = useNavigate();
+  const desktop = useDesktop();
+  // with a bill open, the queue's filter is carried in ?from= (the review's back link uses it too)
+  const filter = FILTERS.find((f) => f.key === params.get(selected ? 'from' : 'status'))?.key ?? 'pending';
   const bills = useQuery({ queryKey: ['admin_bills', filter], queryFn: () => fetchBills(filter) });
+  const pick = (key: BillStatus) =>
+    selected
+      ? navigate(`/admin/points/bills?status=${key}`, { replace: true })
+      : setParams({ status: key }, { replace: true });
   return (
     <>
       <div className="section-head">
@@ -100,7 +124,7 @@ function Bills() {
             role="tab"
             aria-selected={filter === f.key}
             className={`chip${filter === f.key ? ' active' : ''}`}
-            onClick={() => setParams({ status: f.key }, { replace: true })}
+            onClick={() => pick(f.key)}
           >
             {f.label}
           </button>
@@ -113,36 +137,112 @@ function Bills() {
           {filter === 'pending' ? 'New bills from customers show up here.' : undefined}
         </Empty>
       )}
-      <div className="list">
-        {bills.data?.map((b) => (
-          <Link key={b.id} className="shop-card" to={`/admin/points/bills/${b.id}?from=${filter}`}>
-            <div className="shop-thumb">🧾</div>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 4 }}>
-                <BillPill status={b.status} />
-                {b.resubmit_of && <span className="pill-status featured">Sent again</span>}
-                {b.same_shop_week >= 3 && (
-                  <span className="pill-status pending">{b.same_shop_week} from shop in 7 days</span>
-                )}
+      {desktop && !!bills.data?.length && (
+        <BillTable bills={bills.data} filter={filter} selected={selected} />
+      )}
+      {!desktop && (
+        <div className="list">
+          {bills.data?.map((b) => (
+            <Link key={b.id} className="shop-card" to={`/admin/points/bills/${b.id}?from=${filter}`}>
+              <div className="shop-thumb">🧾</div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 4 }}>
+                  <BillPill status={b.status} />
+                  {b.resubmit_of && <span className="pill-status featured">Sent again</span>}
+                  {b.same_shop_week >= 3 && (
+                    <span className="pill-status pending">{b.same_shop_week} from shop in 7 days</span>
+                  )}
+                </div>
+                <h4>
+                  {b.shop_name} · {rupees(b.approved_amount ?? b.amount)}
+                </h4>
+                <div className="meta">
+                  #{b.id} · {b.customer_name || b.customer_email} · bill {b.bill_number} of{' '}
+                  {formatDate(b.bill_date)}
+                </div>
+                <div className="meta">
+                  Added {formatDate(b.created_at)}
+                  {b.status === 'approved' && ` · +${pointsText(b.points ?? 0)}`}
+                  {b.status === 'rejected' && b.reject_reason && ` · ${REJECT_REASONS[b.reject_reason]}`}
+                </div>
               </div>
-              <h4>
-                {b.shop_name} · {rupees(b.approved_amount ?? b.amount)}
-              </h4>
-              <div className="meta">
-                #{b.id} · {b.customer_name || b.customer_email} · bill {b.bill_number} of{' '}
-                {formatDate(b.bill_date)}
-              </div>
-              <div className="meta">
-                Added {formatDate(b.created_at)}
-                {b.status === 'approved' && ` · +${pointsText(b.points ?? 0)}`}
-                {b.status === 'rejected' && b.reject_reason && ` · ${REJECT_REASONS[b.reject_reason]}`}
-              </div>
-            </div>
-            <div className="chev">›</div>
-          </Link>
-        ))}
-      </div>
+              <div className="chev">›</div>
+            </Link>
+          ))}
+        </div>
+      )}
     </>
+  );
+}
+
+/** Desktop version of the queue: one row per bill, in columns. */
+function BillTable({
+  bills,
+  filter,
+  selected,
+}: {
+  bills: AdminBill[];
+  filter: BillStatus;
+  selected?: string;
+}) {
+  return (
+    <div className="bill-table" role="table" aria-label="Customer bills">
+      <div className="bill-row bill-row-head" role="row">
+        <span role="columnheader" />
+        <span role="columnheader">#</span>
+        <span role="columnheader">Shop</span>
+        <span role="columnheader" className="bill-col-customer">
+          Customer
+        </span>
+        <span role="columnheader">Bill</span>
+        <span role="columnheader">Amount</span>
+        <span role="columnheader">Points</span>
+        <span role="columnheader">Status</span>
+      </div>
+      {bills.map((b) => (
+        <Link
+          key={b.id}
+          role="row"
+          className={`bill-row${String(b.id) === selected ? ' selected' : ''}`}
+          to={`/admin/points/bills/${b.id}?from=${filter}`}
+          aria-current={String(b.id) === selected ? 'true' : undefined}
+        >
+          <span role="cell" className="bill-thumb" aria-hidden="true">
+            🧾
+          </span>
+          <span role="cell" className="meta">
+            #{b.id}
+          </span>
+          <span role="cell">
+            <b>{b.shop_name}</b>
+            <div className="meta">Added {formatDate(b.created_at)}</div>
+          </span>
+          <span role="cell" className="bill-col-customer">
+            {b.customer_name || b.customer_email}
+          </span>
+          <span role="cell">
+            {b.bill_number}
+            <div className="meta">{formatDate(b.bill_date)}</div>
+          </span>
+          <span role="cell">
+            <b>{rupees(b.approved_amount ?? b.amount)}</b>
+          </span>
+          <span role="cell" className="bill-points">
+            {b.status === 'approved' ? `+${pointsText(b.points ?? 0)}` : ''}
+          </span>
+          <span role="cell" className="bill-pills">
+            <BillPill status={b.status} />
+            {b.resubmit_of && <span className="pill-status featured">Sent again</span>}
+            {b.same_shop_week >= 3 && (
+              <span className="pill-status pending">{b.same_shop_week} from shop in 7 days</span>
+            )}
+            {b.status === 'rejected' && b.reject_reason && (
+              <span className="meta">{REJECT_REASONS[b.reject_reason]}</span>
+            )}
+          </span>
+        </Link>
+      ))}
+    </div>
   );
 }
 

@@ -1,4 +1,5 @@
 import { useQueryClient, type QueryKey } from '@tanstack/react-query';
+import { useSyncExternalStore } from 'react';
 
 /** Query keys of the customer-facing lists that change when admins edit marketplace data. */
 export const PUBLIC_KEYS: QueryKey[] = [['search_shops'], ['search_offers'], ['list_malls']];
@@ -52,4 +53,19 @@ export function toNumber(s: string): number | null {
 export function one<T>(v: T | T[] | null | undefined): T | null {
   if (Array.isArray(v)) return v[0] ?? null;
   return v ?? null;
+}
+
+const DESKTOP = '(min-width: 1024px)';
+
+/** True on desktop-width screens, where the admin shows the sidebar layout (same breakpoint as the CSS). */
+export function useDesktop() {
+  return useSyncExternalStore(
+    (onChange) => {
+      const mq = window.matchMedia(DESKTOP);
+      mq.addEventListener('change', onChange);
+      return () => mq.removeEventListener('change', onChange);
+    },
+    () => window.matchMedia(DESKTOP).matches,
+    () => false,
+  );
 }
