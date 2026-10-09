@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { AuthProvider, ADMIN_ROLES } from './auth/AuthProvider';
+import { ProfileGate } from './auth/ProfileGate';
 import { RequireRole } from './auth/RequireRole';
 import { ToastProvider } from './components/Toast';
 import { LocationProvider } from './lib/location';
@@ -24,6 +25,7 @@ const Settings = lazy(() => import('./customer/pages/Settings'));
 const Privacy = lazy(() => import('./customer/pages/Legal').then((m) => ({ default: m.Privacy })));
 const Terms = lazy(() => import('./customer/pages/Legal').then((m) => ({ default: m.Terms })));
 const Login = lazy(() => import('./auth/Login'));
+const CompleteProfile = lazy(() => import('./auth/CompleteProfile'));
 const AdminLogin = lazy(() => import('./auth/AdminLogin'));
 const VendorApply = lazy(() => import('./vendor/VendorApply'));
 const VendorSignup = lazy(() => import('./vendor/VendorSignup'));
@@ -37,6 +39,7 @@ export default function App() {
       <AuthProvider>
         <LocationProvider>
           <ToastProvider>
+            <ProfileGate />
             <Suspense fallback={<div className="app-shell" />}>
               <Routes>
                 <Route path="/" element={<Home />} />
@@ -57,6 +60,7 @@ export default function App() {
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/terms" element={<Terms />} />
                 <Route path="/login" element={<Login />} />
+                <Route path="/welcome" element={<CompleteProfile />} />
                 <Route path="/admin/login" element={<AdminLogin />} />
                 <Route path="/vendor/apply" element={<VendorApply />} />
                 <Route path="/vendor/signup" element={<VendorSignup />} />

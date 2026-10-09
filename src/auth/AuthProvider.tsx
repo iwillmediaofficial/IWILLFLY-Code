@@ -8,6 +8,8 @@ interface AuthState {
   session: Session | null;
   roles: AppRole[];
   loading: boolean;
+  /** Why the last sign-in was turned away (e.g. an admin using Google), shown on the sign-in pages. */
+  notice: string;
   signOut: () => Promise<void>;
   /** Re-read roles, e.g. after applying as a vendor. */
   refreshRoles: () => Promise<void>;
@@ -17,6 +19,7 @@ const AuthContext = createContext<AuthState>({
   session: null,
   roles: [],
   loading: false,
+  notice: '',
   signOut: async () => {},
   refreshRoles: async () => {},
 });
@@ -26,6 +29,24 @@ async function fetchRoles(userId: string): Promise<AppRole[]> {
   const { data, error } = await supabase.from('user_roles').select('role').eq('user_id', userId);
   if (error) return [];
   return data.map((r) => r.role as AppRole);
+}
+
+/** Admin accounts must sign in at /admin/login with email and password, never with Google. */
+const ADMIN_GOOGLE_NOTICE = 'Admins sign in at /admin/login with email and password.';
+
+/**
+ * How this session was signed in, from the access token's "amr" claim (newest entry), e.g. "password",
+ * "otp" or "oauth". This is the method used for this sign-in, not just which identities are linked.
+ */
+function signInMethod(s: Session): string {
+  try {
+    const part = s.access_token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const claims = JSON.parse(atob(part)) as { amr?: { method: string; timestamp: number }[] };
+    const latest = [...(claims.amr ?? [])].sort((a, b) => b.timestamp - a.timestamp)[0];
+    return latest?.method ?? '';
+  } catch {
+    return '';
+  }
 }
 
 const profileChecked = new Set<string>();
@@ -94,6 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(Boolean(supabase));
+  const [notice, setNotice] = useState('');
 
   useEffect(() => {
     if (!supabase) return;
@@ -105,6 +127,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       const r = s ? await fetchRoles(s.user.id) : [];
       if (!active) return;
+      if (s && signInMethod(s) === 'oauth' && r.some((role) => ADMIN_ROLES.includes(role))) {
+        // Sign out without ever exposing the session; the sign-out event then clears everything.
+        setNotice(ADMIN_GOOGLE_NOTICE);
+        await supabase!.auth.signOut();
+        return;
+      }
+      if (s) setNotice('');
       setSession(s);
       setRoles(r);
       setLoading(false);
@@ -129,7 +158,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ session, roles, loading, signOut, refreshRoles }}>
+    <AuthContext.Provider value={{ session, roles, loading, notice, signOut, refreshRoles }}>
       {children}
     </AuthContext.Provider>
   );

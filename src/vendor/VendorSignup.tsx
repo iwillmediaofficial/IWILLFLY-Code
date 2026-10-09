@@ -2,9 +2,11 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { EmailField, normalisePhone, PasswordInput } from '../auth/forms';
+import { GoogleButton } from '../auth/GoogleButton';
 import { AppShell, LogoHeader } from '../components/AppShell';
 import { LegalLinks } from '../components/LegalLinks';
 import { supabase } from '../lib/supabase';
+import { ApplyForm } from './ApplyForm';
 
 /**
  * One form that creates a shop owner's account and their vendor application together.
@@ -12,7 +14,7 @@ import { supabase } from '../lib/supabase';
  * session (straight away, or after the email is confirmed).
  */
 export default function VendorSignup() {
-  const { session, roles, loading } = useAuth();
+  const { session, roles, loading, signOut } = useAuth();
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -35,19 +37,27 @@ export default function VendorSignup() {
   if (!supabase) return null;
   const sb = supabase;
 
+  // Signed in (e.g. back from "Register with Google") but not a vendor yet: just the business details.
   if (session && !loading && !isVendor) {
     return (
       <AppShell header={<LogoHeader />}>
-        <section className="section form-card">
-          <h3 style={{ marginTop: 0 }}>You are signed in</h3>
-          <p className="meta">
-            Signed in as <b>{session.user.email}</b>. Add your business details to this account to start
-            selling.
+        <section className="hero">
+          <h1>Register your business</h1>
+          <p>
+            Signed in as <b>{session.user.email}</b>. Add your business details to start selling.
           </p>
-          <Link className="btn block" to="/vendor/apply" style={{ display: 'block', textAlign: 'center' }}>
-            Register your business
-          </Link>
+          <span className="hero-pill">For shop owners</span>
         </section>
+        <section className="section">
+          <ApplyForm />
+        </section>
+        <p className="meta" style={{ textAlign: 'center' }}>
+          Not you?{' '}
+          <button className="link-btn" onClick={signOut}>
+            Sign out
+          </button>
+        </p>
+        <LegalLinks />
       </AppShell>
     );
   }
@@ -116,6 +126,12 @@ export default function VendorSignup() {
           team approves your business.
         </p>
         <span className="hero-pill">For shop owners</span>
+      </section>
+      <section className="section form-card">
+        <GoogleButton returnPath="/vendor/signup" label="Register with Google" />
+        <p className="meta" style={{ margin: '10px 0 0', textAlign: 'center' }}>
+          or fill in the form below
+        </p>
       </section>
       <form className="section form-card" onSubmit={submit} noValidate>
         <h3 style={{ marginTop: 0 }}>About you</h3>

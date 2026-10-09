@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { EmailCodeForm, EmailField, PasswordInput, passwordSignInError } from '../auth/forms';
+import { GoogleButton } from '../auth/GoogleButton';
 import { AppShell, LogoHeader } from '../components/AppShell';
 import { supabase } from '../lib/supabase';
 
@@ -93,6 +94,14 @@ export default function VendorLogin() {
             </button>
             {error && <p className="error-text">{error}</p>}
           </form>
+        )}
+        {!session && (
+          <>
+            <div className="meta" style={{ textAlign: 'center', margin: '14px 0' }}>
+              or
+            </div>
+            <GoogleButton returnPath="/vendor/login" />
+          </>
         )}
       </section>
       <p className="meta" style={{ textAlign: 'center' }}>

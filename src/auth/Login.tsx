@@ -5,6 +5,7 @@ import { AreaPicker } from '../components/AreaPicker';
 import { LegalLinks } from '../components/LegalLinks';
 import { supabase } from '../lib/supabase';
 import { homeFor, useAuth } from './AuthProvider';
+import { GoogleButton } from './GoogleButton';
 import { EmailCodeForm, EmailField, normalisePhone, PasswordInput, passwordSignInError } from './forms';
 
 type Mode = 'signin' | 'signup' | 'code';
@@ -92,15 +93,6 @@ export default function Login() {
       setPassword2('');
       setNotice(`We sent a confirmation link to ${email.trim()}. Tap it, then sign in here.`);
     }
-  };
-
-  const google = async () => {
-    setError('');
-    const { error } = await sb.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: window.location.origin + '/login' },
-    });
-    if (error) setError(error.message);
   };
 
   return (
@@ -228,9 +220,7 @@ export default function Login() {
         <div className="meta" style={{ textAlign: 'center', margin: '14px 0' }}>
           or
         </div>
-        <button className="btn yellow" style={{ width: '100%' }} onClick={google}>
-          Continue with Google
-        </button>
+        <GoogleButton returnPath="/login" />
         {error && <p className="error-text">{error}</p>}
       </section>
       <p className="meta" style={{ textAlign: 'center' }}>
