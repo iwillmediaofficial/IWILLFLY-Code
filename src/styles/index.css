@@ -140,6 +140,39 @@
   .page {
     padding: 16px;
   }
+  .legal-links {
+    text-align: center;
+    margin: 18px 0 4px;
+  }
+  .legal-links a {
+    color: var(--color-blue);
+    font-weight: 600;
+  }
+  .legal {
+    font-size: 14px;
+    line-height: 1.65;
+    max-width: 720px;
+    margin-left: auto;
+    margin-right: auto;
+    overflow-wrap: anywhere;
+  }
+  .legal h3 {
+    margin: 18px 0 6px;
+    font-size: 15px;
+  }
+  .legal p,
+  .legal ul {
+    margin: 0 0 8px;
+  }
+  .legal ul {
+    padding-left: 18px;
+  }
+  .legal li + li {
+    margin-top: 4px;
+  }
+  .legal a {
+    color: var(--color-blue);
+  }
   .section {
     margin-top: 18px;
   }
