@@ -104,8 +104,8 @@ function StatusNotice({ vendor }: { vendor: Vendor }) {
   if (vendor.status === 'pending') {
     return (
       <div className="notice warn">
-        <b>Your business is under review.</b> Set up your shops and offers now. Customers will see them once
-        the IWILLFLY team approves your account.
+        <b>Your business is under review.</b> Set up your shops and offers now (up to 30 pictures until
+        approval). Customers will see them once the IWILLFLY team approves your account.
       </div>
     );
   }
