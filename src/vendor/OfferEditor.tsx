@@ -6,7 +6,7 @@ import { useToast } from '../components/Toast';
 import { db, must, useCategories } from '../lib/queries';
 import type { Offer, OfferStatus, Shop } from '../lib/types';
 import { useMyOffers, VENDOR_KEY } from './api';
-import { useReadOnly } from './context';
+import { useApproved, useReadOnly } from './context';
 import {
   errorMessage,
   offerPhase,
@@ -22,6 +22,7 @@ export default function OfferEditor() {
   const { id } = useParams();
   const [params] = useSearchParams();
   const { offers, shops, isPending, error } = useMyOffers();
+  const approved = useApproved();
   if (isPending) return <Loading />;
   if (error || !offers || !shops) return <ErrorNote error={error} />;
   if (shops.length === 0) {
@@ -32,6 +33,18 @@ export default function OfferEditor() {
         <p>Every offer belongs to one of your shops.</p>
         <Link className="btn" to="/vendor/shops/new" style={{ display: 'inline-block', marginTop: 8 }}>
           Add a shop
+        </Link>
+      </div>
+    );
+  }
+  if (!id && !approved) {
+    return (
+      <div className="saved-empty">
+        <div className="emoji">⏳</div>
+        <h3>Offers open after approval</h3>
+        <p>You can add offers once the IWILLFLY team approves your business.</p>
+        <Link className="btn" to="/vendor" style={{ display: 'inline-block', marginTop: 8 }}>
+          Back to dashboard
         </Link>
       </div>
     );

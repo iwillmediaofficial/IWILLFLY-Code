@@ -21,3 +21,8 @@ export function useVendorRole() {
   const role = useVendor().my_role;
   return { role, isOwner: role === 'owner', canEdit: role !== 'staff' };
 }
+
+/** Offers and pictures can be added only once the IWILLFLY team approves the business. */
+export function useApproved() {
+  return useVendor().status === 'approved';
+}

@@ -7,7 +7,7 @@ import { openState } from '../lib/hours';
 import { db, must, useCategories } from '../lib/queries';
 import type { Shop } from '../lib/types';
 import { useBranches, useMyShops, VENDOR_KEY } from './api';
-import { useReadOnly, useVendor } from './context';
+import { useApproved, useReadOnly, useVendor } from './context';
 import { errorMessage, orNull, phoneError } from './format';
 import { BlockedNote, ErrorNote, FormError, Loading, Lockable, NotFound, PageHead } from './ui';
 
@@ -30,6 +30,7 @@ export default function ShopEditor() {
 function ShopForm({ shop }: { shop: Shop | null }) {
   const vendor = useVendor();
   const readOnly = useReadOnly();
+  const approved = useApproved();
   const qc = useQueryClient();
   const toast = useToast();
   const navigate = useNavigate();
@@ -153,16 +154,29 @@ function ShopForm({ shop }: { shop: Shop | null }) {
               />
             </div>
           </div>
-          <div style={{ maxWidth: 140 }}>
-            <ImageField label="Logo" value={f.logo_key} folder="shops" onChange={(k) => set('logo_key', k)} />
-          </div>
-          <ImageField
-            label="Cover photo"
-            value={f.cover_key}
-            folder="shops"
-            aspect="16 / 9"
-            onChange={(k) => set('cover_key', k)}
-          />
+          {approved ? (
+            <>
+              <div style={{ maxWidth: 140 }}>
+                <ImageField
+                  label="Logo"
+                  value={f.logo_key}
+                  folder="shops"
+                  onChange={(k) => set('logo_key', k)}
+                />
+              </div>
+              <ImageField
+                label="Cover photo"
+                value={f.cover_key}
+                folder="shops"
+                aspect="16 / 9"
+                onChange={(k) => set('cover_key', k)}
+              />
+            </>
+          ) : (
+            <div className="notice">
+              You can add a logo and cover photo once the IWILLFLY team approves your business.
+            </div>
+          )}
           <label className="check-row">
             <input
               type="checkbox"

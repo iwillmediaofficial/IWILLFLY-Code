@@ -3,7 +3,7 @@ import { formatPrice } from '../lib/hours';
 import { mediaUrl } from '../lib/supabase';
 import type { Offer, OfferStatus } from '../lib/types';
 import { useMyOffers } from './api';
-import { useReadOnly } from './context';
+import { useApproved, useReadOnly } from './context';
 import { formatDate, offerPhase, phaseClass, phaseLabel } from './format';
 import { ErrorNote, Loading, PageHead } from './ui';
 
@@ -18,6 +18,7 @@ export default function OffersList() {
   const { offers, shops, isPending, error } = useMyOffers();
   const [params, setParams] = useSearchParams();
   const readOnly = useReadOnly();
+  const approved = useApproved();
   const status = filters.find((x) => x.key === params.get('status'))?.key ?? 'all';
   const shown = (offers ?? []).filter((o) => status === 'all' || o.status === status);
   const shopName = (id: number) => shops?.find((s) => s.id === id)?.name ?? '';
@@ -26,7 +27,10 @@ export default function OffersList() {
 
   return (
     <>
-      <PageHead title="Your offers" action={!readOnly && <Link to="/vendor/offers/new">＋ New offer</Link>} />
+      <PageHead
+        title="Your offers"
+        action={!readOnly && approved && <Link to="/vendor/offers/new">＋ New offer</Link>}
+      />
       <div className="tabs" role="tablist">
         {filters.map((x) => (
           <button
