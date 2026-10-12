@@ -64,9 +64,11 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="btn-row" style={{ marginTop: 0 }}>
-            <Link className="btn" to="/vendor/offers/new">
-              ＋ New offer
-            </Link>
+            {vendor.status === 'approved' && (
+              <Link className="btn" to="/vendor/offers/new">
+                ＋ New offer
+              </Link>
+            )}
             <Link className="btn secondary" to="/vendor/shops/new">
               ＋ Add shop
             </Link>
@@ -104,8 +106,8 @@ function StatusNotice({ vendor }: { vendor: Vendor }) {
   if (vendor.status === 'pending') {
     return (
       <div className="notice warn">
-        <b>Your business is under review.</b> Set up your shops and offers now. Customers will see them once
-        the IWILLFLY team approves your account.
+        <b>Your business is under review.</b> You can set up your shops and branches now. Offers and pictures
+        can be added once the IWILLFLY team approves your account.
       </div>
     );
   }

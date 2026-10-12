@@ -22,7 +22,7 @@ begin
   raise notice 'ok - %', what;
 end $$;
 
--- Two customers apply as vendors and set up a shop, a branch and an offer each
+-- Two customers apply as vendors and set up a shop and a branch each
 select pg_temp.act_as('00000000-0000-0000-0000-0000000000b1');
 set local role authenticated;
 select pg_temp.check(public.apply_as_vendor('Lulu Fashion LLP', '9999999999', '9999999999') is not null, 'customer applies as vendor');
@@ -32,10 +32,11 @@ insert into public.shops (vendor_id, name, category_id)
   select (select id from public.vendors), 'Lulu Fashion', (select id from public.categories where slug = 'textile');
 insert into public.branches (shop_id, name, lat, lng, hours)
   select id, 'Edappally', 10.0261, 76.3083, '{"mon":{"open":"09:00","close":"22:00"}}' from public.shops;
-insert into public.offers (shop_id, title, discount_label, status, is_featured)
-  select id, 'Onam sale', '50% OFF', 'approved', true from public.shops;
-select pg_temp.check((select status from public.offers) = 'pending' and not (select is_featured from public.offers),
-  'vendor cannot self-approve or feature an offer');
+do $$ begin
+  insert into public.offers (shop_id, title, discount_label) select id, 'Too early', '10% OFF' from public.shops;
+  raise exception 'MARKETPLACE TEST FAILED: a vendor under review added an offer';
+exception when insufficient_privilege then raise notice 'ok - vendors under review cannot add offers';
+end $$;
 update public.vendors set status = 'approved', is_verified = true;
 select pg_temp.check((select status from public.vendors) = 'pending' and not (select is_verified from public.vendors),
   'vendor cannot approve or verify themselves');
@@ -56,7 +57,6 @@ exception when insufficient_privilege then raise notice 'ok - vendor cannot crea
 end $$;
 insert into public.shops (vendor_id, name) select id, 'Fresh Mart' from public.vendors;
 insert into public.branches (shop_id, name, lat, lng) select id, 'Aluva', 10.1076, 76.3516 from public.shops;
-insert into public.offers (shop_id, title, discount_label) select id, 'Flat 25%', '25% OFF' from public.shops;
 reset role;
 
 -- Anonymous visitors see nothing until an admin approves
@@ -73,6 +73,25 @@ select pg_temp.check((public.admin_stats() ->> 'vendors_pending')::int = 2, 'adm
 update public.vendors set status = 'approved', is_verified = true;
 select pg_temp.check((select count(*) from public.vendors where status = 'approved' and reviewed_by is not null) = 2,
   'admin approves vendors and the reviewer is recorded');
+reset role;
+
+-- Approved vendors add offers; they still cannot approve or feature them
+select pg_temp.act_as('00000000-0000-0000-0000-0000000000b1');
+set local role authenticated;
+insert into public.offers (shop_id, title, discount_label, status, is_featured)
+  select id, 'Onam sale', '50% OFF', 'approved', true from public.shops where name = 'Lulu Fashion';
+select pg_temp.check((select status from public.offers where title = 'Onam sale') = 'pending'
+  and not (select is_featured from public.offers where title = 'Onam sale'),
+  'vendor cannot self-approve or feature an offer');
+reset role;
+select pg_temp.act_as('00000000-0000-0000-0000-0000000000b2');
+set local role authenticated;
+insert into public.offers (shop_id, title, discount_label)
+  select id, 'Flat 25%', '25% OFF' from public.shops where name = 'Fresh Mart';
+reset role;
+
+select pg_temp.act_as('00000000-0000-0000-0000-0000000000a1');
+set local role authenticated;
 update public.offers set status = 'approved', is_featured = true where title = 'Onam sale';
 select pg_temp.check((select reviewed_at from public.offers where title = 'Onam sale') is not null, 'admin approves an offer');
 insert into public.malls (name, slug, lat, lng) values ('Grand Mall', 'grand-mall', 10.0270, 76.3080);
