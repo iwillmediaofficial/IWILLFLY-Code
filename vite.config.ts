@@ -1,10 +1,24 @@
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import { securityHeaders } from './worker/securityHeaders';
 
-export default defineConfig({
+/** Writes dist/_headers so Workers Static Assets sends the browser security headers with every static file. */
+function staticSecurityHeaders(supabaseUrl: string | undefined): Plugin {
+  return {
+    name: 'static-security-headers',
+    apply: 'build',
+    generateBundle() {
+      const lines = Object.entries(securityHeaders(supabaseUrl)).map(([k, v]) => `  ${k}: ${v}`);
+      this.emitFile({ type: 'asset', fileName: '_headers', source: ['/*', ...lines, ''].join('\n') });
+    },
+  };
+}
+
+export default defineConfig(({ mode }) => ({
   plugins: [
+    staticSecurityHeaders(process.env.VITE_SUPABASE_URL ?? loadEnv(mode, process.cwd()).VITE_SUPABASE_URL),
     react(),
     tailwindcss(),
     VitePWA({
@@ -34,4 +48,4 @@ export default defineConfig({
       },
     }),
   ],
-});
+}));
