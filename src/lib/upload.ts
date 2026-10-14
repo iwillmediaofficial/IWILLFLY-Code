@@ -32,13 +32,52 @@ export async function uploadImage(
  * photo data such as the GPS location.
  */
 export async function photoWebp(file: File): Promise<Blob> {
-  return imageCompression(file, {
+  const resized = await imageCompression(file, {
     maxWidthOrHeight: 1600,
     maxSizeMB: 0.4,
     fileType: 'image/webp',
     initialQuality: 0.8,
-    useWebWorker: true,
+    // Its worker loads the library from a CDN, which the site's Content Security Policy blocks.
+    useWebWorker: false,
   });
+  return asWebp(resized);
+}
+
+/**
+ * Safari, and so every browser on iPhone and iPad, cannot save a canvas as WebP: it hands back PNG, which the
+ * upload route refuses. Such images are encoded to WebP here instead, with libwebp in WebAssembly (loaded only
+ * when needed), at falling quality until the file is about 400 KB.
+ */
+async function asWebp(image: Blob): Promise<Blob> {
+  if (await hasWebpBytes(image)) return image;
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(image);
+  } catch {
+    throw new Error('This file could not be read as an image');
+  }
+  const canvas = document.createElement('canvas');
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Image processing is not available in this browser');
+  ctx.drawImage(bitmap, 0, 0);
+  bitmap.close();
+  const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const { default: encode } = await import('@jsquash/webp/encode');
+  let webp: ArrayBuffer | null = null;
+  for (const quality of [80, 65, 50]) {
+    webp = await encode(pixels, { quality });
+    if (webp.byteLength <= 400 * 1024) break;
+  }
+  return new Blob([webp!], { type: 'image/webp' });
+}
+
+/** True when the file really is WebP (its first bytes, not the type the browser claims). */
+async function hasWebpBytes(image: Blob) {
+  const head = new Uint8Array(await image.slice(0, 12).arrayBuffer());
+  const ascii = (from: number) => String.fromCharCode(...head.slice(from, from + 4));
+  return head.length === 12 && ascii(0) === 'RIFF' && ascii(8) === 'WEBP';
 }
 
 /** Posts a WebP to /api/upload and returns the stored object's key. */
@@ -73,7 +112,7 @@ export async function squareWebp(file: Blob, size: number): Promise<Blob> {
   ctx.drawImage(bitmap, sx, sy, side, side, 0, 0, size, size);
   bitmap.close();
   const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', 0.85));
-  // Browsers without WebP encoding hand back PNG; the upload route only accepts WebP.
-  if (!blob || blob.type !== 'image/webp') throw new Error('This browser cannot create WebP images');
-  return blob;
+  if (!blob) throw new Error('Image processing is not available in this browser');
+  // Browsers without WebP encoding (Safari) hand back PNG; the upload route only accepts WebP.
+  return asWebp(blob);
 }
