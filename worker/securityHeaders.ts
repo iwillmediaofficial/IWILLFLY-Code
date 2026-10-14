@@ -11,7 +11,8 @@ export function securityHeaders(supabaseUrl: string | undefined): Record<string,
   const realtime = supabase.replace(/^http/, 'ws');
   const csp = [
     "default-src 'self'",
-    "script-src 'self'",
+    // WebAssembly: the WebP encoder used on Safari and iPhone, which cannot save WebP themselves.
+    "script-src 'self' 'wasm-unsafe-eval'",
     // Inline style attributes are needed by Leaflet's map pin and the QR scanner.
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
