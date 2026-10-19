@@ -151,6 +151,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     await supabase?.auth.signOut();
+    // Clear now rather than on the deferred auth event, so a following navigate('/login') sees a guest.
+    setSession(null);
+    setRoles([]);
   };
 
   const refreshRoles = async () => {

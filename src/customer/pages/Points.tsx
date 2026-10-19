@@ -52,10 +52,18 @@ export default function Points() {
           <Route path="bills" element={<MyBills />} />
           <Route path="history" element={<History />} />
           <Route path="redeem" element={<Redeem />} />
-          <Route path="terms" element={<PointsTerms />} />
           <Route path="*" element={<Navigate to="/points" replace />} />
         </Routes>
       )}
+    </AppShell>
+  );
+}
+
+/** /points/terms, which guests can open too (it is routed on its own in App). */
+export function PointsTermsPage() {
+  return (
+    <AppShell header={<BackHeader back="/points" title="My Points" subtitle="Earn on every bill" />}>
+      <PointsTerms />
     </AppShell>
   );
 }

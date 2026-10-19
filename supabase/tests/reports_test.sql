@@ -155,8 +155,14 @@ reset role;
 -- Merged read policies -------------------------------------------------------------------------------
 set local role anon;
 select pg_temp.act_as(null);
-select pg_temp.check((select count(*) from public.shops) = 1, 'visitors see only the live shop');
-select pg_temp.check((select count(*) from public.vendors) = 0, 'visitors see no vendor rows');
+select pg_temp.check((select count(*) from public.shops) = 0, 'guests see no shops');
+select pg_temp.check((select count(*) from public.vendors) = 0, 'guests see no vendor rows');
+reset role;
+
+select pg_temp.act_as('00000000-0000-0000-0000-0000000000c1');
+set local role authenticated;
+select pg_temp.check((select count(*) from public.shops) = 1, 'customers see only the live shop');
+select pg_temp.check((select count(*) from public.vendors) = 0, 'customers see no vendor rows');
 reset role;
 
 select pg_temp.act_as('00000000-0000-0000-0000-0000000000b2');

@@ -10,10 +10,45 @@ import { EmailCodeForm, EmailField, normalisePhone, PasswordInput, passwordSignI
 
 type Mode = 'signin' | 'signup' | 'code';
 
+const RETURN_KEY = 'iwillfly-return-to';
+
+/** Only paths inside this app, never another site. */
+const isAppPath = (p: unknown): p is string =>
+  typeof p === 'string' && p.startsWith('/') && !p.startsWith('//');
+
+/**
+ * The page to open after signing in. Router state is lost when Google sends the browser back here,
+ * so it is also kept in sessionStorage (this tab only) until it is used.
+ */
+function useReturnPath() {
+  const fromState = (useLocation().state as { from?: unknown } | null)?.from;
+  const [from] = useState(() => {
+    try {
+      if (isAppPath(fromState)) {
+        sessionStorage.setItem(RETURN_KEY, fromState);
+        return fromState;
+      }
+      const saved = sessionStorage.getItem(RETURN_KEY);
+      return isAppPath(saved) ? saved : undefined;
+    } catch {
+      return isAppPath(fromState) ? fromState : undefined;
+    }
+  });
+  return from;
+}
+
+function forgetReturnPath() {
+  try {
+    sessionStorage.removeItem(RETURN_KEY);
+  } catch {
+    // storage blocked: nothing was saved
+  }
+}
+
 export default function Login() {
   const { session, roles, loading } = useAuth();
   const navigate = useNavigate();
-  const from = (useLocation().state as { from?: string } | null)?.from;
+  const from = useReturnPath();
   const [mode, setMode] = useState<Mode>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -26,7 +61,10 @@ export default function Login() {
   const [notice, setNotice] = useState('');
 
   useEffect(() => {
-    if (!loading && session) navigate(from ?? homeFor(roles), { replace: true });
+    if (!loading && session) {
+      forgetReturnPath();
+      navigate(from ?? homeFor(roles), { replace: true });
+    }
   }, [loading, session, roles, from, navigate]);
 
   if (!supabase) {

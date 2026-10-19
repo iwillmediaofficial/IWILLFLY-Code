@@ -91,9 +91,9 @@ exception when insufficient_privilege then raise notice 'ok - vendors sponsor pr
 end $$;
 reset role;
 
-select pg_temp.act_as(null);
-set local role anon;
-select pg_temp.check((select count(*) from public.scratch_prizes) = 0, 'switched-off prize is hidden from the public');
+select pg_temp.act_as('00000000-0000-0000-0000-0000000000c1');
+set local role authenticated;
+select pg_temp.check((select count(*) from public.scratch_prizes) = 0, 'switched-off prize is hidden from customers');
 reset role;
 
 select pg_temp.act_as('00000000-0000-0000-0000-0000000000d1');
@@ -105,12 +105,24 @@ reset role;
 
 select pg_temp.act_as(null);
 set local role anon;
-select pg_temp.check((select count(*) from public.scratch_prizes) = 1, 'live prize is public');
+select pg_temp.check((select count(*) from public.scratch_prizes) = 0, 'guests see no prizes');
+select pg_temp.check((select count(*) from public.scratch_campaigns) = 0, 'guests see no campaigns');
+select pg_temp.check((select count(*) from public.scratch_prize_locations) = 0, 'guests see no prize areas');
+do $$ begin
+  perform public.scratch_today();
+  raise exception 'SCRATCH TEST FAILED: guest ran scratch_today';
+exception when insufficient_privilege then raise notice 'ok - guests cannot list today''s campaigns';
+end $$;
 do $$ begin
   perform public.play_scratch((select id from public.scratch_campaigns));
   raise exception 'SCRATCH TEST FAILED: anon played';
 exception when insufficient_privilege then raise notice 'ok - signed-out visitors cannot play';
 end $$;
+reset role;
+
+select pg_temp.act_as('00000000-0000-0000-0000-0000000000c1');
+set local role authenticated;
+select pg_temp.check((select count(*) from public.scratch_prizes) = 1, 'live prize is visible to customers');
 reset role;
 
 -- Customer 1 wins; a second scratch the same day returns the same result

@@ -1,7 +1,8 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { AuthProvider, ADMIN_ROLES } from './auth/AuthProvider';
 import { ProfileGate } from './auth/ProfileGate';
+import { RequireAuth } from './auth/RequireAuth';
 import { RequireRole } from './auth/RequireRole';
 import { ToastProvider } from './components/Toast';
 import { LocationProvider } from './lib/location';
@@ -24,6 +25,9 @@ const Mall = lazy(() => import('./customer/pages/Mall'));
 const Settings = lazy(() => import('./customer/pages/Settings'));
 const Privacy = lazy(() => import('./customer/pages/Legal').then((m) => ({ default: m.Privacy })));
 const Terms = lazy(() => import('./customer/pages/Legal').then((m) => ({ default: m.Terms })));
+const PointsTermsPage = lazy(() =>
+  import('./customer/pages/Points').then((m) => ({ default: m.PointsTermsPage })),
+);
 const Login = lazy(() => import('./auth/Login'));
 const CompleteProfile = lazy(() => import('./auth/CompleteProfile'));
 const AdminLogin = lazy(() => import('./auth/AdminLogin'));
@@ -32,6 +36,9 @@ const VendorSignup = lazy(() => import('./vendor/VendorSignup'));
 const VendorLogin = lazy(() => import('./vendor/VendorLogin'));
 const VendorApp = lazy(() => import('./vendor/VendorApp'));
 const AdminApp = lazy(() => import('./admin/AdminApp'));
+
+/** The customer app is for signed-in users only; guests are sent to /login. */
+const signedIn = (page: ReactNode) => <RequireAuth>{page}</RequireAuth>;
 
 export default function App() {
   return (
@@ -42,21 +49,24 @@ export default function App() {
             <ProfileGate />
             <Suspense fallback={<div className="app-shell" />}>
               <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/explore" element={<Explore />} />
-                <Route path="/scratch" element={<Scratch />} />
-                <Route path="/malls" element={<Malls />} />
-                <Route path="/mall/:id" element={<Mall />} />
-                <Route path="/shop/:id" element={<Shop />} />
-                <Route path="/saved" element={<Saved />} />
-                <Route path="/prizes" element={<Prizes />} />
-                <Route path="/points/*" element={<Points />} />
-                <Route path="/notifications" element={<Notifications />} />
-                <Route path="/festival/:slug" element={<Festival />} />
-                <Route path="/history" element={<History />} />
-                <Route path="/help/*" element={<Help />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/settings" element={<Settings />} />
+                <Route path="/" element={signedIn(<Home />)} />
+                <Route path="/explore" element={signedIn(<Explore />)} />
+                <Route path="/scratch" element={signedIn(<Scratch />)} />
+                <Route path="/malls" element={signedIn(<Malls />)} />
+                <Route path="/mall/:id" element={signedIn(<Mall />)} />
+                <Route path="/shop/:id" element={signedIn(<Shop />)} />
+                <Route path="/saved" element={signedIn(<Saved />)} />
+                <Route path="/prizes" element={signedIn(<Prizes />)} />
+                {/* Open to guests, so the rules can be read before signing up. */}
+                <Route path="/points/terms" element={<PointsTermsPage />} />
+                <Route path="/points/*" element={signedIn(<Points />)} />
+                <Route path="/notifications" element={signedIn(<Notifications />)} />
+                <Route path="/festival/:slug" element={signedIn(<Festival />)} />
+                <Route path="/history" element={signedIn(<History />)} />
+                <Route path="/help/*" element={signedIn(<Help />)} />
+                <Route path="/profile" element={signedIn(<Profile />)} />
+                <Route path="/settings" element={signedIn(<Settings />)} />
+                {/* Open to guests. */}
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/terms" element={<Terms />} />
                 <Route path="/login" element={<Login />} />
@@ -81,7 +91,7 @@ export default function App() {
                     </RequireRole>
                   }
                 />
-                <Route path="*" element={<Home />} />
+                <Route path="*" element={signedIn(<Home />)} />
               </Routes>
             </Suspense>
           </ToastProvider>

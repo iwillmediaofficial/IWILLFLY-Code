@@ -9,6 +9,7 @@ import {
   rupees,
   useMyRedemptions,
   useMyUpi,
+  usePointsRules,
   usePointsWallet,
   useRequestRedemption,
   useSaveUpi,
@@ -282,8 +283,7 @@ function RedemptionRow({ r }: { r: Redemption }) {
 }
 
 export function PointsTerms() {
-  const wallet = usePointsWallet();
-  const w = wallet.data;
+  const w = usePointsRules();
   const rate = w ? rupees(w.rupees_per_point) : '₹50';
   const value = w ? rupees(w.point_value) : '₹1';
   const min = w ? w.min_redeem_points.toLocaleString('en-IN') : '1,000';

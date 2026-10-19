@@ -90,7 +90,10 @@ const navItems = [
   { to: '/profile', icon: '◯', label: 'Profile' },
 ];
 
+/** Only for signed-in users: every page it links to needs a sign-in. */
 export function BottomNav() {
+  const { session } = useAuth();
+  if (!session) return null;
   return (
     <nav className="bottom-nav">
       {navItems.map((n) => (

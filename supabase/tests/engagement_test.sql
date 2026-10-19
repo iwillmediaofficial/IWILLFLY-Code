@@ -79,7 +79,18 @@ reset role;
 
 select pg_temp.act_as(null);
 set local role anon;
-select pg_temp.check((select count(*) from public.festivals) = 1, 'public sees the active festival');
+select pg_temp.check((select count(*) from public.festivals) = 0, 'guest sees no festivals');
+select pg_temp.check((select count(*) from public.festival_offers) = 0, 'guest sees no festival offers');
+do $$ begin
+  perform public.festival_offers_live((select v from ids where k = 'fest'));
+  raise exception 'ENGAGEMENT TEST FAILED: guest ran festival_offers_live';
+exception when insufficient_privilege then raise notice 'ok - guest festival page data is refused';
+end $$;
+reset role;
+
+select pg_temp.act_as('00000000-0000-0000-0000-0000000000c1');
+set local role authenticated;
+select pg_temp.check((select count(*) from public.festivals) = 1, 'customer sees the active festival');
 select pg_temp.check((select count(*) from public.festival_offers_live((select v from ids where k = 'fest'))) = 0,
   'pending submission is not on the festival page');
 reset role;
@@ -90,8 +101,8 @@ update public.festival_offers set status = 'approved';
 select pg_temp.check((select reviewed_by = '00000000-0000-0000-0000-0000000000d1' from public.festival_offers),
   'review records the manager');
 reset role;
-select pg_temp.act_as(null);
-set local role anon;
+select pg_temp.act_as('00000000-0000-0000-0000-0000000000c1');
+set local role authenticated;
 select pg_temp.check((select count(*) from public.festival_offers_live((select v from ids where k = 'fest'))) = 1,
   'approved offer is on the festival page');
 reset role;
@@ -108,7 +119,11 @@ insert into public.ads (title, starts_on) values ('Next week', private.today_ist
 reset role;
 select pg_temp.act_as(null);
 set local role anon;
-select pg_temp.check((select string_agg(title, ',') from public.ads) = 'Onam deals', 'only running ads are public');
+select pg_temp.check((select count(*) from public.ads) = 0, 'guest sees no ads');
+reset role;
+select pg_temp.act_as('00000000-0000-0000-0000-0000000000c1');
+set local role authenticated;
+select pg_temp.check((select string_agg(title, ',') from public.ads) = 'Onam deals', 'customers see only running ads');
 reset role;
 select pg_temp.act_as('00000000-0000-0000-0000-0000000000c1');
 set local role authenticated;
@@ -155,6 +170,14 @@ select pg_temp.check((select count(*) from public.notifications
 -- Analytics ----------------------------------------------------------------------------------------
 select pg_temp.act_as(null);
 set local role anon;
+do $$ begin
+  perform public.track_event('view', (select v from ids where k = 'shop1'), null);
+  raise exception 'ENGAGEMENT TEST FAILED: guest ran track_event';
+exception when insufficient_privilege then raise notice 'ok - guests cannot record events';
+end $$;
+reset role;
+select pg_temp.act_as('00000000-0000-0000-0000-0000000000c1');
+set local role authenticated;
 select public.track_event('view', (select v from ids where k = 'shop1'), null);
 select public.track_event('view', (select v from ids where k = 'shop1'), (select v from ids where k = 'offer1'));
 select public.track_event('click', (select v from ids where k = 'shop1'), (select v from ids where k = 'offer1'));
@@ -165,7 +188,7 @@ do $$ begin
   raise exception 'ENGAGEMENT TEST FAILED: unknown event accepted';
 exception when invalid_parameter_value then raise notice 'ok - unknown events are refused';
 end $$;
-select pg_temp.check((select count(*) from public.offer_stats_daily) = 0, 'visitors cannot read the counters');
+select pg_temp.check((select count(*) from public.offer_stats_daily) = 0, 'customers cannot read the counters');
 reset role;
 select pg_temp.check((select count(*) from public.offer_stats_daily where offer_id = (select v from ids where k = 'offer2')) = 0,
   'an offer tracked under the wrong shop is ignored');

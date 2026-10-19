@@ -69,8 +69,15 @@ reset role;
 
 -- Anonymous visitor
 set local role anon;
-select pg_temp.check((select count(*) from public.categories) = 7, 'anon reads active categories');
+select pg_temp.check((select count(*) from public.categories) = 0, 'guests cannot read categories');
+select pg_temp.check((select count(*) from public.locations) > 0, 'guests read locations for the sign-up area picker');
+select pg_temp.check((select count(*) from public.points_settings) = 1, 'guests read the points rules for /points/terms');
 select pg_temp.check((select count(*) from public.profiles) = 0, 'anon sees no profiles');
+reset role;
+
+select pg_temp.act_as('00000000-0000-0000-0000-00000000000c');
+set local role authenticated;
+select pg_temp.check((select count(*) from public.categories) = 7, 'signed-in users read active categories');
 reset role;
 
 rollback;
