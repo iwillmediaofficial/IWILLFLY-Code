@@ -1,4 +1,5 @@
 import { useEffect, type CSSProperties, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { mediaUrl, supabase } from '../lib/supabase';
 import { errorText } from './util';
 
@@ -108,7 +109,9 @@ export function Sheet({
       window.removeEventListener('keydown', onKey);
     };
   }, [open, onClose]);
-  return (
+  // Rendered on <body> so a sheet opened from the sticky header is not trapped under the
+  // bottom nav (the header's z-index caps it) or tinted by the header's white text.
+  return createPortal(
     <div
       className={`modal${open ? ' show' : ''}`}
       role="dialog"
@@ -128,6 +131,7 @@ export function Sheet({
         </div>
         {open && children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
