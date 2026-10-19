@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { AppShell, BackHeader } from '../../components/AppShell';
 import { CategoryIcon } from '../../components/CategoryIcon';
+import { OfferGallery } from '../../components/OfferGallery';
 import { EmptyState } from '../../components/ShopCard';
 import { track } from '../../lib/engagement';
 import { DAYS, formatKm, formatPrice, formatTime, haversineKm, nowIST, openState } from '../../lib/hours';
@@ -494,24 +495,7 @@ function OfferDetails({
   return (
     <div>
       {o.image_keys.length ? (
-        <div className="offer-row" style={{ marginBottom: 12 }}>
-          {o.image_keys.map((k) => (
-            <img
-              key={k}
-              src={mediaUrl(k)}
-              alt=""
-              loading="lazy"
-              decoding="async"
-              style={{
-                width: o.image_keys.length > 1 ? '85%' : '100%',
-                flex: 'none',
-                aspectRatio: '4 / 3',
-                objectFit: 'cover',
-                borderRadius: 18,
-              }}
-            />
-          ))}
-        </div>
+        <OfferGallery imageKeys={o.image_keys} />
       ) : (
         <OfferImage
           icon={icon}
