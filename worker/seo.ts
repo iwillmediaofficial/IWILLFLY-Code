@@ -217,13 +217,24 @@ function keyFilter(key: string): string {
 function lookupShop(key: string, origin: string, env: Env, ctx: ExecutionContext): Promise<Lookup<ShopRow>> {
   const select =
     'id,slug,name,description,logo_key,cover_key,phone,branches(name,address,lat,lng,phone),vendors!inner()';
-  return cachedJson(`shop/${key}`, origin, LOOKUP_TTL, ctx, async () => {
+  const find = async (filter: string) => {
     const rows = await rest<ShopRow[]>(
       env,
-      `shops?${keyFilter(key)}&is_active=is.true&vendors.status=eq.approved` +
+      `shops?${filter}&is_active=is.true&vendors.status=eq.approved` +
         `&select=${encodeURIComponent(select)}&branches.order=id.asc&limit=1`,
     );
     return rows && (rows[0] ?? null);
+  };
+  return cachedJson(`shop/${key}`, origin, LOOKUP_TTL, ctx, async () => {
+    const shop = await find(keyFilter(key));
+    if (shop !== null || /^\d+$/.test(key)) return shop;
+    // A link an admin has since changed still leads to the shop (redirected to the current link).
+    const old = await rest<{ shop_id: number }[]>(
+      env,
+      `shop_old_slugs?slug=eq.${key}&select=shop_id&limit=1`,
+    );
+    if (!old) return undefined;
+    return old[0] ? find(`id=eq.${old[0].shop_id}`) : null;
   });
 }
 

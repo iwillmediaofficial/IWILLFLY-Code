@@ -17,19 +17,30 @@ import { directionsLink, formatDate, toneFor, useSaveToggle, validity, whatsappL
 type ShopWithCategory = ShopRow & { category: Pick<Category, 'name' | 'icon' | 'slug'> | null };
 type MallLink = { branch_id: number; floor: string | null; mall: { id: number; name: string } | null };
 
-/** The link is /shop/<slug>; old links use the shop's number (/shop/2). */
+const SHOP_SELECT = '*, category:categories(name, icon, slug)';
+
+/**
+ * The link is /shop/<slug>. Old links use the shop's number (/shop/2) or a link an admin has since
+ * changed (shop_old_slugs); the page then switches to the current link.
+ */
+async function loadShop(key: string): Promise<ShopWithCategory | null> {
+  const byId = (id: number) =>
+    db().from('shops').select(SHOP_SELECT).eq('id', id).maybeSingle<ShopWithCategory>();
+  if (/^\d+$/.test(key)) return must<ShopWithCategory | null>(await byId(Number(key)));
+  const shop = must<ShopWithCategory | null>(
+    await db().from('shops').select(SHOP_SELECT).eq('slug', key).maybeSingle<ShopWithCategory>(),
+  );
+  if (shop) return shop;
+  const old = must<{ shop_id: number } | null>(
+    await db().from('shop_old_slugs').select('shop_id').eq('slug', key).maybeSingle(),
+  );
+  return old ? must<ShopWithCategory | null>(await byId(old.shop_id)) : null;
+}
+
 function useShopData(key: string, valid: boolean) {
-  const byId = /^\d+$/.test(key);
   const shop = useQuery({
     queryKey: ['shop', key],
-    queryFn: async () =>
-      must<ShopWithCategory | null>(
-        await db()
-          .from('shops')
-          .select('*, category:categories(name, icon, slug)')
-          .eq(byId ? 'id' : 'slug', byId ? Number(key) : key)
-          .maybeSingle(),
-      ),
+    queryFn: () => loadShop(key),
     enabled: Boolean(supabase) && valid,
   });
   const id = shop.data?.id ?? 0;

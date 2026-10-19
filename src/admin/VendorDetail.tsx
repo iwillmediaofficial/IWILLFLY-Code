@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
@@ -8,12 +8,13 @@ import { PasswordInput } from '../auth/forms';
 import type { Offer, Vendor, VendorStatus } from '../lib/types';
 import { formatDate as formatDay, offerPhase, phaseClass, phaseLabel, phoneError } from '../vendor/format';
 import { ErrorNotice, Loading } from './ui';
-import { PUBLIC_KEYS, formatDate, friendlyError, one, useInvalidate } from './util';
+import { PUBLIC_KEYS, formatDate, friendlyError, one, slugify, useInvalidate } from './util';
 import { DIRECTORY_KEY, adminApi, useVendorDirectory, type VendorOwnerRow } from './vendorApi';
 
 type ShopRow = {
   id: number;
   name: string;
+  slug: string;
   description: string | null;
   phone: string | null;
   whatsapp: string | null;
@@ -25,7 +26,7 @@ type ShopRow = {
 };
 
 const SHOPS_SELECT =
-  'id, name, description, phone, whatsapp, is_active, category_id, category:categories(name, icon), branches(count), offers(*)';
+  'id, name, slug, description, phone, whatsapp, is_active, category_id, category:categories(name, icon), branches(count), offers(*)';
 
 function useVendorShops(vendorId: number) {
   return useQuery({
@@ -298,6 +299,47 @@ function ShopsCard({ vendorId }: { vendorId: number }) {
   );
 }
 
+/**
+ * Checks a new shop link while the admin types (after a short pause): well formed, and not used by any
+ * other shop now or as one of its old links. The database runs the same check again on save.
+ */
+function useShopLinkCheck(slug: string, shop: { id: number; slug: string }) {
+  const [typed, setTyped] = useState(slug);
+  useEffect(() => {
+    const t = window.setTimeout(() => setTyped(slug), 400);
+    return () => window.clearTimeout(t);
+  }, [slug]);
+  const changed = typed !== shop.slug;
+  const check = useQuery({
+    queryKey: ['admin', 'shop-link', shop.id, typed],
+    queryFn: async () =>
+      must<string>(await db().rpc('shop_link_status', { p_slug: typed, p_shop_id: shop.id })),
+    enabled: changed && typed !== '',
+    staleTime: 0,
+  });
+  if (slug === shop.slug) return { ok: false, checking: false, problem: null, message: '' };
+  if (slug === '') {
+    const problem = 'Shop link: enter a link.';
+    return { ok: false, checking: false, problem, message: problem };
+  }
+  if (slug !== typed || check.isPending) {
+    return { ok: false, checking: true, problem: null, message: 'Checking the link…' };
+  }
+  const status = check.error ? `invalid: ${friendlyError(check.error)}` : (check.data ?? '');
+  if (status === 'available') {
+    return {
+      ok: true,
+      checking: false,
+      problem: null,
+      message: '✓ This link is free. The old link will keep working and lead here.',
+    };
+  }
+  const problem = status.startsWith('taken: ')
+    ? `This link is already used by "${status.slice(7)}". Pick another.`
+    : `Shop link: ${status.replace(/^invalid: /, '')}`;
+  return { ok: false, checking: false, problem, message: problem };
+}
+
 function ShopRowCard({ vendorId, shop: s }: { vendorId: number; shop: ShopRow }) {
   const toast = useToast();
   const invalidate = useInvalidate();
@@ -305,6 +347,7 @@ function ShopRowCard({ vendorId, shop: s }: { vendorId: number; shop: ShopRow })
   const [editing, setEditing] = useState(false);
   const [f, setF] = useState({
     name: s.name,
+    slug: s.slug,
     category_id: s.category_id,
     phone: s.phone ?? '',
     whatsapp: s.whatsapp ?? '',
@@ -330,6 +373,8 @@ function ShopRowCard({ vendorId, shop: s }: { vendorId: number; shop: ShopRow })
             whatsapp: f.whatsapp.trim() || null,
             description: f.description.trim() || null,
             is_active: f.is_active,
+            // Only sent when changed; the database checks it again and keeps the old link redirecting.
+            ...(f.slug !== s.slug ? { slug: f.slug } : {}),
           })
           .eq('id', s.id),
       );
@@ -339,8 +384,10 @@ function ShopRowCard({ vendorId, shop: s }: { vendorId: number; shop: ShopRow })
       setEditing(false);
       toast('Shop saved');
     },
-    onError: (e) => setError(friendlyError(e)),
+    onError: (e) =>
+      setError(friendlyError(e, 'That shop link is already used by another shop. Pick another.')),
   });
+  const link = useShopLinkCheck(f.slug, s);
 
   const remove = useMutation({
     mutationFn: async () => {
@@ -360,7 +407,8 @@ function ShopRowCard({ vendorId, shop: s }: { vendorId: number; shop: ShopRow })
       (n.length < 2 || n.length > 120 ? 'Shop name should be 2 to 120 characters.' : null) ??
       (f.description.length > 1000 ? 'Description is too long.' : null) ??
       phoneError(f.phone) ??
-      phoneError(f.whatsapp, 'WhatsApp');
+      phoneError(f.whatsapp, 'WhatsApp') ??
+      link.problem;
     setError(problem ?? '');
     if (!problem) save.mutate();
   };
@@ -375,6 +423,7 @@ function ShopRowCard({ vendorId, shop: s }: { vendorId: number; shop: ShopRow })
             · {live} live offer{live === 1 ? '' : 's'}
             {pending ? ` · ${pending} waiting for review` : ''}
           </div>
+          <div className="meta">🔗 /shop/{s.slug}</div>
         </div>
         <span className={`pill-status ${s.is_active ? 'live' : 'blocked'}`}>
           {s.is_active ? 'active' : 'hidden'}
@@ -391,6 +440,31 @@ function ShopRowCard({ vendorId, shop: s }: { vendorId: number; shop: ShopRow })
               maxLength={120}
               onChange={(e) => setF({ ...f, name: e.target.value })}
             />
+          </div>
+          <div className="field">
+            <label htmlFor={`s-slug-${s.id}`}>Shop link</label>
+            <input
+              id={`s-slug-${s.id}`}
+              value={f.slug}
+              maxLength={80}
+              autoCapitalize="none"
+              spellCheck={false}
+              onChange={(e) => setF({ ...f, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })}
+              onBlur={() => setF({ ...f, slug: slugify(f.slug) || s.slug })}
+            />
+            <div className="hint">
+              {window.location.host}/shop/<b>{f.slug || '…'}</b>
+            </div>
+            {link.message && (
+              <div
+                className="hint"
+                style={{
+                  color: link.ok ? 'var(--color-green)' : link.problem ? 'var(--color-red)' : undefined,
+                }}
+              >
+                {link.message}
+              </div>
+            )}
           </div>
           <div className="field">
             <label htmlFor={`s-cat-${s.id}`}>Category</label>
@@ -448,7 +522,7 @@ function ShopRowCard({ vendorId, shop: s }: { vendorId: number; shop: ShopRow })
           </label>
           {error && <p className="error-text">{error}</p>}
           <div className="btn-row">
-            <button className="btn small" type="submit" disabled={save.isPending}>
+            <button className="btn small" type="submit" disabled={save.isPending || link.checking}>
               {save.isPending ? 'Saving…' : 'Save shop'}
             </button>
             <button type="button" className="btn small secondary" onClick={() => setEditing(false)}>
