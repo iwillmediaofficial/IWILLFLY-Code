@@ -5,6 +5,7 @@ import { AppShell, BackHeader } from '../../components/AppShell';
 import { CategoryIcon } from '../../components/CategoryIcon';
 import { OfferGallery } from '../../components/OfferGallery';
 import { EmptyState } from '../../components/ShopCard';
+import { useToast } from '../../components/Toast';
 import { track } from '../../lib/engagement';
 import { DAYS, formatKm, formatPrice, formatTime, haversineKm, nowIST, openState } from '../../lib/hours';
 import { isApprox, usePlace } from '../../lib/location';
@@ -132,6 +133,22 @@ export default function Shop() {
 
   const s = shop.data;
   const shopId = s?.id;
+  const toast = useToast();
+  /** Phone share menu (WhatsApp etc.) with a link that opens this offer; copies the link where sharing isn't offered. */
+  const shareOffer = (o: Offer) => {
+    const url = `${window.location.origin}/shop/${s?.slug ?? key}?offer=${o.id}`;
+    const text = s ? `${o.title} at ${s.name} on IWILLFLY` : o.title;
+    if (navigator.share) {
+      navigator.share({ title: o.title, text, url }).catch(() => undefined);
+      return;
+    }
+    const copy = navigator.clipboard?.writeText(`${text}\n${url}`);
+    if (!copy) return toast(url);
+    copy.then(
+      () => toast('Offer link copied. Paste it to share.'),
+      () => toast(url),
+    );
+  };
   // Old number links (and in-app links that only know the number) switch to the name link.
   const slug = s?.slug;
   useEffect(() => {
@@ -472,6 +489,7 @@ export default function Shop() {
             saved={Boolean(savedOffers.data?.has(openOffer.id))}
             saving={saveOffer.pending}
             onSave={(saved) => saveOffer.run(openOffer.id, saved)}
+            onShare={() => shareOffer(openOffer)}
           />
         )}
       </Sheet>
@@ -485,12 +503,14 @@ function OfferDetails({
   saved,
   saving,
   onSave,
+  onShare,
 }: {
   offer: Offer;
   icon?: ReactNode;
   saved: boolean;
   saving: boolean;
   onSave: (saved: boolean) => void;
+  onShare: () => void;
 }) {
   return (
     <div>
@@ -524,14 +544,19 @@ function OfferDetails({
       {o.description && (
         <p style={{ fontSize: 13, lineHeight: 1.6, whiteSpace: 'pre-line' }}>{o.description}</p>
       )}
-      <button
-        className={`btn block${saved ? ' secondary' : ''}`}
-        style={{ marginTop: 12 }}
-        disabled={saving}
-        onClick={() => onSave(saved)}
-      >
-        {saved ? '♥ Saved — tap to remove' : '♡ Save offer'}
-      </button>
+      <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
+        <button
+          className={`btn${saved ? ' secondary' : ''}`}
+          style={{ flex: 1 }}
+          disabled={saving}
+          onClick={() => onSave(saved)}
+        >
+          {saved ? '♥ Saved — tap to remove' : '♡ Save offer'}
+        </button>
+        <button className="btn secondary" onClick={() => onShare()} aria-label="Share offer">
+          ↗ Share
+        </button>
+      </div>
       <p className="meta" style={{ textAlign: 'center' }}>
         Show this offer at the shop to claim it.
       </p>
