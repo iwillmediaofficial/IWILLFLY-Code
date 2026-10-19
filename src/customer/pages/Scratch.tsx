@@ -63,7 +63,9 @@ function EmptyCampaign({ loading }: { loading: boolean }) {
   const card = useScratchCard(undefined, loading);
   return (
     <section className="section">
-      <ScratchButton card={card} style={{ width: '100%', minHeight: 180 }} />
+      <div className="sw-panel solo">
+        <ScratchButton card={card} />
+      </div>
     </section>
   );
 }
@@ -91,7 +93,9 @@ function CampaignSection({
             {campaign.description}
           </div>
         )}
-        <ScratchButton card={card} style={{ width: '100%', minHeight: 180 }} />
+        <div className="sw-panel solo">
+          <ScratchButton card={card} />
+        </div>
       </section>
       <section className="section">
         <div className="section-head">

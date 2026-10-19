@@ -11,7 +11,7 @@ import { formatKm } from '../../lib/hours';
 import { isApprox, usePlace } from '../../lib/location';
 import { useCategories, useMalls, useOfferSearch } from '../../lib/queries';
 import { formatTime, useScratchToday } from '../../lib/scratch';
-import { supabase } from '../../lib/supabase';
+import { mediaUrl, supabase } from '../../lib/supabase';
 import { FestivalBanners } from '../FestivalBanner';
 import { OfferTile } from '../OfferTile';
 import { ErrorNotice, Loading, NoBackend, Thumb } from '../ui';
@@ -48,7 +48,7 @@ export default function Home() {
     >
       <AdSlider />
       <FestivalBanners />
-      <section className="scratch-panel">
+      <section className="sw-panel">
         <ScratchButton card={card} />
         <ScratchStatus card={card} />
       </section>
@@ -82,24 +82,60 @@ export default function Home() {
   );
 }
 
-/** The small card next to the scratch button: open/closed, hours and a highlighted prize. */
+/** The two cards next to the scratch button: open/closed with hours, and today's highlighted prize. */
 function ScratchStatus({ card }: { card: ScratchCard }) {
   const c = card.campaign;
   const prizes = useCampaignPrizes(c?.id);
   const highlight = prizes.data?.find((p) => p.remaining > 0);
   const open = Boolean(c?.is_open_now);
   return (
-    <div className="status-card">
-      <div className={`status ${open ? 'open' : 'closed'}`}>
-        <span className="light" />
-        <b>{c ? (open ? 'Open Now' : 'Closed Now') : card.loading ? 'Loading…' : 'No Game Today'}</b>
+    <div className="sw-side">
+      <div className={`sw-card sw-hours${open ? '' : ' closed'}`}>
+        <div className="h-row">
+          <div className="sw-clock">
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#17243f"
+              strokeWidth="2.4"
+              strokeLinecap="round"
+              aria-hidden
+            >
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 7v5l3 2" />
+            </svg>
+          </div>
+          <div className="h-title">
+            <span className="light" />
+            <span>
+              {c ? (open ? 'Open Now' : 'Closed Now') : card.loading ? 'Loading…' : 'No Game Today'}
+            </span>
+          </div>
+        </div>
+        <div className="h-time">
+          {c ? (
+            <>
+              <span>{formatTime(c.active_from)} –</span> <span>{formatTime(c.active_to)}</span>
+            </>
+          ) : (
+            'Check back soon'
+          )}
+        </div>
       </div>
-      <div className="meta" style={{ marginTop: 4 }}>
-        {c ? `${formatTime(c.active_from)} – ${formatTime(c.active_to)}` : 'Check back soon'}
-      </div>
-      <div className="prize-mini">
-        Today’s highlighted prize
-        <strong>{highlight ? `🎁 ${highlight.name}` : c ? 'Coming soon' : '—'}</strong>
+      <div className="sw-card sw-prize">
+        <div className="p-head">Today’s Prize</div>
+        <div className="p-body">
+          <div className="p-img">
+            {highlight?.image_key ? (
+              <img src={mediaUrl(highlight.image_key)} alt="" decoding="async" width={64} height={64} />
+            ) : (
+              '🎁'
+            )}
+          </div>
+          <div className="p-name">{highlight ? highlight.name : c ? 'Coming soon' : '—'}</div>
+        </div>
       </div>
     </div>
   );
