@@ -19,7 +19,12 @@ export function usePointsWallet() {
 
 export type PointsRules = Pick<
   PointsWallet,
-  'rupees_per_point' | 'point_value' | 'min_redeem_points' | 'redeem_step_points' | 'validity_months' | 'bill_age_days'
+  | 'rupees_per_point'
+  | 'point_value'
+  | 'min_redeem_points'
+  | 'redeem_step_points'
+  | 'validity_months'
+  | 'bill_age_days'
 >;
 
 /** The earn and cash-out rules: from the wallet when signed in, otherwise from points_settings (open to guests). */
@@ -32,7 +37,9 @@ export function usePointsRules(): PointsRules | undefined {
       must<PointsRules>(
         await db()
           .from('points_settings')
-          .select('rupees_per_point, point_value, min_redeem_points, redeem_step_points, validity_months, bill_age_days')
+          .select(
+            'rupees_per_point, point_value, min_redeem_points, redeem_step_points, validity_months, bill_age_days',
+          )
           .eq('id', 1)
           .single(),
       ),

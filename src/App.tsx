@@ -25,7 +25,9 @@ const Mall = lazy(() => import('./customer/pages/Mall'));
 const Settings = lazy(() => import('./customer/pages/Settings'));
 const Privacy = lazy(() => import('./customer/pages/Legal').then((m) => ({ default: m.Privacy })));
 const Terms = lazy(() => import('./customer/pages/Legal').then((m) => ({ default: m.Terms })));
-const PointsTermsPage = lazy(() => import('./customer/pages/Points').then((m) => ({ default: m.PointsTermsPage })));
+const PointsTermsPage = lazy(() =>
+  import('./customer/pages/Points').then((m) => ({ default: m.PointsTermsPage })),
+);
 const Login = lazy(() => import('./auth/Login'));
 const CompleteProfile = lazy(() => import('./auth/CompleteProfile'));
 const AdminLogin = lazy(() => import('./auth/AdminLogin'));

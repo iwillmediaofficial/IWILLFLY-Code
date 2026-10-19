@@ -13,7 +13,8 @@ type Mode = 'signin' | 'signup' | 'code';
 const RETURN_KEY = 'iwillfly-return-to';
 
 /** Only paths inside this app, never another site. */
-const isAppPath = (p: unknown): p is string => typeof p === 'string' && p.startsWith('/') && !p.startsWith('//');
+const isAppPath = (p: unknown): p is string =>
+  typeof p === 'string' && p.startsWith('/') && !p.startsWith('//');
 
 /**
  * The page to open after signing in. Router state is lost when Google sends the browser back here,
