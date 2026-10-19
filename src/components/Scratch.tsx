@@ -56,6 +56,16 @@ export function ScratchButton({ card, style }: { card: ScratchCard; style?: CSSP
   );
 }
 
+type Tone = 'green' | 'gray' | 'red';
+
+type Face = {
+  tone: Tone;
+  top: ReactNode;
+  title?: string;
+  sub: ReactNode;
+  onClick: () => void;
+};
+
 function ScratchButtonFace({
   card,
   style,
@@ -73,109 +83,234 @@ function ScratchButtonFace({
   const c = card.campaign;
   const play = card.result;
 
+  let face: Face;
+  let live = false;
   if (!c) {
-    return (
-      <button
-        className="scratch-btn gray"
-        style={style}
-        onClick={() => !card.loading && toast('No Scratch & Win is running today. Check back soon.')}
-      >
-        <div style={{ fontSize: 13, fontWeight: 800 }}>{card.loading ? 'LOADING' : 'NO GAME TODAY'}</div>
-        <div className="big">
-          SCRATCH
-          <br />& WIN
-        </div>
-        <small>{card.loading ? 'Checking today’s game…' : 'Check back soon'}</small>
-      </button>
-    );
-  }
-  if (play) {
-    return (
-      <button className="scratch-btn red" style={style} onClick={() => card.setOpen(true)}>
-        <div style={{ fontSize: 13, fontWeight: 800 }}>{play.won ? '✓ WON TODAY' : '✓ PLAYED TODAY'}</div>
-        <div className="big">{play.won ? 'CLAIM' : 'PLAYED'}</div>
-        <small>
+    face = {
+      tone: 'gray',
+      top: card.loading ? 'LOADING' : 'NO GAME TODAY',
+      sub: card.loading ? 'Checking today’s game…' : 'Check back soon',
+      onClick: () => !card.loading && toast('No Scratch & Win is running today. Check back soon.'),
+    };
+  } else if (play) {
+    face = {
+      tone: 'red',
+      top: play.won ? '✓ WON TODAY' : '✓ PLAYED TODAY',
+      title: play.won ? 'CLAIM' : 'PLAYED',
+      sub: (
+        <>
           {play.won ? (play.prize?.name ?? 'Prize won') : 'Better luck tomorrow'}
           <br />
           Come back tomorrow
-        </small>
-      </button>
-    );
-  }
-  if (needsArea) {
-    return (
-      <button className={`scratch-btn ${c.is_open_now ? 'green' : 'gray'}`} style={style} onClick={onAskArea}>
-        <div style={{ fontSize: 13, fontWeight: 800 }}>📍 SET YOUR LOCATION</div>
-        <div className="big">
-          SCRATCH
-          <br />& WIN
-        </div>
-        <small>
+        </>
+      ),
+      onClick: () => card.setOpen(true),
+    };
+  } else if (needsArea) {
+    face = {
+      tone: c.is_open_now ? 'green' : 'gray',
+      top: '📍 SET YOUR LOCATION',
+      sub: (
+        <>
           Tap to set your area
           <br />
           and play today’s card
-        </small>
-      </button>
-    );
-  }
-  if (session && !c.eligible) {
-    return (
-      <button className="scratch-btn gray" style={style} onClick={onAskArea}>
-        <div style={{ fontSize: 13, fontWeight: 800 }}>NOT IN YOUR AREA</div>
-        <div className="big">
-          SCRATCH
-          <br />& WIN
-        </div>
-        <small>
+        </>
+      ),
+      onClick: onAskArea,
+    };
+  } else if (session && !c.eligible) {
+    face = {
+      tone: 'gray',
+      top: 'NOT IN YOUR AREA',
+      sub: (
+        <>
           This game is for another area
           <br />
           Tap to change your area
-        </small>
-      </button>
-    );
-  }
-  const hours = `${formatTime(c.active_from)} – ${formatTime(c.active_to)}`;
-  if (!c.is_open_now) {
+        </>
+      ),
+      onClick: onAskArea,
+    };
+  } else if (!c.is_open_now) {
+    const hours = `${formatTime(c.active_from)} – ${formatTime(c.active_to)}`;
     const label = closedLabel(c);
-    return (
-      <button
-        className="scratch-btn gray"
-        style={style}
-        onClick={() => toast(`Scratch & Win is available ${hours}. ${label}.`)}
-      >
-        <div style={{ fontSize: 13, fontWeight: 800 }}>CLOSED NOW</div>
-        <div className="big">
-          SCRATCH
-          <br />& WIN
-        </div>
-        <small>
+    face = {
+      tone: 'gray',
+      top: 'CLOSED NOW',
+      sub: (
+        <>
           {label}
           <br />
           Available {hours}
-        </small>
-      </button>
-    );
-  }
-  return (
-    <button
-      className="scratch-btn green"
-      style={style}
-      onClick={() => {
+        </>
+      ),
+      onClick: () => toast(`Scratch & Win is available ${hours}. ${label}.`),
+    };
+  } else {
+    live = true;
+    face = {
+      tone: 'green',
+      top: `LIVE · TILL ${formatTime(c.active_to)}`,
+      sub: 'One chance today',
+      onClick: () => {
         if (!session) {
           toast('Sign in to play Scratch & Win');
           navigate('/login');
           return;
         }
         card.setOpen(true);
-      }}
-    >
-      <div style={{ fontSize: 13, fontWeight: 800 }}>● LIVE · TILL {formatTime(c.active_to)}</div>
-      <div className="big">
-        SCRATCH
-        <br />& WIN
-      </div>
-      <small>One chance today</small>
-    </button>
+      },
+    };
+  }
+
+  return <ScratchStage face={face} live={live} won={Boolean(play?.won)} style={style} />;
+}
+
+type Burst = { id: number; dots: { x: number; y: number; color: string }[] };
+
+/** The round 3D button with its glow, coins, sparkles and gift box around it. */
+function ScratchStage({
+  face,
+  live,
+  won,
+  style,
+}: {
+  face: Face;
+  live: boolean;
+  won: boolean;
+  style?: CSSProperties;
+}) {
+  const [pressed, setPressed] = useState(false);
+  const [burst, setBurst] = useState<Burst | null>(null);
+  const release = () => setPressed(false);
+
+  // A ring of sparkles flying out from the button when it is tapped.
+  const sparkle = () => {
+    const dots = Array.from({ length: 14 }, (_, i) => {
+      const a = (i / 14) * Math.PI * 2;
+      const d = 95 + Math.random() * 25;
+      return {
+        x: Math.cos(a) * d,
+        y: Math.sin(a) * d,
+        color: i % 3 ? '#ffdc16' : i % 2 ? '#ffffff' : '#ff8a21',
+      };
+    });
+    setBurst({ id: Date.now(), dots });
+  };
+
+  return (
+    <div className={`sw-stage sw-${face.tone}${live ? '' : ' compact'}`} style={style}>
+      <div className="sw-halo" />
+      <StageDecor />
+      <button
+        className={`sw-btn${pressed ? ' pressed' : ''}`}
+        onPointerDown={() => setPressed(true)}
+        onPointerUp={release}
+        onPointerLeave={release}
+        onPointerCancel={release}
+        onClick={() => {
+          if (live || won) sparkle();
+          face.onClick();
+        }}
+      >
+        <span className="sw-ring" />
+        <span className="sw-face">
+          {live && (
+            <span className="sw-star" aria-hidden>
+              ★
+            </span>
+          )}
+          <span className="sw-live">
+            {live && <span className="sw-dot" />}
+            <span>{face.top}</span>
+          </span>
+          <span className="sw-title">
+            {face.title ?? (
+              <>
+                SCRATCH
+                <br />
+                <span className="sw-amp">&amp;</span> WIN
+              </>
+            )}
+          </span>
+          <span className="sw-sub">{face.sub}</span>
+          {live && (
+            <svg className="sw-mini-gift" viewBox="0 0 24 24" aria-hidden>
+              <rect x="4" y="10" width="16" height="11" rx="1.5" fill="#ffdc16" />
+              <rect x="3" y="7" width="18" height="4" rx="1" fill="#ffe866" />
+              <rect x="11" y="7" width="2" height="14" fill="#ef3b43" />
+              <path d="M12 7c-2-4-6-4-6-2s4 2 6 2Zm0 0c2-4 6-4 6-2s-4 2-6 2Z" fill="#ef3b43" />
+            </svg>
+          )}
+        </span>
+        {burst && (
+          <span key={burst.id} className="sw-burst" aria-hidden>
+            {burst.dots.map((d, i) => (
+              <i
+                key={i}
+                style={{ '--x': `${d.x}px`, '--y': `${d.y}px`, background: d.color } as CSSProperties}
+              />
+            ))}
+          </span>
+        )}
+      </button>
+    </div>
+  );
+}
+
+const SPARKS = [
+  ['s1', '#ffc928'],
+  ['s2', '#ffd84d'],
+  ['s3', '#ffc928'],
+  ['s4', '#ffe27a'],
+  ['s5', '#ffc928'],
+];
+
+function Coin({ className, rupee = true }: { className: string; rupee?: boolean }) {
+  return (
+    <svg className={`sw-deco sw-coin ${className}`} viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="11" fill="#e3a10b" />
+      <circle cx="12" cy="11" r="10" fill="#ffcf33" />
+      <circle cx="12" cy="11" r="7" fill="none" stroke="#e8a90f" strokeWidth="1.5" />
+      {rupee && (
+        <text x="12" y="15" textAnchor="middle" fontSize="10" fontWeight="900" fill="#c98a00">
+          ₹
+        </text>
+      )}
+    </svg>
+  );
+}
+
+/** Sparkles, confetti, coins and the gift box around the button. */
+function StageDecor() {
+  return (
+    <div aria-hidden>
+      {SPARKS.map(([k, fill]) => (
+        <svg key={k} className={`sw-deco sw-spark ${k}`} viewBox="0 0 20 20">
+          <path d="M10 0 12 8 20 10 12 12 10 20 8 12 0 10 8 8Z" fill={fill} />
+        </svg>
+      ))}
+      <span className="sw-deco sw-confetti k1" />
+      <span className="sw-deco sw-confetti k2" />
+      <span className="sw-deco sw-confetti k3" />
+      <Coin className="c1" />
+      <Coin className="c2" />
+      <Coin className="c3" rupee={false} />
+      <svg className="sw-deco sw-gift" viewBox="0 0 80 80">
+        <ellipse cx="40" cy="76" rx="26" ry="3.5" fill="rgba(23,36,63,.15)" />
+        <path d="M14 36h52v36a4 4 0 0 1-4 4H18a4 4 0 0 1-4-4Z" fill="#ffc21a" />
+        <path d="M40 36h26v36a4 4 0 0 1-4 4H40Z" fill="#f2a900" />
+        <rect x="10" y="27" width="60" height="12" rx="3" fill="#ffd54a" />
+        <rect x="40" y="27" width="30" height="12" rx="3" fill="#ffbf1f" />
+        <rect x="35" y="27" width="10" height="49" fill="#ef3b43" />
+        <rect x="40" y="27" width="5" height="49" fill="#c9232b" />
+        <path d="M40 27c-6-12-20-14-20-6 0 6 12 7 20 6Z" fill="#ef3b43" />
+        <path d="M40 27c6-12 20-14 20-6 0 6-12 7-20 6Z" fill="#d22a32" />
+        <circle cx="40" cy="26" r="4" fill="#ff5a61" />
+        <rect x="17" y="40" width="4" height="22" rx="2" fill="rgba(255,255,255,.45)" />
+      </svg>
+    </div>
   );
 }
 
