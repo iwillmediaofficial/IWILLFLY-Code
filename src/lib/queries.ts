@@ -43,6 +43,8 @@ export function useShopSearch(opts: {
   q?: string;
   mallId?: number | null;
   limit?: number;
+  /** False to wait, e.g. until the mall's number is known. */
+  enabled?: boolean;
 }) {
   const { place } = usePlace();
   return useQuery({
@@ -66,7 +68,7 @@ export function useShopSearch(opts: {
           p_limit: opts.limit ?? 30,
         }),
       ),
-    enabled: Boolean(supabase),
+    enabled: Boolean(supabase) && opts.enabled !== false,
   });
 }
 
