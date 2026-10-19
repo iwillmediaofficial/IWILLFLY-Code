@@ -17,6 +17,30 @@ export function usePointsWallet() {
   });
 }
 
+export type PointsRules = Pick<
+  PointsWallet,
+  'rupees_per_point' | 'point_value' | 'min_redeem_points' | 'redeem_step_points' | 'validity_months' | 'bill_age_days'
+>;
+
+/** The earn and cash-out rules: from the wallet when signed in, otherwise from points_settings (open to guests). */
+export function usePointsRules(): PointsRules | undefined {
+  const { session } = useAuth();
+  const wallet = usePointsWallet();
+  const settings = useQuery({
+    queryKey: ['points_rules'],
+    queryFn: async () =>
+      must<PointsRules>(
+        await db()
+          .from('points_settings')
+          .select('rupees_per_point, point_value, min_redeem_points, redeem_step_points, validity_months, bill_age_days')
+          .eq('id', 1)
+          .single(),
+      ),
+    enabled: Boolean(supabase && !session),
+  });
+  return session ? wallet.data : settings.data;
+}
+
 export function useMyBills() {
   const { session } = useAuth();
   return useQuery({

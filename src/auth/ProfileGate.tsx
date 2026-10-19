@@ -8,11 +8,11 @@ const OPEN_PATHS = ['/welcome', '/login', '/privacy', '/terms', '/points/terms',
 /** Sends customers who still lack a mobile number or area (e.g. new Google sign-ups) to /welcome. */
 export function ProfileGate() {
   const needs = useNeedsProfile();
-  const { pathname } = useLocation();
+  const { pathname, search, hash } = useLocation();
   const navigate = useNavigate();
   const open = OPEN_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'));
   useEffect(() => {
-    if (needs && !open) navigate('/welcome', { replace: true, state: { from: pathname } });
-  }, [needs, open, pathname, navigate]);
+    if (needs && !open) navigate('/welcome', { replace: true, state: { from: pathname + search + hash } });
+  }, [needs, open, pathname, search, hash, navigate]);
   return null;
 }

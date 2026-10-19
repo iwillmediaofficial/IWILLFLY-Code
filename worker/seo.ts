@@ -2,18 +2,18 @@ import type { Env } from './env';
 
 // Search engine and link preview support for the single-page app.
 // /shop/:id and /mall/:id get a real <title>, description, canonical, Open Graph tags and JSON-LD
-// in the HTML itself, so crawlers that do not run JavaScript still see the shop or mall.
-// /sitemap.xml and /robots.txt are generated here too. wrangler.jsonc routes these paths to the Worker.
+// in the HTML itself, so link previews (WhatsApp, Facebook, ...) still show the shop or mall even
+// though the app itself needs a sign-in. /sitemap.xml and /robots.txt are generated here too.
+// wrangler.jsonc routes these paths to the Worker.
 
 const SITE = 'IWILLFLY';
 const LOOKUP_TTL = 300; // seconds a shop or mall lookup is cached
-const SITEMAP_TTL = 3600;
-const SITEMAP_LIMIT = 5000;
-const PAGE_SIZE = 1000; // Supabase's default API max rows
+const SITEMAP_TTL = 86400;
+/** The only pages guests can open; everything else needs a sign-in. */
+const PUBLIC_PAGES = ['/', '/login', '/privacy', '/terms'];
 const PRIVATE_PATHS = [
   '/admin',
   '/vendor',
-  '/login',
   '/profile',
   '/settings',
   '/saved',
@@ -49,7 +49,7 @@ type MallRow = {
   lng: number | null;
   cover_key: string | null;
 };
-/** A row, null when RLS hides it or it does not exist, undefined when the lookup failed. */
+/** A row, null when it is hidden (not live) or does not exist, undefined when the lookup failed. */
 type Lookup<T> = T | null | undefined;
 
 type PageMeta = {
@@ -67,7 +67,7 @@ export async function handleSeo(request: Request, env: Env, ctx: ExecutionContex
   const url = new URL(request.url);
   let res: Response | null = null;
   if (url.pathname === '/robots.txt') res = robots(url.origin);
-  else if (url.pathname === '/sitemap.xml') res = await sitemap(url.origin, env, ctx);
+  else if (url.pathname === '/sitemap.xml') res = sitemap(url.origin);
   else {
     const m = /^\/(shop|mall)\/(\d{1,15})\/?$/.exec(url.pathname);
     if (m) res = await detailPage(m[1] as 'shop' | 'mall', Number(m[2]), url, env, ctx);
@@ -198,12 +198,17 @@ function mallMeta(m: MallRow, canonical: string, origin: string, env: Env): Page
   };
 }
 
+// The service key skips RLS, so these lookups repeat the guest rules that used to apply:
+// a shop only when it is active and its vendor is approved, a mall only when it is active.
+
 function lookupShop(id: number, origin: string, env: Env, ctx: ExecutionContext): Promise<Lookup<ShopRow>> {
-  const select = 'id,name,description,logo_key,cover_key,phone,branches(name,address,lat,lng,phone)';
+  const select =
+    'id,name,description,logo_key,cover_key,phone,branches(name,address,lat,lng,phone),vendors!inner()';
   return cachedJson(`shop/${id}`, origin, LOOKUP_TTL, ctx, async () => {
     const rows = await rest<ShopRow[]>(
       env,
-      `shops?id=eq.${id}&select=${encodeURIComponent(select)}&branches.order=id.asc&limit=1`,
+      `shops?id=eq.${id}&is_active=is.true&vendors.status=eq.approved` +
+        `&select=${encodeURIComponent(select)}&branches.order=id.asc&limit=1`,
     );
     return rows && (rows[0] ?? null);
   });
@@ -213,7 +218,7 @@ function lookupMall(id: number, origin: string, env: Env, ctx: ExecutionContext)
   return cachedJson(`mall/${id}`, origin, LOOKUP_TTL, ctx, async () => {
     const rows = await rest<MallRow[]>(
       env,
-      `malls?id=eq.${id}&select=id,name,description,address,lat,lng,cover_key&limit=1`,
+      `malls?id=eq.${id}&is_active=is.true&select=id,name,description,address,lat,lng,cover_key&limit=1`,
     );
     return rows && (rows[0] ?? null);
   });
@@ -235,50 +240,36 @@ function robots(origin: string): Response {
   });
 }
 
-type SitemapRow = { id: number; updated_at?: string | null };
-
-async function sitemap(origin: string, env: Env, ctx: ExecutionContext): Promise<Response> {
-  const ids = await cachedJson('sitemap', origin, SITEMAP_TTL, ctx, async () => {
-    const [shops, malls] = await Promise.all([
-      restPaged<SitemapRow>(env, 'shops?select=id,updated_at&order=id.asc'),
-      restPaged<SitemapRow>(env, 'malls?select=id&order=sort_order.asc,id.asc'),
-    ]);
-    return shops && malls ? { shops, malls } : undefined;
-  });
-  const entries: { loc: string; lastmod?: string | null }[] = [
-    { loc: `${origin}/` },
-    { loc: `${origin}/explore` },
-    { loc: `${origin}/malls` },
-    ...(ids?.malls ?? []).map((m) => ({ loc: `${origin}/mall/${m.id}` })),
-    ...(ids?.shops ?? []).map((s) => ({ loc: `${origin}/shop/${s.id}`, lastmod: s.updated_at })),
-  ];
+/** Only the pages guests can open. Shops and malls need a sign-in, so they are not listed. */
+function sitemap(origin: string): Response {
   const body = [
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
-    ...entries.map(
-      (e) =>
-        `<url><loc>${text(e.loc)}</loc>${e.lastmod ? `<lastmod>${text(e.lastmod.slice(0, 10))}</lastmod>` : ''}</url>`,
-    ),
+    ...PUBLIC_PAGES.map((p) => `<url><loc>${text(origin + p)}</loc></url>`),
     '</urlset>',
     '',
   ].join('\n');
   return new Response(body, {
     headers: {
       'Content-Type': 'application/xml; charset=utf-8',
-      // Shorter when the lookup failed, so a Supabase hiccup is not served for an hour.
-      'Cache-Control': `public, max-age=${ids ? SITEMAP_TTL : 60}`,
+      'Cache-Control': `public, max-age=${SITEMAP_TTL}`,
     },
   });
 }
 
 // ---------- Supabase and caching ----------
 
-/** GET from Supabase REST with the anon key, so RLS shows only public, live rows. Undefined on failure. */
+/**
+ * GET from Supabase REST with the service key (server side only: guests can no longer read shops or
+ * malls). Callers filter to live rows and select only public columns. Undefined on failure or when the
+ * key is not set, which serves the plain app HTML.
+ */
 async function rest<T>(env: Env, path: string): Promise<T | undefined> {
-  if (!env.VITE_SUPABASE_URL || !env.VITE_SUPABASE_ANON_KEY) return undefined;
+  const key = env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!env.VITE_SUPABASE_URL || !key) return undefined;
   const headers = {
-    apikey: env.VITE_SUPABASE_ANON_KEY,
-    Authorization: `Bearer ${env.VITE_SUPABASE_ANON_KEY}`,
+    apikey: key,
+    Authorization: `Bearer ${key}`,
     Accept: 'application/json',
   };
   try {
@@ -291,20 +282,6 @@ async function rest<T>(env: Env, path: string): Promise<T | undefined> {
   } catch {
     return undefined;
   }
-}
-
-/** Up to SITEMAP_LIMIT rows, a page at a time because Supabase caps each response. */
-async function restPaged<T>(env: Env, path: string): Promise<T[] | undefined> {
-  const all: T[] = [];
-  while (all.length < SITEMAP_LIMIT) {
-    const from = all.length;
-    const size = Math.min(PAGE_SIZE, SITEMAP_LIMIT - from);
-    const page = await rest<T[]>(env, `${path}&limit=${size}&offset=${from}`);
-    if (!page) return undefined;
-    all.push(...page);
-    if (page.length < size) break;
-  }
-  return all;
 }
 
 /**

@@ -91,7 +91,7 @@ export default function Settings() {
             onClick={async () => {
               await signOut();
               toast('Signed out');
-              navigate('/');
+              navigate('/login', { replace: true });
             }}
           >
             Sign out

@@ -59,10 +59,10 @@ insert into public.shops (vendor_id, name) select id, 'Fresh Mart' from public.v
 insert into public.branches (shop_id, name, lat, lng) select id, 'Aluva', 10.1076, 76.3516 from public.shops;
 reset role;
 
--- Anonymous visitors see nothing until an admin approves
-set local role anon;
-select pg_temp.act_as(null);
-select pg_temp.check((select count(*) from public.shops) = 0, 'anon sees no shops of pending vendors');
+-- Customers see nothing until an admin approves
+select pg_temp.act_as('00000000-0000-0000-0000-0000000000c1');
+set local role authenticated;
+select pg_temp.check((select count(*) from public.shops) = 0, 'customer sees no shops of pending vendors');
 select pg_temp.check((select count(*) from public.search_shops()) = 0, 'search_shops is empty before approval');
 reset role;
 
@@ -99,11 +99,39 @@ insert into public.mall_shops (mall_id, branch_id)
   select (select id from public.malls), b.id from public.branches b where b.name = 'Edappally';
 reset role;
 
+-- Guests (signed out) see no app content at all
 set local role anon;
 select pg_temp.act_as(null);
-select pg_temp.check((select count(*) from public.shops) = 2, 'anon sees approved vendors'' shops');
-select pg_temp.check((select count(*) from public.offers) = 1, 'anon sees only the approved offer');
-select pg_temp.check((select count(*) from public.vendors) = 0, 'anon cannot read vendor business details');
+select pg_temp.check((select count(*) from public.shops) = 0, 'guest sees no shops');
+select pg_temp.check((select count(*) from public.branches) = 0, 'guest sees no branches');
+select pg_temp.check((select count(*) from public.offers) = 0, 'guest sees no offers');
+select pg_temp.check((select count(*) from public.malls) = 0, 'guest sees no malls');
+select pg_temp.check((select count(*) from public.mall_shops) = 0, 'guest sees no mall shops');
+select pg_temp.check((select count(*) from public.categories) = 0, 'guest sees no categories');
+select pg_temp.check((select count(*) from public.vendors) = 0, 'guest cannot read vendor business details');
+select pg_temp.check((select count(*) from public.locations) > 0, 'guest still reads locations (sign-up area picker)');
+select pg_temp.check(not has_function_privilege('anon', 'public.search_shops(double precision, double precision, text, text, bigint, int, int)', 'execute')
+  and not has_function_privilege('anon', 'public.search_offers(double precision, double precision, text, boolean, int, int)', 'execute')
+  and not has_function_privilege('anon', 'public.list_malls(double precision, double precision)', 'execute'),
+  'guest cannot run search_shops, search_offers or list_malls');
+do $$ begin
+  perform public.search_shops();
+  raise exception 'MARKETPLACE TEST FAILED: guest ran search_shops';
+exception when insufficient_privilege then raise notice 'ok - guest search_shops is refused';
+end $$;
+do $$ begin
+  insert into public.saved_offers (offer_id) values (1);
+  raise exception 'MARKETPLACE TEST FAILED: a guest saved an offer';
+exception when insufficient_privilege then raise notice 'ok - guests cannot save offers';
+end $$;
+reset role;
+
+-- Signed-in customers see the approved vendors' shops
+select pg_temp.act_as('00000000-0000-0000-0000-0000000000c1');
+set local role authenticated;
+select pg_temp.check((select count(*) from public.shops) = 2, 'customer sees approved vendors'' shops');
+select pg_temp.check((select count(*) from public.offers) = 1, 'customer sees only the approved offer');
+select pg_temp.check((select count(*) from public.vendors) = 0, 'customer cannot read vendor business details');
 select pg_temp.check((select name from public.search_shops(10.1, 76.35) limit 1) = 'Fresh Mart', 'search_shops sorts nearest first (Aluva)');
 select pg_temp.check((select name from public.search_shops(10.02, 76.30) limit 1) = 'Lulu Fashion', 'search_shops sorts nearest first (Edappally)');
 select pg_temp.check((select round(distance_km::numeric, 1) from public.search_shops(10.0261, 76.3083) limit 1) = 0, 'distance is 0 at the branch');
@@ -117,11 +145,6 @@ select pg_temp.check((select count(*) from public.search_shops(10.1, 76.35, p_ma
 select pg_temp.check((select count(*) from public.search_offers()) = 1, 'search_offers lists live offers');
 select pg_temp.check((select shop_count from public.list_malls()) = 1 and (select offer_count from public.list_malls()) = 1,
   'list_malls counts live shops and offers');
-do $$ begin
-  insert into public.saved_offers (offer_id) select id from public.offers;
-  raise exception 'MARKETPLACE TEST FAILED: anon saved an offer';
-exception when insufficient_privilege then raise notice 'ok - anon cannot save offers';
-end $$;
 reset role;
 
 -- Vendor edits: content changes go back to review, pausing does not
@@ -185,8 +208,8 @@ set local role authenticated;
 select pg_temp.check((select count(*) from public.shops) = 2 and (select count(*) from public.offers where title = 'Flat 25%') = 1,
   'blocked vendor still sees their own shop and offers');
 reset role;
-set local role anon;
-select pg_temp.act_as(null);
+select pg_temp.act_as('00000000-0000-0000-0000-0000000000c1');
+set local role authenticated;
 select pg_temp.check((select count(*) from public.search_shops()) = 1, 'blocked vendor''s shop disappears');
 reset role;
 
