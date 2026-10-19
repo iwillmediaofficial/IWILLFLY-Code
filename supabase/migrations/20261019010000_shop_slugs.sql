@@ -100,7 +100,8 @@ as $$
   end;
 $$;
 
--- Keeps the old link for redirects; a shop going back to one of its old links takes it off the list.
+-- Keeps the old link for redirects. A shop may go back to one of its own old links; the current link
+-- is always looked up first, so the leftover old-link row does no harm.
 create or replace function private.remember_old_shop_slug(shop bigint, old_slug text, new_slug text)
 returns void
 language plpgsql
@@ -112,7 +113,6 @@ begin
   if auth.uid() is not null and not (select private.is_admin()) then
     raise exception 'Only admins can change shop links' using errcode = '42501';
   end if;
-  delete from public.shop_old_slugs where slug = new_slug and shop_id = shop;
   insert into public.shop_old_slugs (slug, shop_id) values (old_slug, shop) on conflict (slug) do nothing;
 end;
 $$;
