@@ -1,10 +1,10 @@
 import type { Env } from './env';
 
 // Search engine and link preview support for the single-page app.
-// /shop/:id and /mall/:id get a real <title>, description, canonical, Open Graph tags and JSON-LD
+// /shop/:slug and /mall/:slug get a real <title>, description, canonical, Open Graph tags and JSON-LD
 // in the HTML itself, so link previews (WhatsApp, Facebook, ...) still show the shop or mall even
 // though the app itself needs a sign-in. /sitemap.xml and /robots.txt are generated here too.
-// wrangler.jsonc routes these paths to the Worker.
+// Old number links (/shop/2) redirect to the name link. wrangler.jsonc routes these paths to the Worker.
 
 const SITE = 'IWILLFLY';
 const LOOKUP_TTL = 300; // seconds a shop or mall lookup is cached
@@ -33,6 +33,7 @@ type BranchRow = {
 };
 type ShopRow = {
   id: number;
+  slug: string;
   name: string;
   description: string | null;
   logo_key: string | null;
@@ -42,6 +43,7 @@ type ShopRow = {
 };
 type MallRow = {
   id: number;
+  slug: string;
   name: string;
   description: string | null;
   address: string | null;
@@ -69,8 +71,8 @@ export async function handleSeo(request: Request, env: Env, ctx: ExecutionContex
   if (url.pathname === '/robots.txt') res = robots(url.origin);
   else if (url.pathname === '/sitemap.xml') res = sitemap(url.origin);
   else {
-    const m = /^\/(shop|mall)\/(\d{1,15})\/?$/.exec(url.pathname);
-    if (m) res = await detailPage(m[1] as 'shop' | 'mall', Number(m[2]), url, env, ctx);
+    const m = /^\/(shop|mall)\/([a-z0-9-]{1,80})\/?$/.exec(url.pathname);
+    if (m) res = await detailPage(m[1] as 'shop' | 'mall', m[2], url, env, ctx);
   }
   if (res && request.method === 'HEAD') return new Response(null, res);
   return res;
@@ -80,7 +82,7 @@ export async function handleSeo(request: Request, env: Env, ctx: ExecutionContex
 
 async function detailPage(
   kind: 'shop' | 'mall',
-  id: number,
+  key: string,
   url: URL,
   env: Env,
   ctx: ExecutionContext,
@@ -88,8 +90,14 @@ async function detailPage(
   const [shell, row] = await Promise.all([
     // The SPA's index.html. Fetched without the visitor's conditional headers so it is never a 304.
     env.ASSETS.fetch(new URL('/', url.origin)),
-    kind === 'shop' ? lookupShop(id, url.origin, env, ctx) : lookupMall(id, url.origin, env, ctx),
+    kind === 'shop' ? lookupShop(key, url.origin, env, ctx) : lookupMall(key, url.origin, env, ctx),
   ]);
+  if (row && row.slug !== key) {
+    return new Response(null, {
+      status: 301,
+      headers: { Location: `/${kind}/${row.slug}${url.search}`, 'Cache-Control': 'public, max-age=3600' },
+    });
+  }
   if (!shell.ok || row === undefined) return shell;
 
   const headers = new Headers(shell.headers);
@@ -106,7 +114,7 @@ async function detailPage(
       .transform(base);
   }
 
-  const canonical = `${url.origin}/${kind}/${id}`;
+  const canonical = `${url.origin}/${kind}/${row.slug}`;
   const meta =
     kind === 'shop'
       ? shopMeta(row as ShopRow, canonical, url.origin, env)
@@ -201,24 +209,40 @@ function mallMeta(m: MallRow, canonical: string, origin: string, env: Env): Page
 // The service key skips RLS, so these lookups repeat the guest rules that used to apply:
 // a shop only when it is active and its vendor is approved, a mall only when it is active.
 
-function lookupShop(id: number, origin: string, env: Env, ctx: ExecutionContext): Promise<Lookup<ShopRow>> {
+/** A filter on the number (old links) or the slug. Both are already limited to [a-z0-9-]. */
+function keyFilter(key: string): string {
+  return /^\d+$/.test(key) ? `id=eq.${key}` : `slug=eq.${key}`;
+}
+
+function lookupShop(key: string, origin: string, env: Env, ctx: ExecutionContext): Promise<Lookup<ShopRow>> {
   const select =
-    'id,name,description,logo_key,cover_key,phone,branches(name,address,lat,lng,phone),vendors!inner()';
-  return cachedJson(`shop/${id}`, origin, LOOKUP_TTL, ctx, async () => {
+    'id,slug,name,description,logo_key,cover_key,phone,branches(name,address,lat,lng,phone),vendors!inner()';
+  const find = async (filter: string) => {
     const rows = await rest<ShopRow[]>(
       env,
-      `shops?id=eq.${id}&is_active=is.true&vendors.status=eq.approved` +
+      `shops?${filter}&is_active=is.true&vendors.status=eq.approved` +
         `&select=${encodeURIComponent(select)}&branches.order=id.asc&limit=1`,
     );
     return rows && (rows[0] ?? null);
+  };
+  return cachedJson(`shop/${key}`, origin, LOOKUP_TTL, ctx, async () => {
+    const shop = await find(keyFilter(key));
+    if (shop !== null || /^\d+$/.test(key)) return shop;
+    // A link an admin has since changed still leads to the shop (redirected to the current link).
+    const old = await rest<{ shop_id: number }[]>(
+      env,
+      `shop_old_slugs?slug=eq.${key}&select=shop_id&limit=1`,
+    );
+    if (!old) return undefined;
+    return old[0] ? find(`id=eq.${old[0].shop_id}`) : null;
   });
 }
 
-function lookupMall(id: number, origin: string, env: Env, ctx: ExecutionContext): Promise<Lookup<MallRow>> {
-  return cachedJson(`mall/${id}`, origin, LOOKUP_TTL, ctx, async () => {
+function lookupMall(key: string, origin: string, env: Env, ctx: ExecutionContext): Promise<Lookup<MallRow>> {
+  return cachedJson(`mall/${key}`, origin, LOOKUP_TTL, ctx, async () => {
     const rows = await rest<MallRow[]>(
       env,
-      `malls?id=eq.${id}&is_active=is.true&select=id,name,description,address,lat,lng,cover_key&limit=1`,
+      `malls?${keyFilter(key)}&is_active=is.true&select=id,slug,name,description,address,lat,lng,cover_key&limit=1`,
     );
     return rows && (rows[0] ?? null);
   });

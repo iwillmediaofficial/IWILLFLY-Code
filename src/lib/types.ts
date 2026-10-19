@@ -52,6 +52,8 @@ export interface Shop {
   vendor_id: number;
   category_id: number | null;
   name: string;
+  /** Used in the shop's link (/shop/<slug>). Made from the name when the shop is created, then fixed. */
+  slug: string;
   description: string | null;
   logo_key: string | null;
   cover_key: string | null;

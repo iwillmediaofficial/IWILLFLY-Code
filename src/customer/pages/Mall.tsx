@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { useParams } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { AppShell, BackHeader } from '../../components/AppShell';
 import { EmptyState, ShopCard } from '../../components/ShopCard';
 import { formatKm, haversineKm } from '../../lib/hours';
@@ -12,17 +13,32 @@ import { ErrorNotice, Loading, NoBackend } from '../ui';
 import { directionsLink } from '../util';
 
 export default function Mall() {
-  const id = Number(useParams().id);
-  const valid = Number.isInteger(id) && id > 0;
+  // The link is /mall/<slug>; old links use the mall's number (/mall/2).
+  const key = useParams().id ?? '';
+  const byId = /^\d+$/.test(key);
+  const valid = /^[1-9]\d{0,14}$/.test(key) || /^[a-z0-9-]{1,80}$/.test(key);
+  const navigate = useNavigate();
+  const { search, hash } = useLocation();
   const { place } = usePlace();
   const mall = useQuery({
-    queryKey: ['mall', id],
+    queryKey: ['mall', key],
     queryFn: async () =>
-      must<MallRow | null>(await db().from('malls').select('*').eq('id', id).maybeSingle()),
+      must<MallRow | null>(
+        await db()
+          .from('malls')
+          .select('*')
+          .eq(byId ? 'id' : 'slug', byId ? Number(key) : key)
+          .maybeSingle(),
+      ),
     enabled: Boolean(supabase) && valid,
   });
-  const shops = useShopSearch({ mallId: valid ? id : null, limit: 100 });
   const m = mall.data;
+  const id = m?.id ?? null;
+  const shops = useShopSearch({ mallId: id, limit: 100, enabled: id != null });
+  const slug = m?.slug;
+  useEffect(() => {
+    if (slug && key !== slug) navigate(`/mall/${slug}${search}${hash}`, { replace: true });
+  }, [slug, key, search, hash, navigate]);
   usePageMeta(m?.name, m && (m.description || `Shops and live offers inside ${m.name} on IWILLFLY.`));
   const km = m?.lat != null && m.lng != null && place ? haversineKm(place, { lat: m.lat, lng: m.lng }) : null;
 
@@ -35,7 +51,7 @@ export default function Mall() {
       </AppShell>
     );
   }
-  if (mall.isLoading) {
+  if (valid && mall.isLoading) {
     return (
       <AppShell header={header}>
         <Loading />
