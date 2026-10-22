@@ -2026,6 +2026,43 @@
     border: 1px solid var(--color-line);
     margin-bottom: 8px;
   }
+  /* Paste a Google Maps link under the map pin (src/components/MapsLinkBox.tsx). */
+  .maps-link {
+    margin-top: 10px;
+  }
+  .maps-link label {
+    display: block;
+    font-size: 11px;
+    font-weight: 800;
+    margin-bottom: 6px;
+  }
+  .maps-link-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .maps-link-row input {
+    flex: 1;
+    min-width: 0;
+  }
+  .maps-link-row .btn {
+    flex: none;
+  }
+  .maps-link-msg {
+    font-size: 12px;
+    line-height: 1.45;
+    margin-top: 6px;
+    color: var(--color-muted);
+  }
+  .maps-link-msg.ok {
+    color: #0e8a43;
+  }
+  .maps-link-msg.warn {
+    color: #b25d00;
+  }
+  .maps-link-msg.bad {
+    color: var(--color-red);
+  }
 }
 
 /* Scratch & Win (live): canvas scratch layer, result details and My Prizes. */
