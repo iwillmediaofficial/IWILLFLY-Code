@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthProvider';
-import { normalisePhone } from '../../auth/forms';
+import { BirthDateField, birthDateError, normalisePhone } from '../../auth/forms';
 import { AppShell, BackHeader } from '../../components/AppShell';
 import { LegalLinks } from '../../components/LegalLinks';
 import { LocationChooser } from '../../components/LocationButton';
@@ -61,6 +61,7 @@ export default function Settings() {
           </button>
         )}
       </section>
+      {session && <DetailsSection />}
       {session && <MobileSection />}
       <section className="section form-card">
         <h3 style={{ marginTop: 0 }}>🔔 Notifications</h3>
@@ -103,6 +104,79 @@ export default function Settings() {
         )}
       </section>
     </AppShell>
+  );
+}
+
+/** View and change your name and date of birth. */
+function DetailsSection() {
+  const profile = useMyProfile();
+  return (
+    <section className="section form-card" id="details">
+      <h3 style={{ marginTop: 0 }}>👤 Your details</h3>
+      {profile.data ? <DetailsForm profile={profile.data} /> : <p className="meta">Loading…</p>}
+    </section>
+  );
+}
+
+function DetailsForm({ profile }: { profile: MyProfile }) {
+  const { session } = useAuth();
+  const toast = useToast();
+  const qc = useQueryClient();
+  const [savedName, setSavedName] = useState(profile.full_name ?? '');
+  const [savedDob, setSavedDob] = useState(profile.date_of_birth ?? '');
+  const [name, setName] = useState(savedName);
+  const [birthDate, setBirthDate] = useState(savedDob);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  const save = async (e: FormEvent) => {
+    e.preventDefault();
+    const fullName = name.trim();
+    if (fullName.length < 2) return setError('Please enter your name.');
+    const dobError = birthDateError(birthDate);
+    if (dobError) return setError(dobError);
+    setError('');
+    setBusy(true);
+    try {
+      const userId = session!.user.id;
+      must(
+        await db()
+          .from('profiles')
+          .update({ full_name: fullName, date_of_birth: birthDate })
+          .eq('id', userId),
+      );
+      await qc.invalidateQueries({ queryKey: ['my-profile', userId] });
+      setName(fullName);
+      setSavedName(fullName);
+      setSavedDob(birthDate);
+      toast('Details saved');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save. Please try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const unchanged = name.trim() === savedName && birthDate === savedDob;
+
+  return (
+    <form onSubmit={save}>
+      <div className="field">
+        <label htmlFor="settings-name">Your name</label>
+        <input
+          id="settings-name"
+          autoComplete="name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Full name"
+        />
+      </div>
+      <BirthDateField id="settings-dob" value={birthDate} onChange={setBirthDate} />
+      {error && <p className="error-text">{error}</p>}
+      <button className="btn" disabled={busy || unchanged}>
+        {busy ? 'Saving…' : 'Save details'}
+      </button>
+    </form>
   );
 }
 

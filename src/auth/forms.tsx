@@ -10,6 +10,57 @@ export function normalisePhone(raw: string) {
   return /^[6-9]\d{9}$/.test(digits) ? `+91${digits}` : null;
 }
 
+export const MIN_AGE = 13;
+
+/** YYYY-MM-DD in local time, the format date inputs use. */
+function localDate(d: Date) {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+/** The latest date of birth allowed: today, MIN_AGE years ago. */
+// eslint-disable-next-line react-refresh/only-export-components
+export function latestBirthDate() {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - MIN_AGE);
+  return localDate(d);
+}
+
+/** Error text for a date of birth (YYYY-MM-DD), or '' when it is fine. */
+// eslint-disable-next-line react-refresh/only-export-components
+export function birthDateError(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return 'Please enter your date of birth.';
+  if (value < '1900-01-01') return 'Please check the year of your date of birth.';
+  if (value > latestBirthDate()) return `You must be at least ${MIN_AGE} years old to use IWILLFLY.`;
+  return '';
+}
+
+export function BirthDateField({
+  id = 'dob',
+  value,
+  onChange,
+}: {
+  id?: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="field">
+      <label htmlFor={id}>Date of birth</label>
+      <input
+        id={id}
+        type="date"
+        required
+        autoComplete="bday"
+        min="1900-01-01"
+        max={latestBirthDate()}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    </div>
+  );
+}
+
 /** Friendlier text for the errors signInWithPassword returns most often. */
 // eslint-disable-next-line react-refresh/only-export-components
 export function passwordSignInError(message: string) {

@@ -7,7 +7,7 @@ import { LegalLinks } from '../components/LegalLinks';
 import { useMyProfile, useNeedsProfile, type MyProfile } from '../lib/profile';
 import { db, must } from '../lib/queries';
 import { useAuth } from './AuthProvider';
-import { normalisePhone } from './forms';
+import { BirthDateField, birthDateError, normalisePhone } from './forms';
 
 export default function CompleteProfile() {
   const { session, loading } = useAuth();
@@ -32,6 +32,7 @@ function ProfileForm({ initial }: { initial: MyProfile }) {
   const from = (useLocation().state as { from?: string } | null)?.from ?? '/';
   const [name, setName] = useState(initial.full_name ?? '');
   const [phone, setPhone] = useState(initial.phone?.replace(/^\+91/, '') ?? '');
+  const [birthDate, setBirthDate] = useState(initial.date_of_birth ?? '');
   const [areaId, setAreaId] = useState(initial.location_id);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -45,6 +46,8 @@ function ProfileForm({ initial }: { initial: MyProfile }) {
     const mobile = normalisePhone(phone);
     if (fullName.length < 2) return setError('Please enter your name.');
     if (!mobile) return setError('Please enter a valid 10-digit mobile number.');
+    const dobError = birthDateError(birthDate);
+    if (dobError) return setError(dobError);
     if (areaId == null) return setError('Please choose your location.');
     setBusy(true);
     try {
@@ -52,7 +55,7 @@ function ProfileForm({ initial }: { initial: MyProfile }) {
       must(
         await db()
           .from('profiles')
-          .update({ full_name: fullName, phone: mobile, location_id: areaId })
+          .update({ full_name: fullName, phone: mobile, date_of_birth: birthDate, location_id: areaId })
           .eq('id', userId),
       );
       await qc.invalidateQueries({ queryKey: ['my-profile', userId] });
@@ -71,7 +74,8 @@ function ProfileForm({ initial }: { initial: MyProfile }) {
       <section className="hero">
         <h1>Almost done</h1>
         <p>
-          Add your mobile number and area so shops can reach you about prizes and we can show offers near you.
+          Check your name, and add your mobile number, date of birth and area so shops can reach you about
+          prizes and we can show offers near you.
         </p>
       </section>
       <section className="section form-card">
@@ -100,6 +104,7 @@ function ProfileForm({ initial }: { initial: MyProfile }) {
               placeholder="98765 43210"
             />
           </div>
+          <BirthDateField value={birthDate} onChange={setBirthDate} />
           <AreaPicker label="Your location" value={areaId} onChange={(a) => setAreaId(a?.id ?? null)} />
           {error && <p className="error-text">{error}</p>}
           <button className="btn" style={{ width: '100%' }} disabled={busy}>

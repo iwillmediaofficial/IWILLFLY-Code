@@ -52,25 +52,27 @@ function signInMethod(s: Session): string {
 const profileChecked = new Set<string>();
 
 /**
- * Copies the name, mobile and area given at password sign-up into the profile row.
+ * Copies the name, mobile, date of birth and area given at password sign-up into the profile row.
  * Runs on sign-in because with email confirmation on there is no session at sign-up time.
  * Only fills empty fields, so later edits are never overwritten.
  */
 async function fillProfileFromSignup(user: User) {
   const m = user.user_metadata ?? {};
   const phone = typeof m.phone === 'string' ? m.phone : null;
+  const birthDate = typeof m.date_of_birth === 'string' ? m.date_of_birth : null;
   const locationId = typeof m.location_id === 'number' ? m.location_id : null;
-  if (!supabase || (!phone && locationId == null) || profileChecked.has(user.id)) return;
+  if (!supabase || (!phone && !birthDate && locationId == null) || profileChecked.has(user.id)) return;
   profileChecked.add(user.id);
   const { data } = await supabase
     .from('profiles')
-    .select('full_name, phone, location_id')
+    .select('full_name, phone, date_of_birth, location_id')
     .eq('id', user.id)
     .maybeSingle();
   if (!data) return;
   const patch: Record<string, string | number> = {};
   if (!data.full_name && typeof m.full_name === 'string') patch.full_name = m.full_name;
   if (!data.phone && phone) patch.phone = phone;
+  if (!data.date_of_birth && birthDate) patch.date_of_birth = birthDate;
   if (data.location_id == null && locationId != null) patch.location_id = locationId;
   if (Object.keys(patch).length) await supabase.from('profiles').update(patch).eq('id', user.id);
 }

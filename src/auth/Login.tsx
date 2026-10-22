@@ -6,7 +6,15 @@ import { LegalLinks } from '../components/LegalLinks';
 import { supabase } from '../lib/supabase';
 import { homeFor, useAuth } from './AuthProvider';
 import { GoogleButton } from './GoogleButton';
-import { EmailCodeForm, EmailField, normalisePhone, PasswordInput, passwordSignInError } from './forms';
+import {
+  BirthDateField,
+  birthDateError,
+  EmailCodeForm,
+  EmailField,
+  normalisePhone,
+  PasswordInput,
+  passwordSignInError,
+} from './forms';
 
 type Mode = 'signin' | 'signup' | 'code';
 
@@ -55,6 +63,7 @@ export default function Login() {
   const [password2, setPassword2] = useState('');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [birthDate, setBirthDate] = useState('');
   const [areaId, setAreaId] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -105,6 +114,8 @@ export default function Login() {
     const mobile = normalisePhone(phone);
     if (fullName.length < 2) return setError('Please enter your name.');
     if (!mobile) return setError('Please enter a valid 10-digit mobile number.');
+    const dobError = birthDateError(birthDate);
+    if (dobError) return setError(dobError);
     if (areaId == null) return setError('Please choose your location.');
     if (password.length < 8) return setError('Password must be at least 8 characters.');
     if (password !== password2) return setError('The two passwords do not match.');
@@ -114,7 +125,7 @@ export default function Login() {
       email: email.trim(),
       password,
       options: {
-        data: { full_name: fullName, phone: mobile, location_id: areaId },
+        data: { full_name: fullName, phone: mobile, date_of_birth: birthDate, location_id: areaId },
         emailRedirectTo: window.location.origin + '/login',
       },
     });
@@ -216,6 +227,7 @@ export default function Login() {
                 placeholder="98765 43210"
               />
             </div>
+            <BirthDateField value={birthDate} onChange={setBirthDate} />
             <AreaPicker label="Your location" value={areaId} onChange={(a) => setAreaId(a?.id ?? null)} />
             <div className="field">
               <label htmlFor="new-password">Password</label>

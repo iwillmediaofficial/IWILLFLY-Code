@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { AppShell, LogoHeader } from '../../components/AppShell';
 import { ADMIN_ROLES, useAuth } from '../../auth/AuthProvider';
 import { usePlace } from '../../lib/location';
+import { useMyProfile } from '../../lib/profile';
 import { useSavedIds } from '../../lib/queries';
 import { usePointsWallet } from '../../lib/points';
 import { useMyPrizes } from '../../lib/scratch';
@@ -15,9 +16,12 @@ export default function Profile() {
   const savedShops = useSavedIds('shop');
   const myPrizes = useMyPrizes();
   const wallet = usePointsWallet();
+  const profile = useMyProfile();
   const email = session?.user.email ?? '';
   const name =
-    (session?.user.user_metadata?.full_name as string | undefined) ?? (email ? email.split('@')[0] : 'Guest');
+    profile.data?.full_name?.trim() ||
+    ((session?.user.user_metadata?.full_name as string | undefined) ??
+      (email ? email.split('@')[0] : 'Guest'));
 
   return (
     <AppShell
