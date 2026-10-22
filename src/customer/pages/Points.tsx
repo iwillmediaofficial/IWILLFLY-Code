@@ -23,7 +23,7 @@ import {
 import { db, must } from '../../lib/queries';
 import { supabase } from '../../lib/supabase';
 import type { MyBill, PointsEntry, PointsWallet } from '../../lib/types';
-import type { UploadProgress } from '../../lib/upload';
+import { MAX_PICKED_BYTES, type UploadProgress } from '../../lib/upload';
 import { formatDay } from '../scratch';
 import { PointsTerms, Redeem } from './PointsRedeem';
 import { ErrorNotice, Loading, NoBackend, Thumb } from '../ui';
@@ -434,6 +434,8 @@ function BillForm({
               const f = e.target.files?.[0] ?? null;
               e.target.value = '';
               if (f && !isPhoto(f)) return setError('Choose a photo of the bill (JPG, PNG, WebP or HEIC).');
+              if (f && f.size > MAX_PICKED_BYTES)
+                return setError('This picture is too large (max 10 MB). Please choose a smaller picture.');
               setError('');
               setPhoto(f);
             }}

@@ -6,6 +6,15 @@ export type UploadFolder = 'shops' | 'offers' | 'ads' | 'prizes' | 'support' | '
 /** The upload route's limit for one image (worker/upload.ts), also checked here before sending. */
 export const MAX_UPLOAD_BYTES = 1024 * 1024;
 
+/** The largest picture that may be picked: bigger files can freeze or crash the tab while being shrunk. */
+export const MAX_PICKED_BYTES = 10 * 1024 * 1024;
+
+/** Refuses a picked picture over 10 MB, before any shrinking starts. */
+export function checkPickedSize(file: Blob) {
+  if (file.size > MAX_PICKED_BYTES)
+    throw new Error('This picture is too large (max 10 MB). Please choose a smaller picture.');
+}
+
 /** How far one image has got: shrinking on the device ('preparing'), then sending it ('uploading'). */
 export interface UploadProgress {
   stage: 'preparing' | 'uploading';
@@ -31,6 +40,7 @@ export async function uploadImage(
   folder: UploadFolder,
   options: UploadOptions = {},
 ): Promise<string> {
+  checkPickedSize(file);
   if (!supabase) throw new Error('Supabase is not configured');
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;

@@ -3,7 +3,7 @@ import { useAuth } from '../auth/AuthProvider';
 import { db, must } from './queries';
 import { supabase } from './supabase';
 import type { MyBill, MyUpi, PointsEntry, PointsShop, PointsWallet, Redemption } from './types';
-import { photoWebp, sendWebp, type OnUploadProgress } from './upload';
+import { checkPickedSize, photoWebp, sendWebp, type OnUploadProgress } from './upload';
 
 export const POINTS_KEYS = [['points_wallet'], ['my_bills'], ['my_points_history']];
 
@@ -130,6 +130,7 @@ export async function submitBill(b: BillInput): Promise<number> {
     return must<number>(await db().rpc('submit_bill', { ...args, p_photo_key: b.keepPhotoKey }));
   const photo = b.photo;
   if (!photo || !isPhoto(photo)) throw new Error('Choose a photo of the bill (JPG, PNG, WebP or HEIC)');
+  checkPickedSize(photo);
 
   const { data } = await db().auth.getSession();
   const token = data.session?.access_token;
