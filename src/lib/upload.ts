@@ -3,9 +3,22 @@ import { supabase } from './supabase';
 
 export type UploadFolder = 'shops' | 'offers' | 'ads' | 'prizes' | 'support' | 'categories' | 'test';
 
+/** The upload route's limit for one image (worker/upload.ts), also checked here before sending. */
+export const MAX_UPLOAD_BYTES = 1024 * 1024;
+
+/** How far one image has got: shrinking on the device ('preparing'), then sending it ('uploading'). */
+export interface UploadProgress {
+  stage: 'preparing' | 'uploading';
+  /** 0 to 100 within the stage. */
+  percent: number;
+}
+
+export type OnUploadProgress = (progress: UploadProgress) => void;
+
 export interface UploadOptions {
   /** Centre-crop to a square of this many pixels (e.g. 512) instead of the usual max-1600 px resize. */
   square?: number;
+  onProgress?: OnUploadProgress;
 }
 
 /**
@@ -23,15 +36,17 @@ export async function uploadImage(
   const token = data.session?.access_token;
   if (!token) throw new Error('Please sign in first');
 
-  const webp = options.square ? await squareWebp(file, options.square) : await photoWebp(file);
-  return sendWebp(webp, folder, token);
+  const { onProgress } = options;
+  onProgress?.({ stage: 'preparing', percent: 0 });
+  const webp = options.square ? await squareWebp(file, options.square) : await photoWebp(file, onProgress);
+  return sendWebp(webp, folder, token, onProgress);
 }
 
 /**
  * The usual photo pipeline: WebP, at most 1600 px, about 400 KB (1 MB at most). Re-saving also drops hidden
  * photo data such as the GPS location.
  */
-export async function photoWebp(file: File): Promise<Blob> {
+export async function photoWebp(file: File, onProgress?: OnUploadProgress): Promise<Blob> {
   const resized = await imageCompression(file, {
     maxWidthOrHeight: 1600,
     maxSizeMB: 0.4,
@@ -39,6 +54,7 @@ export async function photoWebp(file: File): Promise<Blob> {
     initialQuality: 0.8,
     // Its worker loads the library from a CDN, which the site's Content Security Policy blocks.
     useWebWorker: false,
+    onProgress: (percent) => onProgress?.({ stage: 'preparing', percent }),
   });
   return asWebp(resized);
 }
@@ -80,16 +96,48 @@ async function hasWebpBytes(image: Blob) {
   return head.length === 12 && ascii(0) === 'RIFF' && ascii(8) === 'WEBP';
 }
 
-/** Posts a WebP to /api/upload and returns the stored object's key. */
-export async function sendWebp(webp: Blob, folder: UploadFolder | 'bills', token: string): Promise<string> {
-  const res = await fetch(`/api/upload?folder=${folder}`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'image/webp' },
-    body: webp,
+/** The parsed body, or null when it is not JSON (e.g. an error page). */
+function parseJson(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Posts a WebP to /api/upload and returns the stored object's key. Uses XMLHttpRequest rather than fetch,
+ * because only it reports how much of the body has been sent.
+ */
+export async function sendWebp(
+  webp: Blob,
+  folder: UploadFolder | 'bills',
+  token: string,
+  onProgress?: OnUploadProgress,
+): Promise<string> {
+  if (webp.size > MAX_UPLOAD_BYTES)
+    throw new Error('This picture is over 1 MB even after shrinking. Please choose a smaller picture.');
+  onProgress?.({ stage: 'uploading', percent: 0 });
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `/api/upload?folder=${folder}`);
+    xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    xhr.setRequestHeader('Content-Type', 'image/webp');
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable)
+        onProgress?.({ stage: 'uploading', percent: Math.round((e.loaded / e.total) * 100) });
+    };
+    xhr.onload = () => {
+      const out = parseJson(xhr.responseText) as { key?: string; error?: string } | null;
+      const ok = xhr.status >= 200 && xhr.status < 300;
+      if (!ok || !out?.key) reject(new Error(out?.error || `Upload failed (${xhr.status})`));
+      else resolve(out.key);
+    };
+    xhr.onerror = () =>
+      reject(new Error('Upload failed. Please check your internet connection and try again.'));
+    xhr.onabort = () => reject(new Error('Upload was cancelled'));
+    xhr.send(webp);
   });
-  const out = (await res.json().catch(() => null)) as { key?: string; error?: string } | null;
-  if (!res.ok || !out?.key) throw new Error(out?.error || `Upload failed (${res.status})`);
-  return out.key;
 }
 
 /** The largest centred square of the image, scaled to size x size, as WebP. Phone photos are turned upright. */
