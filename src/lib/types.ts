@@ -78,7 +78,11 @@ export interface Branch {
   holidays: string[];
   temp_closed: boolean;
   temp_closed_note: string | null;
+  parking: Parking | null;
+  parking_note: string | null;
 }
+
+export type Parking = 'free' | 'free_bike' | 'paid' | 'street' | 'none';
 
 export interface Mall {
   id: number;

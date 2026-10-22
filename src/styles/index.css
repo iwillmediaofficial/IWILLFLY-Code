@@ -1205,6 +1205,13 @@
     grid-template-columns: repeat(2, 1fr);
     gap: 10px;
   }
+  .info-grid.three {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .info-grid.three .info-card {
+    padding: 12px 10px;
+  }
   .info-card {
     border: 1px solid var(--color-line);
     border-radius: 18px;

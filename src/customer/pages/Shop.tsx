@@ -7,6 +7,7 @@ import { OfferGallery } from '../../components/OfferGallery';
 import { EmptyState } from '../../components/ShopCard';
 import { useToast } from '../../components/Toast';
 import { track } from '../../lib/engagement';
+import { parkingInfo } from '../../lib/parking';
 import { DAYS, formatKm, formatPrice, formatTime, haversineKm, nowIST, openState } from '../../lib/hours';
 import { isApprox, usePlace } from '../../lib/location';
 import { usePageMeta } from '../../lib/pageMeta';
@@ -222,6 +223,7 @@ export default function Shop() {
   const state = branch ? openState(branch) : null;
   const mall = branch ? mallOf(branch.id) : undefined;
   const phone = branch?.phone || s.phone;
+  const parking = parkingInfo(branch?.parking);
   const today = nowIST().day;
   const live = offers.data ?? [];
 
@@ -270,7 +272,7 @@ export default function Shop() {
         </span>
       </section>
       <section className="section">
-        <div className="info-grid">
+        <div className={`info-grid${parking ? ' three' : ''}`}>
           <div className="info-card">
             <span>Today’s hours</span>
             <strong style={{ fontSize: 16 }}>{state ? state.today : '—'}</strong>
@@ -281,6 +283,14 @@ export default function Shop() {
               {branch?.km != null ? formatKm(branch.km, approx) : place ? '—' : 'Set location'}
             </strong>
           </div>
+          {parking && (
+            <div className="info-card">
+              <span>Parking</span>
+              <strong style={{ fontSize: 16 }}>
+                {parking.icon} {parking.short}
+              </strong>
+            </div>
+          )}
         </div>
       </section>
       <section className="section">
@@ -411,6 +421,13 @@ export default function Shop() {
                 <>
                   <br />
                   {branch.address}
+                </>
+              ) : null}
+              {parking ? (
+                <>
+                  <br />
+                  {parking.icon} {parking.label}
+                  {branch.parking_note ? ` · ${branch.parking_note}` : ''}
                 </>
               ) : null}
             </p>
