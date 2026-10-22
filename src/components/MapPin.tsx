@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { MapsLinkBox } from './MapsLinkBox';
 
 const KOCHI = { lat: 9.9312, lng: 76.2673 };
 
@@ -12,7 +13,7 @@ const pinIcon = L.divIcon({
   iconAnchor: [11, 22],
 });
 
-/** OpenStreetMap with one draggable pin. Tap the map or drag the pin to move it. */
+/** OpenStreetMap with one draggable pin. Tap the map, drag the pin or paste a Google Maps link to move it. */
 export function MapPin({
   lat,
   lng,
@@ -23,12 +24,14 @@ export function MapPin({
   lng: number | null;
   onChange: (p: { lat: number; lng: number }) => void;
   /** Where to centre the map when no pin is set yet (e.g. the chosen area). */
-  fallback?: { lat: number | null; lng: number | null } | null;
+  fallback?: { lat: number | null; lng: number | null; name?: string } | null;
 }) {
   const box = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
   const marker = useRef<L.Marker | null>(null);
   const changeRef = useRef(onChange);
+  // A spot from a pasted link can be anywhere, so the map moves to it and zooms in close.
+  const focusNext = useRef(false);
   useEffect(() => {
     changeRef.current = onChange;
   }, [onChange]);
@@ -68,6 +71,10 @@ export function MapPin({
     } else {
       marker.current.setLatLng([lat, lng]);
     }
+    if (focusNext.current) {
+      focusNext.current = false;
+      m.setView([lat, lng], Math.max(m.getZoom(), 17));
+    }
   }, [lat, lng, fallback?.lat, fallback?.lng]);
 
   return (
@@ -92,6 +99,13 @@ export function MapPin({
           {lat.toFixed(5)}, {lng.toFixed(5)}
         </span>
       )}
+      <MapsLinkBox
+        area={fallback}
+        onSpot={(p) => {
+          focusNext.current = true;
+          onChange(p);
+        }}
+      />
     </>
   );
 }

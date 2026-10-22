@@ -1,6 +1,7 @@
 import { handleCreateVendor, handleSetVendorPassword } from './adminVendors';
 import { cleanupBillPhotos, handlePhoto, handlePhotoLink } from './bills';
 import type { Env } from './env';
+import { handleMapsResolve } from './mapsLink';
 import { dispatchPush, handleDispatch } from './push';
 import { withSecurityHeaders } from './securityHeaders';
 import { handleSeo } from './seo';
@@ -17,6 +18,7 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
     return handleSetVendorPassword(request, env);
   if (request.method === 'POST' && pathname === '/api/bills/photo-link') return handlePhotoLink(request, env);
   if (request.method === 'GET' && pathname === '/api/bills/photo') return handlePhoto(request, env);
+  if (request.method === 'POST' && pathname === '/api/maps/resolve') return handleMapsResolve(request, env);
   if (pathname.startsWith('/api/')) return new Response('Not found', { status: 404 });
   const seo = await handleSeo(request, env, ctx);
   if (seo) return seo;
