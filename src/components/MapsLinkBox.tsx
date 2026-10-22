@@ -1,10 +1,16 @@
 import { useState } from 'react';
 import { haversineKm } from '../lib/hours';
 import { inIndia, linkKind, parseCoords, spotFromGoogleUrl, type Spot } from '../lib/mapsLink';
+import { nearestArea } from '../lib/profileArea';
+import { useLocations } from '../lib/queries';
 import { supabase } from '../lib/supabase';
+import type { LocationNode } from '../lib/types';
 
-// Far enough from the chosen area that a wrong paste is likely, so the vendor is asked to check.
-const FAR_KM = 25;
+// Areas are saved as a centre point, not a boundary. A spot is inside an area when that area's
+// point is the nearest one (within BORDER_KM of the halfway line, either area is accepted)
+// and it is no further than this from the centre. Neighbouring areas in Kochi are about 4 to 10 km apart.
+const AREA_RADIUS_KM: Record<LocationNode['kind'], number> = { area: 5, city: 15, district: 40, state: 0 };
+const BORDER_KM = 1;
 
 const NOT_FOUND =
   "Couldn't find the exact spot in this link. In Google Maps, press and hold on your shop to drop a pin, then tap Share and copy the link, or copy the numbers shown at the top. You can also drag the pin on the map.";
@@ -48,6 +54,19 @@ async function findSpot(text: string): Promise<Spot> {
   return resolveOnServer(text);
 }
 
+/** Why the spot is outside the chosen area, or null when it is inside (or the area has no map point). */
+function outsideArea(all: LocationNode[], area: LocationNode, spot: Spot): string | null {
+  if (area.lat == null || area.lng == null) return null;
+  const km = haversineKm(spot, { lat: area.lat, lng: area.lng });
+  const near = area.kind === 'area' ? nearestArea(all, spot) : null;
+  if (near && near.area.id !== area.id && km - near.km > BORDER_KM)
+    return `This spot is in ${near.area.name}, not ${area.name}. Choose ${near.area.name} as the Area, or check the link. The pin was not moved.`;
+  const radius = AREA_RADIUS_KM[area.kind];
+  if (radius && km > radius)
+    return `This spot is ${Math.round(km)} km from ${area.name}, so it isn't inside that area. Choose the right Area, or check the link. The pin was not moved.`;
+  return null;
+}
+
 type Result = { tone: 'ok' | 'warn' | 'bad'; text: string };
 
 /** "Or paste a Google Maps link" under the map pin. Moves the pin; the form still needs Save. */
@@ -56,9 +75,10 @@ export function MapsLinkBox({
   area,
 }: {
   onSpot: (p: { lat: number; lng: number }) => void;
-  /** The chosen area, to warn when the pasted spot is far from it. */
-  area?: { lat: number | null; lng: number | null; name?: string } | null;
+  /** The chosen area: a pasted spot must be inside it. */
+  area?: LocationNode | null;
 }) {
+  const { data: locations = [] } = useLocations();
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
@@ -66,21 +86,20 @@ export function MapsLinkBox({
   async function find(value = text) {
     const v = value.trim();
     if (!v || busy) return;
+    if (!area) {
+      setResult({ tone: 'bad', text: 'Choose the Area first, then paste the link.' });
+      return;
+    }
     setBusy(true);
     setResult(null);
     try {
       const spot = await findSpot(v);
       if (!inIndia(spot)) throw new SpotError('This spot is outside India. Check the link.');
+      const outside = outsideArea(locations, area, spot);
+      if (outside) throw new SpotError(outside);
       onSpot({ lat: spot.lat, lng: spot.lng });
       const where = `${spot.lat.toFixed(5)}, ${spot.lng.toFixed(5)}`;
-      const km =
-        area?.lat != null && area.lng != null ? haversineKm(spot, { lat: area.lat, lng: area.lng }) : 0;
-      if (km > FAR_KM)
-        setResult({
-          tone: 'warn',
-          text: `Pin moved to ${where}, but this spot is ${Math.round(km)} km from ${area?.name ?? 'the chosen area'}. Is the link right?`,
-        });
-      else if (spot.approx)
+      if (spot.approx)
         setResult({
           tone: 'warn',
           text: `Approximate: this link only shows where the map was looking. Pin moved to ${where}, drag it onto the shop.`,

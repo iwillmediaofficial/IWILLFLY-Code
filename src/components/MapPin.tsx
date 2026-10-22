@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import type { LocationNode } from '../lib/types';
 import { MapsLinkBox } from './MapsLinkBox';
 
 const KOCHI = { lat: 9.9312, lng: 76.2673 };
@@ -23,8 +24,8 @@ export function MapPin({
   lat: number | null;
   lng: number | null;
   onChange: (p: { lat: number; lng: number }) => void;
-  /** Where to centre the map when no pin is set yet (e.g. the chosen area). */
-  fallback?: { lat: number | null; lng: number | null; name?: string } | null;
+  /** The chosen area: the map centres on it when no pin is set yet, and a pasted spot must be inside it. */
+  fallback?: LocationNode | null;
 }) {
   const box = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
