@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { AreaPicker } from '../components/AreaPicker';
 import { useToast } from '../components/Toast';
 import { openState } from '../lib/hours';
+import { PARKING } from '../lib/parking';
 import { db, must, useLocations } from '../lib/queries';
 import type { Branch, Hours, Shop } from '../lib/types';
 import { useBranch, useMyShops, VENDOR_KEY } from './api';
@@ -30,10 +31,11 @@ export default function BranchEditor() {
   return <BranchForm key={branchId ?? 'new'} shop={shop} branch={branch.data ?? null} />;
 }
 
-type Form = Omit<Branch, 'id' | 'shop_id' | 'address' | 'phone' | 'temp_closed_note'> & {
+type Form = Omit<Branch, 'id' | 'shop_id' | 'address' | 'phone' | 'temp_closed_note' | 'parking_note'> & {
   address: string;
   phone: string;
   temp_closed_note: string;
+  parking_note: string;
 };
 
 function BranchForm({ shop, branch }: { shop: Shop; branch: Branch | null }) {
@@ -53,6 +55,8 @@ function BranchForm({ shop, branch }: { shop: Shop; branch: Branch | null }) {
     holidays: branch?.holidays ?? [],
     temp_closed: branch?.temp_closed ?? false,
     temp_closed_note: branch?.temp_closed_note ?? '',
+    parking: branch?.parking ?? null,
+    parking_note: branch?.parking_note ?? '',
   });
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setF((cur) => ({ ...cur, [k]: v }));
   const [error, setError] = useState('');
@@ -68,6 +72,7 @@ function BranchForm({ shop, branch }: { shop: Shop; branch: Branch | null }) {
         address: orNull(f.address),
         phone: orNull(f.phone),
         temp_closed_note: f.temp_closed ? orNull(f.temp_closed_note) : null,
+        parking_note: f.parking ? orNull(f.parking_note) : null,
       };
       if (branch) must(await db().from('branches').update(row).eq('id', branch.id));
       else
@@ -103,7 +108,8 @@ function BranchForm({ shop, branch }: { shop: Shop; branch: Branch | null }) {
       (f.address.trim().length > 300 ? 'Address is too long (300 characters max).' : null) ??
       phoneError(f.phone) ??
       hoursError(f.hours) ??
-      (f.temp_closed_note.trim().length > 200 ? 'Closure note is too long (200 characters max).' : null);
+      (f.temp_closed_note.trim().length > 200 ? 'Closure note is too long (200 characters max).' : null) ??
+      (f.parking_note.trim().length > 100 ? 'Parking note is too long (100 characters max).' : null);
     setError(problem ?? '');
     if (!problem) save.mutate();
   };
@@ -142,6 +148,33 @@ function BranchForm({ shop, branch }: { shop: Shop; branch: Branch | null }) {
             </Suspense>
             <div className="hint">Tap the map or drag the pin to the shop's entrance.</div>
           </div>
+          <div className="field">
+            <label htmlFor="b-parking">Parking</label>
+            <select
+              id="b-parking"
+              value={f.parking ?? ''}
+              onChange={(e) => set('parking', (e.target.value || null) as Form['parking'])}
+            >
+              <option value="">Not set</option>
+              {PARKING.map((p) => (
+                <option key={p.value} value={p.value}>
+                  {p.icon} {p.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          {f.parking && (
+            <div className="field">
+              <label htmlFor="b-parking-note">Parking note</label>
+              <input
+                id="b-parking-note"
+                value={f.parking_note}
+                onChange={(e) => set('parking_note', e.target.value)}
+                maxLength={100}
+                placeholder="e.g. Basement, ₹20 per hour"
+              />
+            </div>
+          )}
           <div className="field">
             <label htmlFor="b-phone">Branch phone</label>
             <input id="b-phone" type="tel" value={f.phone} onChange={(e) => set('phone', e.target.value)} />
