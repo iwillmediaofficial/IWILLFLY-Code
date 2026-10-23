@@ -121,7 +121,7 @@ function parseJson(text: string): unknown {
  */
 export async function sendWebp(
   webp: Blob,
-  folder: UploadFolder | 'bills',
+  folder: UploadFolder | 'bills' | 'payments',
   token: string,
   onProgress?: OnUploadProgress,
 ): Promise<string> {

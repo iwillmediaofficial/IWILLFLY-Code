@@ -598,6 +598,8 @@ export interface Invoice {
   };
   payer_ref: string | null;
   payer_note: string | null;
+  // Screenshot of a UPI payment (private; open with billPhotoLink)
+  payer_proof_key?: string | null;
   submitted_at: string | null;
   payment_method: PaymentMethod | null;
   payment_ref: string | null;

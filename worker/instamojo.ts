@@ -158,7 +158,14 @@ export async function handleInstamojoStart(request: Request, env: Env): Promise<
     const phone = mobile(inv.phone);
     if (phone) form.phone = phone;
 
-    const r = await instamojo(g, 'payment-requests/', form);
+    let r = await instamojo(g, 'payment-requests/', form);
+    // Phone and email are optional for Instamojo; if it refuses the ones on file, ask again without them.
+    const refused = r.body?.message as Record<string, unknown> | undefined;
+    if (!r.ok && refused && typeof refused === 'object' && ('phone' in refused || 'email' in refused)) {
+      if ('phone' in refused) delete form.phone;
+      if ('email' in refused) delete form.email;
+      r = await instamojo(g, 'payment-requests/', form);
+    }
     const pr = r.body?.payment_request as { id?: string; longurl?: string } | undefined;
     const url = pr?.longurl ? new URL(pr.longurl) : null;
     if (

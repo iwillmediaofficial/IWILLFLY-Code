@@ -12,7 +12,6 @@ import { checkPickedSize, uploadImage, type UploadProgress } from '../../lib/upl
 import type { Hours, Parking, Plan } from '../../lib/types';
 import { VENDOR_KEY } from '../api';
 import { limitText, money, planPrice } from '../billing/format';
-import { payOnline } from '../billing/pay';
 import { errorMessage } from '../format';
 import { HoursEditor } from '../HoursEditor';
 import {
@@ -132,13 +131,8 @@ export function VendorOnboarding() {
     }
     await qc.invalidateQueries({ queryKey: VENDOR_KEY });
     if (plan && Number(plan.price) > 0) {
-      // Straight on to Instamojo's secure page; the invoice page offers it again if this fails.
-      setSending('Opening the secure payment page…');
-      try {
-        if ((await payOnline(result.invoice_id)) === 'leaving') return;
-      } catch (e) {
-        toast(`Application sent. ${errorMessage(e)}`);
-      }
+      // On to the invoice, which offers both ways to pay: Instamojo, or UPI with a transaction ID/screenshot.
+      toast(photoProblem || 'Application sent! Now pay the plan invoice so we can approve you.');
       navigate(`/vendor/billing/invoices/${result.invoice_id}`, { replace: true });
       return;
     }
@@ -286,7 +280,7 @@ function PlanStep({
               </ul>
               {Number(p.price) > 0 && (
                 <div className="meta">
-                  Pay securely online after sending. We review your shop once it is paid.
+                  Pay online or by UPI after sending. We review your shop once it is paid.
                 </div>
               )}
             </button>
@@ -670,8 +664,9 @@ function ReviewStep({
             {plan.name} · {planPrice(plan)}
             {Number(plan.price) > 0 && (
               <div className="meta">
-                After you send, you pay {money(plan.price)} (plus GST if any) on Instamojo&apos;s secure page.
-                We review your shop once the payment goes through.
+                After you send, pay {money(plan.price)} (plus GST if any) online, or by Google Pay / any UPI
+                app and then send the transaction ID or a screenshot. We review your shop once the payment is
+                confirmed.
               </div>
             )}
           </div>

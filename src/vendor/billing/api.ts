@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { db, must } from '../../lib/queries';
+import { photoWebp, sendWebp, type OnUploadProgress } from '../../lib/upload';
 import type {
   Addon,
   BillingSettings,
@@ -93,6 +94,42 @@ export function useInvoice(id: number) {
       return { invoice, items };
     },
     enabled: Number.isFinite(id),
+  });
+}
+
+/**
+ * The owner paid by UPI and sends the transaction ID and/or a screenshot (stored privately, like bill photos);
+ * an admin checks the money arrived and marks the invoice paid.
+ */
+export function useSubmitPayment(invoiceId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (p: {
+      ref: string | null;
+      note: string | null;
+      screenshot: File | null;
+      keepProof?: string | null;
+      onProgress?: OnUploadProgress;
+    }) => {
+      let proof = p.keepProof ?? null;
+      if (p.screenshot) {
+        const token = (await db().auth.getSession()).data.session?.access_token;
+        if (!token) throw new Error('Please sign in again');
+        const webp = await photoWebp(p.screenshot, p.onProgress).catch(() => {
+          throw new Error('This screenshot could not be read. Try another picture.');
+        });
+        proof = await sendWebp(webp, 'payments', token, p.onProgress);
+      }
+      return must(
+        await db().rpc('submit_payment', {
+          p_invoice_id: invoiceId,
+          p_ref: p.ref,
+          p_note: p.note,
+          p_proof_key: proof,
+        }),
+      );
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['vendor', 'billing'] }),
   });
 }
 

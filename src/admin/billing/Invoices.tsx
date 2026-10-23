@@ -3,6 +3,7 @@ import { useMutation } from '@tanstack/react-query';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthProvider';
 import { useToast } from '../../components/Toast';
+import { useBillPhoto } from '../../lib/points';
 import type { AddonKind, Invoice, InvoiceStatus, PurchaseItem } from '../../lib/types';
 import { todayIST } from '../engagement/api';
 import { Empty, ErrorNotice, Loading } from '../ui';
@@ -116,9 +117,16 @@ function InvoiceRow({ invoice: i }: { invoice: Invoice }) {
           {i.status === 'unpaid' ? ` · due ${formatDate(i.due_on)}` : ''}
           {i.status === 'paid' && i.paid_on ? ` · paid ${formatDate(i.paid_on)}` : ''}
         </div>
-        {i.payer_ref && i.status !== 'paid' && (
+        {(i.payer_ref || i.payer_proof_key) && i.status !== 'paid' && (
           <div className="meta">
-            UPI ref <b style={{ color: 'var(--color-ink)' }}>{i.payer_ref}</b>
+            {i.payer_ref ? (
+              <>
+                UPI ref <b style={{ color: 'var(--color-ink)' }}>{i.payer_ref}</b>
+              </>
+            ) : (
+              'UPI payment'
+            )}
+            {i.payer_proof_key ? ' · 📷 screenshot' : ''}
             {i.submitted_at ? ` · sent ${formatDate(i.submitted_at)}` : ''}
           </div>
         )}
@@ -179,6 +187,28 @@ export function InvoiceDetail() {
   );
 }
 
+/** The vendor's UPI payment screenshot, opened through a 10-minute private link (worker/bills.ts). */
+function ProofScreenshot({ proofKey }: { proofKey: string }) {
+  const photo = useBillPhoto(proofKey);
+  if (photo.isPending)
+    return (
+      <div className="meta" style={{ marginTop: 6 }}>
+        Loading screenshot…
+      </div>
+    );
+  if (photo.error) return <div className="error-text">Screenshot: {photo.error.message}</div>;
+  return (
+    <a href={photo.data} target="_blank" rel="noreferrer" style={{ display: 'block', marginTop: 8 }}>
+      <img
+        src={photo.data}
+        alt="Vendor's UPI payment screenshot"
+        style={{ maxWidth: '100%', maxHeight: 420, borderRadius: 8, border: '1px solid var(--color-line)' }}
+      />
+      <span className="meta">Open full size</span>
+    </a>
+  );
+}
+
 function PaymentPanel({ invoice: inv }: { invoice: InvoiceWithItems }) {
   const toast = useToast();
   const invalidate = useInvalidate();
@@ -208,7 +238,7 @@ function PaymentPanel({ invoice: inv }: { invoice: InvoiceWithItems }) {
   const submit = (e: FormEvent) => {
     e.preventDefault();
     setError('');
-    if (method === 'upi' && !ref.trim())
+    if (method === 'upi' && !ref.trim() && !inv.payer_proof_key)
       return setError('Enter the UPI transaction ID you checked in your UPI app.');
     if (
       window.confirm(
@@ -238,8 +268,9 @@ function PaymentPanel({ invoice: inv }: { invoice: InvoiceWithItems }) {
         <div className="notice">
           The vendor says they paid {inv.submitted_at ? `on ${formatDate(inv.submitted_at)}` : ''}.
           <div style={{ marginTop: 4 }}>
-            UPI transaction ID: <b>{inv.payer_ref}</b>
+            UPI transaction ID: <b>{inv.payer_ref || 'not given'}</b>
           </div>
+          {inv.payer_proof_key && <ProofScreenshot proofKey={inv.payer_proof_key} />}
           {inv.payer_note && (
             <div style={{ marginTop: 4, whiteSpace: 'pre-wrap' }}>
               Their note: <i>{inv.payer_note}</i>
@@ -251,7 +282,8 @@ function PaymentPanel({ invoice: inv }: { invoice: InvoiceWithItems }) {
       )}
       <div className="notice warn">
         <b>Check the money arrived in your UPI/bank app first.</b> Look for {money(inv.total)} with this
-        transaction ID before marking the invoice paid.
+        transaction ID (or the one in the screenshot) before marking the invoice paid. A screenshot alone is
+        not proof: confirm the payment in your own app.
       </div>
       <div className="field-row">
         <div className="field">

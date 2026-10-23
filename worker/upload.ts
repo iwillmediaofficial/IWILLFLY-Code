@@ -15,7 +15,8 @@ const LOG_PREFIX = 'upload-log/';
  * POST /api/upload?folder=offers  body: the WebP image  with  Authorization: Bearer <supabase access token>
  * Stores the image in the media bucket through the Worker's R2 binding and returns its key.
  * Going through the app's own address means the bucket needs no CORS rule and no API keys.
- * folder=bills is the customers' bill photo route, which goes to a private bucket (worker/bills.ts).
+ * folder=bills (customers' bill photos) and folder=payments (vendors' UPI payment screenshots) go to a
+ * private bucket instead (worker/bills.ts).
  */
 export async function handleUpload(request: Request, env: Env): Promise<Response> {
   const token = request.headers.get('Authorization')?.replace(/^Bearer /, '');
@@ -27,6 +28,8 @@ export async function handleUpload(request: Request, env: Env): Promise<Response
   if (Number(request.headers.get('Content-Length')) > MAX_BYTES)
     return json({ error: 'Image too large' }, 413);
   if (requested === 'bills') return handleBillUpload(request, env);
+  // Vendors' UPI payment screenshots: private, like bill photos (allowed while the business is under review).
+  if (requested === 'payments') return handleBillUpload(request, env, 'payments');
 
   if (!env.MEDIA) return json({ error: 'Image storage is not connected to the app' }, 500);
   const folder = FOLDERS.find((f) => f === requested);
