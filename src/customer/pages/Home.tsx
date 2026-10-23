@@ -15,7 +15,13 @@ import { mediaUrl, supabase } from '../../lib/supabase';
 import { FestivalBanners } from '../FestivalBanner';
 import { OfferTile } from '../OfferTile';
 import { ErrorNotice, Loading, NoBackend, Thumb } from '../ui';
-import { pickCampaign, useCampaignPrizes, useScratchCard, type ScratchCard } from '../scratch';
+import {
+  pickCampaign,
+  useCampaignPrizes,
+  useScratchCard,
+  type PublicPrize,
+  type ScratchCard,
+} from '../scratch';
 import { toneFor } from '../util';
 
 export default function Home() {
@@ -82,11 +88,11 @@ export default function Home() {
   );
 }
 
-/** The two cards next to the scratch button: open/closed with hours, and today's highlighted prize. */
+/** The two cards next to the scratch button: open/closed with hours, and today's prizes. */
 function ScratchStatus({ card }: { card: ScratchCard }) {
   const c = card.campaign;
   const prizes = useCampaignPrizes(c?.id);
-  const highlight = prizes.data?.find((p) => p.remaining > 0);
+  const live = prizes.data?.filter((p) => p.remaining > 0) ?? [];
   const open = Boolean(c?.is_open_now);
   return (
     <div className="sw-side">
@@ -124,19 +130,131 @@ function ScratchStatus({ card }: { card: ScratchCard }) {
           )}
         </div>
       </div>
-      <div className="sw-card sw-prize">
-        <div className="p-head">Today’s Prize</div>
+      <PrizeSlider key={live.length} prizes={live} empty={c ? 'Coming soon' : '—'} />
+    </div>
+  );
+}
+
+const SLIDE_MS = 2000;
+const SWIPE_PAUSE_TICKS = 3; // auto-slide waits 3 turns (6 s) after a swipe or dot tap
+
+/** Today's Prize card: shows each prize with stock one by one; swipe or tap a dot to move. */
+function PrizeSlider({ prizes, empty }: { prizes: PublicPrize[]; empty: string }) {
+  const navigate = useNavigate();
+  const count = prizes.length;
+  // The track ends with a copy of the first prize so the last one slides on to it, then jumps back.
+  const [index, setIndex] = useState(0);
+  const [animate, setAnimate] = useState(true);
+  const pause = useRef(0);
+  const touchX = useRef<number | null>(null);
+  const swiped = useRef(false);
+
+  useEffect(() => {
+    if (count < 2) return;
+    const id = window.setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      if (pause.current > 0) {
+        pause.current -= 1;
+        return;
+      }
+      setAnimate(true);
+      setIndex((i) => Math.min(i + 1, count));
+    }, SLIDE_MS);
+    return () => window.clearInterval(id);
+  }, [count]);
+
+  // After sliding on to the copy of the first prize, jump back to the real one without a slide.
+  useEffect(() => {
+    if (count < 2 || index !== count) return;
+    const id = window.setTimeout(() => {
+      setAnimate(false);
+      setIndex(0);
+    }, 450);
+    return () => window.clearTimeout(id);
+  }, [index, count]);
+
+  // Turn the slide back on once the jump has been drawn.
+  useEffect(() => {
+    if (animate) return;
+    const id = requestAnimationFrame(() => requestAnimationFrame(() => setAnimate(true)));
+    return () => cancelAnimationFrame(id);
+  }, [animate]);
+
+  function go(to: number) {
+    pause.current = SWIPE_PAUSE_TICKS;
+    setAnimate(true);
+    setIndex(((to % count) + count) % count);
+  }
+
+  const current = count ? index % count : 0;
+  const slides = count > 1 ? [...prizes, prizes[0]] : prizes;
+
+  return (
+    <div
+      className="sw-card sw-prize"
+      role={count ? 'link' : undefined}
+      onClick={() => {
+        if (swiped.current) swiped.current = false;
+        else if (count) navigate('/scratch');
+      }}
+    >
+      <div className="p-head">Today’s Prize</div>
+      {count === 0 ? (
         <div className="p-body">
-          <div className="p-img">
-            {highlight?.image_key ? (
-              <img src={mediaUrl(highlight.image_key)} alt="" decoding="async" width={64} height={64} />
-            ) : (
-              '🎁'
-            )}
-          </div>
-          <div className="p-name">{highlight ? highlight.name : c ? 'Coming soon' : '—'}</div>
+          <div className="p-img">🎁</div>
+          <div className="p-name">{empty}</div>
         </div>
-      </div>
+      ) : (
+        <div
+          className="p-slider"
+          onTouchStart={(e) => {
+            touchX.current = e.touches[0].clientX;
+            swiped.current = false;
+          }}
+          onTouchEnd={(e) => {
+            if (touchX.current === null || count < 2) return;
+            const dx = e.changedTouches[0].clientX - touchX.current;
+            touchX.current = null;
+            if (Math.abs(dx) < 30) return;
+            swiped.current = true;
+            go(current + (dx < 0 ? 1 : -1));
+          }}
+        >
+          <div
+            className={`p-track${animate ? '' : ' still'}`}
+            style={{ transform: `translateX(-${index * 100}%)` }}
+          >
+            {slides.map((p, i) => (
+              <div className={`p-body${i === index ? ' on' : ''}`} key={i} aria-hidden={i !== index}>
+                <div className="p-img">
+                  {p.image_key ? (
+                    <img src={mediaUrl(p.image_key)} alt="" decoding="async" width={64} height={64} />
+                  ) : (
+                    '🎁'
+                  )}
+                </div>
+                <div className="p-name">{p.name}</div>
+              </div>
+            ))}
+          </div>
+          {count > 1 && (
+            <div className="p-dots">
+              {prizes.map((p, i) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  className={i === current ? 'on' : ''}
+                  aria-label={`Prize ${i + 1} of ${count}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    go(i);
+                  }}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
