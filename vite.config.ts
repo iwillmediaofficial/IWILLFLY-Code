@@ -23,8 +23,8 @@ export default defineConfig(({ mode }) => ({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      // Load the service worker registration without blocking the first paint.
-      injectRegister: 'script-defer',
+      // Registered in src/main.tsx, which also reloads open pages onto a new version.
+      injectRegister: false,
       includeAssets: ['favicon.png', 'iwillfly-logo.jpg', 'iwillfly-logo.webp', 'icons/apple-touch-icon.png'],
       manifest: {
         name: 'IWILLFLY',
@@ -42,6 +42,13 @@ export default defineConfig(({ mode }) => ({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,png,jpg,svg,woff2}'],
+        // Cloudflare redirects /index.html to /, so the app page is cached and served as / directly.
+        manifestTransforms: [
+          async (entries) => ({
+            manifest: entries.map((e) => (e.url === 'index.html' ? { ...e, url: '/' } : e)),
+          }),
+        ],
+        navigateFallback: '/',
         navigateFallbackDenylist: [/^\/api\//, /^\/(sitemap\.xml|robots\.txt)$/],
         // Shows web push notifications and opens the app when one is tapped.
         importScripts: ['/push-sw.js'],
