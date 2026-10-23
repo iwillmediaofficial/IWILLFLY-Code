@@ -35,6 +35,8 @@ function SettingsForm({ settings: s }: { settings: BillingSettings }) {
     gst_percent: String(Number(s.gst_percent)),
     invoice_prefix: s.invoice_prefix,
     payment_note: s.payment_note ?? '',
+    pay_instamojo: s.pay_instamojo !== false,
+    pay_upi: s.pay_upi !== false,
   });
   const [error, setError] = useState('');
   const set = (patch: Partial<typeof f>) => setF((cur) => ({ ...cur, ...patch }));
@@ -70,12 +72,47 @@ function SettingsForm({ settings: s }: { settings: BillingSettings }) {
       gst_percent: Math.round(gst * 100) / 100,
       invoice_prefix: prefix,
       payment_note: f.payment_note.trim() || null,
+      pay_instamojo: f.pay_instamojo,
+      pay_upi: f.pay_upi,
     });
   };
 
   return (
     <form className="form-card" onSubmit={submit}>
-      <h3 style={{ marginTop: 0 }}>Where vendors pay</h3>
+      <h3 style={{ marginTop: 0 }}>Payment methods</h3>
+      <p className="meta" style={{ marginTop: 0 }}>
+        Choose how vendors can pay their invoices. You can still mark any invoice paid by hand.
+      </p>
+      <label className="check-row">
+        <input
+          type="checkbox"
+          role="switch"
+          checked={f.pay_instamojo}
+          onChange={(e) => set({ pay_instamojo: e.target.checked })}
+        />
+        <span>
+          <b>Instamojo</b> (card, UPI, net banking, wallets). Paid invoices switch on automatically.
+        </span>
+      </label>
+      <label className="check-row">
+        <input
+          type="checkbox"
+          role="switch"
+          checked={f.pay_upi}
+          onChange={(e) => set({ pay_upi: e.target.checked })}
+        />
+        <span>
+          <b>Direct UPI</b> (Google Pay, PhonePe, Paytm) to the UPI ID below. The vendor sends a transaction
+          ID or screenshot and you mark the invoice paid.
+        </span>
+      </label>
+      {!f.pay_instamojo && !f.pay_upi && (
+        <div className="notice warn">
+          Both methods are off: vendors are asked to contact IWILLFLY support to pay.
+        </div>
+      )}
+
+      <h3>Where vendors pay by UPI</h3>
       {!s.upi_id && <div className="notice warn">Add your UPI ID so vendors can pay their invoices.</div>}
       <div className="field">
         <label htmlFor="bs-upi">UPI ID</label>

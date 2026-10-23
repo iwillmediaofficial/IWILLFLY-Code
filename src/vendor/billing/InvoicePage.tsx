@@ -48,17 +48,14 @@ export default function InvoicePage() {
       </div>
       {open ? (
         <div className="no-print">
-          <PayOnline invoice={inv} />
-          {/* Direct UPI to the admin's UPI ID (Admin > Billing settings); an admin checks and marks it paid. */}
-          <div style={{ marginTop: 12 }}>
-            {settings.isPending ? (
-              <Loading />
-            ) : settings.error ? (
-              <ErrorNote error={settings.error} />
-            ) : (
-              <PayByUpi invoice={inv} settings={settings.data} />
-            )}
-          </div>
+          {/* The methods an admin switched on in Admin > Billing settings. */}
+          {settings.isPending ? (
+            <Loading />
+          ) : settings.error ? (
+            <ErrorNote error={settings.error} />
+          ) : (
+            <PayOptions invoice={inv} settings={settings.data} />
+          )}
         </div>
       ) : (
         <PaidNotice />
@@ -69,6 +66,33 @@ export default function InvoicePage() {
           🖨 Print or save as PDF
         </button>
       </div>
+    </>
+  );
+}
+
+function PayOptions({ invoice: i, settings }: { invoice: Invoice; settings: BillingSettings | null }) {
+  const online = settings?.pay_instamojo !== false;
+  const upi = settings?.pay_upi !== false;
+  if (!online && !upi) {
+    return (
+      <div className="notice warn">
+        <b>Online payment is not available right now.</b> Please{' '}
+        <Link to="/vendor/help/new" style={{ color: 'var(--color-blue)', fontWeight: 800 }}>
+          contact IWILLFLY support
+        </Link>{' '}
+        to pay invoice {i.number}.
+      </div>
+    );
+  }
+  return (
+    <>
+      {online && <PayOnline invoice={i} />}
+      {/* Direct UPI to the admin's UPI ID; an admin checks the payment and marks the invoice paid. */}
+      {upi && (
+        <div style={online ? { marginTop: 12 } : undefined}>
+          <PayByUpi invoice={i} settings={settings} first={!online} />
+        </div>
+      )}
     </>
   );
 }
@@ -276,7 +300,15 @@ function PayOnline({ invoice: i }: { invoice: Invoice }) {
 }
 
 /** UPI QR, app link, UPI ID and the "I have paid" form. */
-function PayByUpi({ invoice: i, settings }: { invoice: Invoice; settings: BillingSettings | null }) {
+function PayByUpi({
+  invoice: i,
+  settings,
+  first,
+}: {
+  invoice: Invoice;
+  settings: BillingSettings | null;
+  first?: boolean;
+}) {
   const toast = useToast();
   const upiId = settings?.upi_id;
   if (!upiId) {
@@ -305,7 +337,9 @@ function PayByUpi({ invoice: i, settings }: { invoice: Invoice; settings: Billin
   return (
     <div className="form-card">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
-        <h3 style={{ margin: 0, fontSize: 16 }}>Or pay by UPI (Google Pay, PhonePe, Paytm)</h3>
+        <h3 style={{ margin: 0, fontSize: 16 }}>
+          {first ? 'Pay by UPI' : 'Or pay by UPI'} (Google Pay, PhonePe, Paytm)
+        </h3>
         <b style={{ fontSize: 18 }}>{money(i.total)}</b>
       </div>
       {i.status === 'submitted' ? (

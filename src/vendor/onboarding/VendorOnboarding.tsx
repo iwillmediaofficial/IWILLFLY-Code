@@ -280,7 +280,7 @@ function PlanStep({
               </ul>
               {Number(p.price) > 0 && (
                 <div className="meta">
-                  Pay online or by UPI after sending. We review your shop once it is paid.
+                  Pay the plan invoice after sending. We review your shop once it is paid.
                 </div>
               )}
             </button>
@@ -664,9 +664,8 @@ function ReviewStep({
             {plan.name} · {planPrice(plan)}
             {Number(plan.price) > 0 && (
               <div className="meta">
-                After you send, pay {money(plan.price)} (plus GST if any) online, or by Google Pay / any UPI
-                app and then send the transaction ID or a screenshot. We review your shop once the payment is
-                confirmed.
+                After you send, your invoice for {money(plan.price)} (plus GST if any) opens with the ways you
+                can pay. We review your shop once the payment is confirmed.
               </div>
             )}
           </div>

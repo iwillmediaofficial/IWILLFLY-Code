@@ -540,6 +540,9 @@ export interface BillingSettings {
   gst_percent: number;
   invoice_prefix: string;
   payment_note: string | null;
+  // Which payment methods vendors are offered (Admin > Billing settings)
+  pay_instamojo?: boolean;
+  pay_upi?: boolean;
   updated_at: string;
 }
 
