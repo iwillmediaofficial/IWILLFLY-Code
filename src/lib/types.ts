@@ -38,6 +38,8 @@ export interface Vendor {
   is_verified: boolean;
   admin_note: string | null;
   reviewed_at: string | null;
+  /** The plan picked when applying; null for businesses from before plans were part of the application. */
+  plan_id: number | null;
   created_at: string;
 }
 
@@ -550,6 +552,8 @@ export interface Plan {
   price: number | string;
   period_days: number;
   max_shops: number | null;
+  /** Branches across all of a vendor's shops; null = no limit. */
+  max_branches: number | null;
   max_live_offers: number | null;
   is_default: boolean;
   is_active: boolean;

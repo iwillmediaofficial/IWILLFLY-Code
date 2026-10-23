@@ -1,10 +1,10 @@
 import { useState, type FormEvent } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { useToast } from '../components/Toast';
 import { useUnreadCount } from '../lib/engagement';
 import { db, must } from '../lib/queries';
-import type { Vendor } from '../lib/types';
+import type { Invoice, Vendor } from '../lib/types';
 import { useMyOffers, VENDOR_KEY } from './api';
 import { DashboardPlanCard } from './billing/PlanCard';
 import { useVendor, useVendorRole } from './context';
@@ -32,6 +32,7 @@ export default function Dashboard() {
       </section>
       <section className="section">
         <StatusNotice vendor={vendor} />
+        {canEdit && vendor.status !== 'blocked' && <FinishShop />}
         <Counts />
       </section>
       {vendor.status !== 'blocked' && (
@@ -106,8 +107,8 @@ function StatusNotice({ vendor }: { vendor: Vendor }) {
   if (vendor.status === 'pending') {
     return (
       <div className="notice warn">
-        <b>Your business is under review.</b> You can set up your shops and branches now. Offers and pictures
-        can be added once the IWILLFLY team approves your account.
+        <b>Your business is under review.</b> You can set up your shops, branches, logo and cover photo now.
+        Offers can be added once the IWILLFLY team approves your account.
       </div>
     );
   }
@@ -115,6 +116,84 @@ function StatusNotice({ vendor }: { vendor: Vendor }) {
     <div className="notice">
       <b>You are live.</b> Your active shops and approved offers are visible to customers.{' '}
       {vendor.is_verified && <span className="pill-status approved">✓ Verified</span>}
+    </div>
+  );
+}
+
+/** The latest plan invoice of this business that is not cancelled, if any. */
+function useLatestInvoice() {
+  const vendor = useVendor();
+  return useQuery({
+    queryKey: ['vendor', 'latest-invoice', vendor.id],
+    queryFn: async () =>
+      must<Pick<Invoice, 'id' | 'status'>[]>(
+        await db()
+          .from('invoices')
+          .select('id, status, invoice_items!inner(plan_id)')
+          .eq('vendor_id', vendor.id)
+          .neq('status', 'void')
+          .not('invoice_items.plan_id', 'is', null)
+          .order('created_at', { ascending: false })
+          .limit(1),
+      )[0] ?? null,
+  });
+}
+
+/** "Finish your shop": what is left between sending the application and the first live offer. */
+function FinishShop() {
+  const vendor = useVendor();
+  const { isOwner } = useVendorRole();
+  const { offers, shops, isPending } = useMyOffers();
+  const invoice = useLatestInvoice();
+  if (isPending || invoice.isPending) return null;
+  const shop = shops?.[0];
+  const approved = vendor.status === 'approved';
+  const inv = invoice.data;
+  const steps: { done: boolean; label: string; action?: { to: string; text: string } }[] = [
+    {
+      done: Boolean(shop),
+      label: 'Shop details sent',
+      action: { to: '/vendor/shops/new', text: 'Add your shop' },
+    },
+    {
+      done: !inv || inv.status === 'paid',
+      label:
+        !inv || inv.status === 'paid'
+          ? 'Plan active'
+          : inv.status === 'submitted'
+            ? 'Payment sent, we are checking it'
+            : 'Pay for your plan',
+      action: inv && isOwner ? { to: `/vendor/billing/invoices/${inv.id}`, text: 'Pay now' } : undefined,
+    },
+    {
+      done: Boolean(shop?.logo_key && shop?.cover_key),
+      label: 'Logo and cover photo',
+      action: shop ? { to: `/vendor/shops/${shop.id}`, text: 'Add photos' } : undefined,
+    },
+    { done: approved, label: 'Approved by IWILLFLY' },
+    {
+      done: (offers?.length ?? 0) > 0,
+      label: 'First offer',
+      action: approved ? { to: '/vendor/offers/new', text: 'Add offer' } : undefined,
+    },
+  ];
+  if (steps.every((st) => st.done)) return null;
+  return (
+    <div className="manage-card finish-shop">
+      <h4>Finish your shop</h4>
+      <ul>
+        {steps.map((st) => (
+          <li key={st.label} className={st.done ? 'done' : ''}>
+            <span aria-hidden>{st.done ? '✓' : '○'}</span>
+            <span className="grow">{st.label}</span>
+            {!st.done && st.action && (
+              <Link to={st.action.to} className="link-btn">
+                {st.action.text}
+              </Link>
+            )}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

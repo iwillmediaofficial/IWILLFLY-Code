@@ -48,6 +48,7 @@ export function Plans() {
                   </h4>
                   <div className="meta">
                     {p.max_shops == null ? 'Unlimited shops' : `${p.max_shops} shops`} ·{' '}
+                    {p.max_branches == null ? 'unlimited branches' : `${p.max_branches} branches`} ·{' '}
                     {p.max_live_offers == null ? 'unlimited live offers' : `${p.max_live_offers} live offers`}{' '}
                     · order {p.sort_order}
                   </div>
@@ -87,6 +88,7 @@ type Form = {
   price: string;
   period_days: string;
   max_shops: string;
+  max_branches: string;
   max_live_offers: string;
   is_default: boolean;
   is_active: boolean;
@@ -101,6 +103,7 @@ function toForm(p: Plan | undefined, nextSort: number): Form {
     price: p ? String(Number(p.price)) : '',
     period_days: String(p?.period_days ?? 30),
     max_shops: p?.max_shops == null ? '' : String(p.max_shops),
+    max_branches: p?.max_branches == null ? '' : String(p.max_branches),
     max_live_offers: p?.max_live_offers == null ? '' : String(p.max_live_offers),
     is_default: p?.is_default ?? false,
     is_active: p?.is_active ?? true,
@@ -143,6 +146,7 @@ function PlanForm({ plan, nextSort, onDone }: { plan?: Plan; nextSort: number; o
     const price = toNumber(f.price);
     const days = toNumber(f.period_days);
     const shops = toNumber(f.max_shops);
+    const branches = toNumber(f.max_branches);
     const offers = toNumber(f.max_live_offers);
     const sort = toNumber(f.sort_order);
     if (f.name.trim().length < 2) return setError('Enter the plan name.');
@@ -151,6 +155,8 @@ function PlanForm({ plan, nextSort, onDone }: { plan?: Plan; nextSort: number; o
       return setError('Days must be a whole number, 1 to 1100.');
     if (f.max_shops.trim() && (!isWhole(shops) || shops! < 0))
       return setError('Max shops must be a whole number, or blank for no limit.');
+    if (f.max_branches.trim() && (!isWhole(branches) || branches! < 0))
+      return setError('Max branches must be a whole number, or blank for no limit.');
     if (f.max_live_offers.trim() && (!isWhole(offers) || offers! < 0))
       return setError('Max live offers must be a whole number, or blank for no limit.');
     if (!isWhole(sort)) return setError('Sort order must be a whole number.');
@@ -166,6 +172,7 @@ function PlanForm({ plan, nextSort, onDone }: { plan?: Plan; nextSort: number; o
       price: Math.round(price * 100) / 100,
       period_days: days!,
       max_shops: f.max_shops.trim() ? shops : null,
+      max_branches: f.max_branches.trim() ? branches : null,
       max_live_offers: f.max_live_offers.trim() ? offers : null,
       is_default: f.is_default,
       is_active: f.is_active,
@@ -247,6 +254,19 @@ function PlanForm({ plan, nextSort, onDone }: { plan?: Plan; nextSort: number; o
             placeholder="No limit"
             value={f.max_shops}
             onChange={(e) => set({ max_shops: e.target.value })}
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="pl-branches">Max branches</label>
+          <input
+            id="pl-branches"
+            type="number"
+            min={0}
+            step={1}
+            inputMode="numeric"
+            placeholder="No limit"
+            value={f.max_branches}
+            onChange={(e) => set({ max_branches: e.target.value })}
           />
         </div>
         <div className="field">

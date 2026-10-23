@@ -150,6 +150,7 @@ function PlanOption({ plan: p, billing }: { plan: Plan; billing: MyBilling | und
       {p.description && <p style={{ fontSize: 13, lineHeight: 1.5, margin: '6px 0 0' }}>{p.description}</p>}
       <ul style={{ fontSize: 13, lineHeight: 1.6, margin: '8px 0 0', paddingLeft: 18 }}>
         <li>{limitText(p.max_shops, 'shop', 'shops')}</li>
+        <li>{limitText(p.max_branches ?? null, 'branch', 'branches')}</li>
         <li>{limitText(p.max_live_offers, 'live offer', 'live offers')}</li>
         {p.features.map((f) => (
           <li key={f}>{f}</li>

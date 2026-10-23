@@ -1,7 +1,7 @@
 import { Navigate, NavLink, Route, Routes } from 'react-router-dom';
 import { BackHeader } from '../components/AppShell';
 import { useMyVendorRow } from './api';
-import { ApplyForm } from './ApplyForm';
+import { VendorOnboarding } from './onboarding/VendorOnboarding';
 import { VendorContext } from './context';
 import Dashboard from './Dashboard';
 import ShopsList from './ShopsList';
@@ -16,7 +16,7 @@ import VendorPromote from './engagement/Promote';
 import VendorBilling from './billing/Billing';
 import VendorTeam from './team/Team';
 import VendorHelp from './support/VendorHelp';
-import type { VendorRole } from '../lib/types';
+import type { MyVendor, VendorRole } from '../lib/types';
 import { ErrorNote, Loading } from './ui';
 
 // staffToo: shown to Staff, who only check prize codes and see insights.
@@ -32,6 +32,9 @@ const tabs = [
   { to: '/vendor/team', label: 'Team', staffToo: true },
   { to: '/vendor/help', label: 'Help', staffToo: true },
 ];
+
+/** An application from the earlier three-field form: pending, owned by this user, with no plan picked. */
+const needsOnboarding = (v: MyVendor) => v.status === 'pending' && v.my_role === 'owner' && v.plan_id == null;
 
 const roleName: Record<VendorRole, string> = { owner: 'Owner', manager: 'Manager', staff: 'Staff' };
 
@@ -56,11 +59,11 @@ export default function VendorApp() {
           <Loading />
         ) : error ? (
           <ErrorNote error={error} />
-        ) : !vendor ? (
-          // Has the vendor role but no business yet (e.g. role granted by hand): register here.
+        ) : !vendor || needsOnboarding(vendor) ? (
+          // No business yet (e.g. role granted by hand), or an earlier short application: finish it here.
           <>
-            <div className="notice">Tell us about your business to start adding shops.</div>
-            <ApplyForm />
+            <div className="notice">Choose a plan and tell us about your shop to send your application.</div>
+            <VendorOnboarding />
           </>
         ) : (
           <VendorContext.Provider value={vendor}>

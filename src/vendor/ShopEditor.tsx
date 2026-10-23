@@ -7,7 +7,7 @@ import { openState } from '../lib/hours';
 import { db, must, useCategories } from '../lib/queries';
 import type { Shop } from '../lib/types';
 import { useBranches, useMyShops, VENDOR_KEY } from './api';
-import { useApproved, useReadOnly, useVendor } from './context';
+import { useReadOnly, useVendor } from './context';
 import { errorMessage, orNull, phoneError } from './format';
 import { BlockedNote, ErrorNote, FormError, Loading, Lockable, NotFound, PageHead } from './ui';
 
@@ -30,7 +30,8 @@ export default function ShopEditor() {
 function ShopForm({ shop }: { shop: Shop | null }) {
   const vendor = useVendor();
   const readOnly = useReadOnly();
-  const approved = useApproved();
+  // A business under review may already add its logo and cover photo (offer pictures wait for approval).
+  const canAddPhotos = vendor.status !== 'blocked';
   const qc = useQueryClient();
   const toast = useToast();
   const navigate = useNavigate();
@@ -154,7 +155,7 @@ function ShopForm({ shop }: { shop: Shop | null }) {
               />
             </div>
           </div>
-          {approved ? (
+          {canAddPhotos ? (
             <>
               <div style={{ maxWidth: 140 }}>
                 <ImageField
@@ -173,9 +174,7 @@ function ShopForm({ shop }: { shop: Shop | null }) {
               />
             </>
           ) : (
-            <div className="notice">
-              You can add a logo and cover photo once the IWILLFLY team approves your business.
-            </div>
+            <div className="notice">Your account is blocked, so pictures can't be changed.</div>
           )}
           <label className="check-row">
             <input

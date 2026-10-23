@@ -5,7 +5,11 @@ import { useAuth } from '../auth/AuthProvider';
 import { useToast } from '../components/Toast';
 import { db, must, useCategories } from '../lib/queries';
 import { PasswordInput } from '../auth/forms';
-import type { Offer, Vendor, VendorStatus } from '../lib/types';
+import { DAYS, formatTime } from '../lib/hours';
+import { parkingInfo } from '../lib/parking';
+import { mediaUrl } from '../lib/supabase';
+import type { Branch, Hours, Offer, Vendor, VendorStatus } from '../lib/types';
+import { PLAN_SELECT, planPayment, type InvoiceRef, type PlanRef } from './application';
 import { formatDate as formatDay, offerPhase, phaseClass, phaseLabel, phoneError } from '../vendor/format';
 import { ErrorNotice, Loading } from './ui';
 import { PUBLIC_KEYS, formatDate, friendlyError, one, slugify, useInvalidate } from './util';
@@ -73,6 +77,7 @@ export function VendorDetail() {
       {vendor.data && (
         <>
           <BusinessCard key={vendor.dataUpdatedAt} vendor={vendor.data} />
+          <ApplicationCard vendorId={vendorId} />
           {directory.error && <ErrorNotice error={directory.error} />}
           {owner && <OwnerCard key={`${owner.owner_name}|${owner.owner_phone}`} owner={owner} />}
           {isSuper && <PasswordCard vendorId={vendorId} />}
@@ -84,6 +89,129 @@ export function VendorDetail() {
         </>
       )}
     </>
+  );
+}
+
+type AppBranch = Pick<
+  Branch,
+  'id' | 'name' | 'address' | 'lat' | 'lng' | 'phone' | 'hours' | 'parking' | 'parking_note'
+> & { location: { name: string } | null };
+type AppShop = {
+  id: number;
+  name: string;
+  logo_key: string | null;
+  cover_key: string | null;
+  branches: AppBranch[];
+};
+type AppRow = { plan: PlanRef; invoices: InvoiceRef[]; shops: AppShop[] };
+
+function hoursText(h: Hours) {
+  const open = DAYS.filter((d) => h[d.key]);
+  if (!open.length) return 'Closed every day';
+  return open
+    .map((d) => `${d.label.slice(0, 3)} ${formatTime(h[d.key]!.open)}–${formatTime(h[d.key]!.close)}`)
+    .join(' · ');
+}
+
+/** What the vendor sent when applying: plan and payment, pictures, and each branch's place and hours. */
+function ApplicationCard({ vendorId }: { vendorId: number }) {
+  const app = useQuery({
+    queryKey: ['admin', 'vendor', vendorId, 'application'],
+    queryFn: async () =>
+      must<AppRow>(
+        await db()
+          .from('vendors')
+          .select(
+            `${PLAN_SELECT}, shops(id, name, logo_key, cover_key, branches(id, name, address, lat, lng, phone, hours, parking, parking_note, location:locations(name)))`,
+          )
+          .eq('id', vendorId)
+          .single(),
+      ),
+  });
+  if (app.isPending) return <Loading />;
+  if (app.error) return <ErrorNotice error={app.error} />;
+  const payment = planPayment(app.data.plan, app.data.invoices);
+  return (
+    <section className="form-card section">
+      <h3 style={{ marginTop: 0 }}>📋 Shop details and branches</h3>
+      {payment ? (
+        <p style={{ marginTop: 0 }}>
+          Plan: <span className={`pill-status ${payment.tone}`}>{payment.label}</span>
+          {payment.invoiceId && (
+            <>
+              {' '}
+              <Link to={`/admin/billing/invoices/${payment.invoiceId}`}>Open invoice ›</Link>
+            </>
+          )}
+          {!payment.ok && (
+            <span className="meta" style={{ display: 'block' }}>
+              Approve unlocks once this invoice is marked paid.
+            </span>
+          )}
+        </p>
+      ) : (
+        <p className="meta" style={{ marginTop: 0 }}>
+          No plan picked when applying (older account).
+        </p>
+      )}
+      {app.data.shops.length === 0 && <p className="meta">No shops yet.</p>}
+      {app.data.shops.map((s) => (
+        <div key={s.id} style={{ marginBottom: 12 }}>
+          <b>{s.name}</b>
+          <div style={{ display: 'flex', gap: 8, margin: '6px 0' }}>
+            {s.logo_key ? (
+              <img
+                src={mediaUrl(s.logo_key)}
+                alt="Logo"
+                style={{ width: 56, height: 56, borderRadius: 12, objectFit: 'cover' }}
+              />
+            ) : (
+              <span className="meta">No logo</span>
+            )}
+            {s.cover_key ? (
+              <img
+                src={mediaUrl(s.cover_key)}
+                alt="Cover"
+                style={{ height: 56, borderRadius: 12, objectFit: 'cover', aspectRatio: '16 / 9' }}
+              />
+            ) : (
+              <span className="meta">· No cover photo</span>
+            )}
+          </div>
+          {s.branches.map((b) => {
+            const parking = parkingInfo(b.parking);
+            return (
+              <div key={b.id} className="review-block">
+                <div>
+                  <b>{b.name}</b>
+                  {b.location && <span className="meta"> · {b.location.name}</span>}
+                </div>
+                <div>{b.address || <span className="meta">No address</span>}</div>
+                <div className="meta">
+                  {b.lat != null && b.lng != null ? (
+                    <a
+                      href={`https://www.google.com/maps?q=${b.lat},${b.lng}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      📍 Open the pin in Google Maps
+                    </a>
+                  ) : (
+                    'No map pin'
+                  )}
+                  {b.phone && ` · 📞 ${b.phone}`}
+                </div>
+                <div className="meta">
+                  {parking ? `${parking.icon} ${parking.label}` : 'Parking not set'}
+                  {b.parking_note && ` (${b.parking_note})`}
+                </div>
+                <div className="meta">🕘 {hoursText(b.hours)}</div>
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </section>
   );
 }
 
