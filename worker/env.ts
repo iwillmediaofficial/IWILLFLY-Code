@@ -11,6 +11,12 @@ export interface Env {
   SUPABASE_SERVICE_ROLE_KEY?: string;
   VAPID_PRIVATE_JWK?: string;
   VAPID_SUBJECT?: string;
+  // Instamojo online payments (secrets; payments are switched off until all three are set). See worker/instamojo.ts.
+  INSTAMOJO_API_KEY?: string;
+  INSTAMOJO_AUTH_TOKEN?: string;
+  INSTAMOJO_SALT?: string;
+  // https://test.instamojo.com/api/1.1/ for the sandbox; live by default.
+  INSTAMOJO_API_BASE?: string;
 }
 
 export const json = (body: unknown, status = 200) =>

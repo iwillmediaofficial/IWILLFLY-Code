@@ -38,6 +38,8 @@ export interface Vendor {
   is_verified: boolean;
   admin_note: string | null;
   reviewed_at: string | null;
+  /** The plan picked when applying; null for businesses from before plans were part of the application. */
+  plan_id: number | null;
   created_at: string;
 }
 
@@ -538,6 +540,9 @@ export interface BillingSettings {
   gst_percent: number;
   invoice_prefix: string;
   payment_note: string | null;
+  // Which payment methods vendors are offered (Admin > Billing settings)
+  pay_instamojo?: boolean;
+  pay_upi?: boolean;
   updated_at: string;
 }
 
@@ -550,6 +555,8 @@ export interface Plan {
   price: number | string;
   period_days: number;
   max_shops: number | null;
+  /** Branches across all of a vendor's shops; null = no limit. */
+  max_branches: number | null;
   max_live_offers: number | null;
   is_default: boolean;
   is_active: boolean;
@@ -570,7 +577,7 @@ export interface Addon {
 }
 
 export type InvoiceStatus = 'unpaid' | 'submitted' | 'paid' | 'void';
-export type PaymentMethod = 'upi' | 'cash' | 'bank' | 'razorpay' | 'free';
+export type PaymentMethod = 'upi' | 'cash' | 'bank' | 'razorpay' | 'free' | 'instamojo';
 
 export interface Invoice {
   id: number;
@@ -594,6 +601,8 @@ export interface Invoice {
   };
   payer_ref: string | null;
   payer_note: string | null;
+  // Screenshot of a UPI payment (private; open with billPhotoLink)
+  payer_proof_key?: string | null;
   submitted_at: string | null;
   payment_method: PaymentMethod | null;
   payment_ref: string | null;

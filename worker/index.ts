@@ -1,6 +1,7 @@
 import { handleCreateVendor, handleSetVendorPassword } from './adminVendors';
 import { cleanupBillPhotos, handlePhoto, handlePhotoLink } from './bills';
 import type { Env } from './env';
+import { handleInstamojoReturn, handleInstamojoStart, handleInstamojoWebhook } from './instamojo';
 import { handleMapsResolve } from './mapsLink';
 import { dispatchPush, handleDispatch } from './push';
 import { withSecurityHeaders } from './securityHeaders';
@@ -19,6 +20,12 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
   if (request.method === 'POST' && pathname === '/api/bills/photo-link') return handlePhotoLink(request, env);
   if (request.method === 'GET' && pathname === '/api/bills/photo') return handlePhoto(request, env);
   if (request.method === 'POST' && pathname === '/api/maps/resolve') return handleMapsResolve(request, env);
+  if (request.method === 'POST' && pathname === '/api/pay/instamojo/start')
+    return handleInstamojoStart(request, env);
+  if (request.method === 'GET' && pathname === '/api/pay/instamojo/return')
+    return handleInstamojoReturn(request, env);
+  if (request.method === 'POST' && pathname === '/api/pay/instamojo/webhook')
+    return handleInstamojoWebhook(request, env);
   if (pathname.startsWith('/api/')) return new Response('Not found', { status: 404 });
   const seo = await handleSeo(request, env, ctx);
   if (seo) return seo;

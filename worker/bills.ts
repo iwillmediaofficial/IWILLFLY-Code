@@ -5,8 +5,10 @@ import { MAX_BYTES } from './upload';
 // bills/<customer id>/<sha256 of the file>.webp. The database reads the fingerprint for its duplicate-photo
 // check from that key, which only this Worker writes. Admins (and the customer, for their own bills) view a
 // photo through a signed link that works for 10 minutes. Photos are deleted 90 days after the bill is decided.
+// Vendors' UPI payment screenshots use the same bucket and links, under payments/<owner id>/<sha256>.webp.
 
 const KEY_RE = /^bills\/[0-9a-f-]{36}\/[0-9a-f]{64}\.webp$/;
+const PHOTO_KEY_RE = /^(bills|payments)\/[0-9a-f-]{36}\/[0-9a-f]{64}\.webp$/;
 const ADMIN_ROLES = ['admin', 'super_admin'];
 const LINK_SECONDS = 600;
 const UPLOADS_PER_HOUR = 20;
@@ -37,9 +39,16 @@ async function linkKey(env: Env) {
   return crypto.subtle.importKey('raw', raw, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify']);
 }
 
-/** POST /api/upload?folder=bills (called from handleUpload): any signed-in customer, WebP only. */
-export async function handleBillUpload(request: Request, env: Env): Promise<Response> {
-  if (!env.BILLS) return json({ error: 'Bill photo storage is not connected to the app' }, 500);
+/**
+ * POST /api/upload?folder=bills or folder=payments (called from handleUpload): any signed-in user, WebP only.
+ * Only the database decides what a photo is used for (submit_bill, submit_payment check the key's owner).
+ */
+export async function handleBillUpload(
+  request: Request,
+  env: Env,
+  folder: 'bills' | 'payments' = 'bills',
+): Promise<Response> {
+  if (!env.BILLS) return json({ error: 'Private photo storage is not connected to the app' }, 500);
   const uid = await userIdFor(request, env);
   if (uid === null) return json({ error: 'Session expired, sign in again' }, 401);
   if (uid === 'error') return json({ error: 'Could not verify account' }, 502);
@@ -49,7 +58,7 @@ export async function handleBillUpload(request: Request, env: Env): Promise<Resp
   if (body.byteLength > MAX_BYTES) return json({ error: 'Image too large' }, 413);
   if (!isWebp(body)) return json({ error: 'This file is not an image' }, 415);
 
-  const key = `bills/${uid}/${hex(await crypto.subtle.digest('SHA-256', body))}.webp`;
+  const key = `${folder}/${uid}/${hex(await crypto.subtle.digest('SHA-256', body))}.webp`;
   // the same photo again: nothing new to store
   if (await env.BILLS.head(key)) return json({ key });
 
@@ -58,12 +67,12 @@ export async function handleBillUpload(request: Request, env: Env): Promise<Resp
   let recent = 0;
   let cursor: string | undefined;
   do {
-    const page = await env.BILLS.list({ prefix: `bills/${uid}/`, cursor, limit: 1000 });
+    const page = await env.BILLS.list({ prefix: `${folder}/${uid}/`, cursor, limit: 1000 });
     recent += page.objects.filter((o) => o.uploaded.getTime() > since).length;
     cursor = page.truncated ? page.cursor : undefined;
   } while (cursor && recent < UPLOADS_PER_HOUR);
   if (recent >= UPLOADS_PER_HOUR)
-    return json({ error: 'Too many bill photos in the last hour. Please try again later.' }, 429);
+    return json({ error: 'Too many photos in the last hour. Please try again later.' }, 429);
 
   await env.BILLS.put(key, body, {
     httpMetadata: { contentType: 'image/webp', cacheControl: 'private, no-store' },
@@ -73,19 +82,20 @@ export async function handleBillUpload(request: Request, env: Env): Promise<Resp
 
 /**
  * POST /api/bills/photo-link  { key }  ->  { url }
- * A link to one bill photo that works for 10 minutes. Admins may open any bill; customers only their own.
+ * A link to one bill photo or payment screenshot that works for 10 minutes. Admins may open any; the person
+ * who uploaded it only their own.
  */
 export async function handlePhotoLink(request: Request, env: Env): Promise<Response> {
   const body = (await request.json().catch(() => null)) as { key?: unknown } | null;
   const key = typeof body?.key === 'string' ? body.key : '';
-  if (!KEY_RE.test(key)) return json({ error: 'Bad request' }, 400);
+  if (!PHOTO_KEY_RE.test(key)) return json({ error: 'Bad request' }, 400);
   const hmac = await linkKey(env);
   if (!hmac) return json({ error: 'SUPABASE_SERVICE_ROLE_KEY is not set for the Worker' }, 500);
 
   const uid = await userIdFor(request, env);
   if (uid === null) return json({ error: 'Session expired, sign in again' }, 401);
   if (uid === 'error') return json({ error: 'Could not verify account' }, 502);
-  if (!key.startsWith(`bills/${uid}/`)) {
+  if (!key.startsWith(`bills/${uid}/`) && !key.startsWith(`payments/${uid}/`)) {
     const roles = await rolesFor(request, env);
     if (roles === null) return json({ error: 'Session expired, sign in again' }, 401);
     if (roles === 'error') return json({ error: 'Could not verify account' }, 502);
@@ -105,7 +115,7 @@ export async function handlePhoto(request: Request, env: Env): Promise<Response>
   const exp = Number(q.get('e'));
   const sig = fromB64url(q.get('s') ?? '');
   const hmac = await linkKey(env);
-  if (!env.BILLS || !hmac || !KEY_RE.test(key) || !Number.isInteger(exp) || !sig)
+  if (!env.BILLS || !hmac || !PHOTO_KEY_RE.test(key) || !Number.isInteger(exp) || !sig)
     return new Response('Not found', { status: 404 });
   if (exp < Date.now() / 1000) return new Response('This link has expired', { status: 410 });
   const ok = await crypto.subtle.verify('HMAC', hmac, sig, new TextEncoder().encode(`${key}|${exp}`));

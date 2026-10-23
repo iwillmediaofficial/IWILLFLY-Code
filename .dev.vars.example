@@ -8,3 +8,9 @@ VITE_SUPABASE_ANON_KEY=
 VITE_MEDIA_BASE_URL=
 # Super admin tools (create vendor accounts, set vendor passwords) and web push. Server-only: never put it in .env.local.
 SUPABASE_SERVICE_ROLE_KEY=
+# Instamojo online payments (worker/instamojo.ts). Server-only secrets: never put them in .env.local or in code.
+# Leave INSTAMOJO_API_BASE empty for live payments, or https://test.instamojo.com/api/1.1/ with sandbox keys.
+INSTAMOJO_API_KEY=
+INSTAMOJO_AUTH_TOKEN=
+INSTAMOJO_SALT=
+INSTAMOJO_API_BASE=

@@ -6,6 +6,8 @@ const STAFF_UPLOAD_ROLES = ['admin', 'super_admin', 'campaign_manager'];
 export const MAX_BYTES = 1024 * 1024; // images arrive as ~150 KB WebP; 1 MB is a hard ceiling
 // Approved vendor teams may upload this many images per India day; staff have no limit.
 const VENDOR_UPLOADS_PER_DAY = 100;
+// A business still under review may add only its shop logo and cover photo, with a few retries.
+const PENDING_UPLOADS_PER_DAY = 6;
 // One empty marker per vendor upload, upload-log/<user id>/<India date>/<random>, counts the day's uploads.
 const LOG_PREFIX = 'upload-log/';
 
@@ -13,7 +15,8 @@ const LOG_PREFIX = 'upload-log/';
  * POST /api/upload?folder=offers  body: the WebP image  with  Authorization: Bearer <supabase access token>
  * Stores the image in the media bucket through the Worker's R2 binding and returns its key.
  * Going through the app's own address means the bucket needs no CORS rule and no API keys.
- * folder=bills is the customers' bill photo route, which goes to a private bucket (worker/bills.ts).
+ * folder=bills (customers' bill photos) and folder=payments (vendors' UPI payment screenshots) go to a
+ * private bucket instead (worker/bills.ts).
  */
 export async function handleUpload(request: Request, env: Env): Promise<Response> {
   const token = request.headers.get('Authorization')?.replace(/^Bearer /, '');
@@ -25,6 +28,8 @@ export async function handleUpload(request: Request, env: Env): Promise<Response
   if (Number(request.headers.get('Content-Length')) > MAX_BYTES)
     return json({ error: 'Image too large' }, 413);
   if (requested === 'bills') return handleBillUpload(request, env);
+  // Vendors' UPI payment screenshots: private, like bill photos (allowed while the business is under review).
+  if (requested === 'payments') return handleBillUpload(request, env, 'payments');
 
   if (!env.MEDIA) return json({ error: 'Image storage is not connected to the app' }, 500);
   const folder = FOLDERS.find((f) => f === requested);
@@ -37,21 +42,22 @@ export async function handleUpload(request: Request, env: Env): Promise<Response
   const staff = roles.some((r) => STAFF_UPLOAD_ROLES.includes(r));
   if (!staff && !roles.includes('vendor')) return json({ error: 'Your account cannot upload images' }, 403);
 
-  // Vendors can upload only after the IWILLFLY team approves their business, up to a daily allowance.
+  // Approved vendors upload anything up to a daily allowance; a business under review only its shop
+  // logo and cover photo (folder 'shops'), a few a day.
   let logKey: string | null = null;
   if (!staff) {
     const vendor = await myVendor(request, env);
     if (vendor === 'error') return json({ error: 'Could not verify account' }, 502);
-    if (vendor?.status === 'pending')
+    const pending = vendor?.status === 'pending';
+    if (pending && folder !== 'shops')
       return json({ error: 'You can add pictures once IWILLFLY approves your business' }, 403);
-    if (vendor?.status !== 'approved') return json({ error: 'Your account cannot upload images' }, 403);
+    if (!vendor || (!pending && vendor.status !== 'approved'))
+      return json({ error: 'Your account cannot upload images' }, 403);
+    const allowance = pending ? PENDING_UPLOADS_PER_DAY : VENDOR_UPLOADS_PER_DAY;
     const prefix = `${LOG_PREFIX}${vendor.uid}/${indiaDate()}/`;
-    const used = await env.MEDIA.list({ prefix, limit: VENDOR_UPLOADS_PER_DAY });
-    if (used.objects.length >= VENDOR_UPLOADS_PER_DAY)
-      return json(
-        { error: `You can upload ${VENDOR_UPLOADS_PER_DAY} images a day. Please try again tomorrow.` },
-        429,
-      );
+    const used = await env.MEDIA.list({ prefix, limit: allowance });
+    if (used.objects.length >= allowance)
+      return json({ error: `You can upload ${allowance} images a day. Please try again tomorrow.` }, 429);
     logKey = `${prefix}${crypto.randomUUID()}`;
   }
 

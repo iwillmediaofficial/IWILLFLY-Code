@@ -1,7 +1,7 @@
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { AppShell, LogoHeader } from '../components/AppShell';
-import { ApplyForm } from './ApplyForm';
+import { VendorOnboarding } from './onboarding/VendorOnboarding';
 
 const perks = [
   ['🏪', 'Your shops on the map', 'Branches, hours and directions for nearby customers'],
@@ -19,8 +19,8 @@ export default function VendorApply() {
       <section className="hero">
         <h1>Sell on IWILLFLY</h1>
         <p>
-          List your shop and offers for shoppers nearby. Your shops go live after the IWILLFLY team approves
-          your business.
+          Choose a plan, add your shop with its location and hours, and send it to us. Your shop goes live
+          after the IWILLFLY team approves it.
         </p>
         <span className="hero-pill">For shop owners</span>
       </section>
@@ -38,11 +38,11 @@ export default function VendorApply() {
       </section>
       <section className="section">
         {session ? (
-          <ApplyForm />
+          <VendorOnboarding />
         ) : (
           <div className="form-card">
             <h3 style={{ marginTop: 0 }}>Get started</h3>
-            <p className="meta">Create a vendor account with your business details in one step.</p>
+            <p className="meta">Create a vendor account, then add your shop step by step.</p>
             <Link
               className="btn block"
               to="/vendor/signup"

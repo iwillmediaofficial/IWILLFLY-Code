@@ -2813,3 +2813,139 @@
     display: block !important;
   }
 }
+
+/* Vendor application: step bar, plan cards, review blocks; dashboard "Finish your shop" */
+@layer components {
+  .onboarding-steps {
+    margin-bottom: 10px;
+  }
+  .onboarding-steps ol {
+    display: flex;
+    gap: 6px;
+    list-style: none;
+    margin: 6px 0 0;
+    padding: 0;
+  }
+  .onboarding-steps li {
+    flex: 1;
+  }
+  .onboarding-steps button {
+    display: block;
+    width: 100%;
+    padding: 6px 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+  }
+  .onboarding-steps button:disabled {
+    cursor: default;
+  }
+  .onboarding-steps button span {
+    display: block;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--color-line);
+  }
+  .onboarding-steps li.done button span,
+  .onboarding-steps li.current button span {
+    background: var(--color-blue);
+  }
+  .onboarding-steps li.current button span {
+    opacity: 0.55;
+  }
+  .plan-pick {
+    display: block;
+    width: 100%;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    background: var(--color-card);
+    border: 2px solid var(--color-line);
+    border-radius: 18px;
+    padding: 14px;
+    cursor: pointer;
+  }
+  .plan-pick.picked {
+    border-color: var(--color-blue);
+    background: var(--color-blue-soft);
+  }
+  .plan-pick-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .plan-pick-head h4 {
+    margin: 0;
+    flex: 1;
+    min-width: 0;
+  }
+  .plan-pick-head b {
+    color: var(--color-blue);
+    white-space: nowrap;
+  }
+  .plan-pick-dot {
+    flex: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid var(--color-line);
+    background: var(--color-card);
+  }
+  .plan-pick.picked .plan-pick-dot {
+    border: 6px solid var(--color-blue);
+  }
+  .plan-pick p {
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 6px 0 0;
+  }
+  .plan-pick ul {
+    font-size: 13px;
+    line-height: 1.6;
+    margin: 6px 0 4px;
+    padding-left: 18px;
+  }
+  .review-block {
+    border: 1px solid var(--color-line);
+    border-radius: 14px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    font-size: 14px;
+    overflow-wrap: anywhere;
+  }
+  .review-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+  .finish-shop {
+    margin-bottom: 12px;
+  }
+  .finish-shop h4 {
+    margin: 0 0 6px;
+  }
+  .finish-shop ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .finish-shop li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    font-size: 14px;
+    border-top: 1px solid var(--color-line);
+  }
+  .finish-shop li:first-child {
+    border-top: 0;
+  }
+  .finish-shop li.done {
+    color: var(--color-muted);
+  }
+  .finish-shop li.done span:first-child {
+    color: var(--color-green);
+    font-weight: 900;
+  }
+}

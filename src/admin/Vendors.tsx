@@ -8,6 +8,7 @@ import type { Vendor, VendorStatus } from '../lib/types';
 import { Empty, ErrorNotice, Loading } from './ui';
 import { PUBLIC_KEYS, formatDate, friendlyError, one, useInvalidate, waLink } from './util';
 import { DIRECTORY_KEY, useVendorDirectory, type VendorOwnerRow } from './vendorApi';
+import { PLAN_SELECT, planPayment, type InvoiceRef, type PlanRef } from './application';
 
 type Tab = VendorStatus | 'all';
 const TABS: { key: Tab; label: string }[] = [
@@ -18,8 +19,11 @@ const TABS: { key: Tab; label: string }[] = [
 ];
 
 type CategoryRef = { name: string; icon: string | null };
+type BranchRef = { id: number; name: string; address: string | null; location: { name: string } | null };
 type VendorRow = Vendor & {
-  shops: { id: number; name: string; category: CategoryRef | CategoryRef[] | null }[];
+  plan: PlanRef;
+  invoices: InvoiceRef[];
+  shops: { id: number; name: string; category: CategoryRef | CategoryRef[] | null; branches: BranchRef[] }[];
 };
 
 export function Vendors() {
@@ -44,7 +48,9 @@ export function Vendors() {
     queryFn: async () => {
       let q = db()
         .from('vendors')
-        .select('*, shops(id, name, category:categories(name, icon))')
+        .select(
+          `*, ${PLAN_SELECT}, shops(id, name, category:categories(name, icon), branches(id, name, address, location:locations(name)))`,
+        )
         .order('created_at', { ascending: tab === 'pending' });
       if (tab !== 'all') q = q.eq('status', tab);
       return must<VendorRow[]>(await q);
@@ -132,6 +138,9 @@ function VendorCard({ vendor: v, owner }: { vendor: VendorRow; owner?: VendorOwn
     onError: (e) => toast(friendlyError(e)),
   });
 
+  const payment = planPayment(v.plan, v.invoices);
+  const waiting = v.status === 'pending' && payment && !payment.ok;
+
   const run = (patch: Partial<Vendor>, done: string) =>
     update.mutate(patch, { onSuccess: () => toast(done) });
 
@@ -163,6 +172,20 @@ function VendorCard({ vendor: v, owner }: { vendor: VendorRow; owner?: VendorOwn
           {v.is_verified && <span className="pill-status live">✓ Verified</span>}
         </div>
       </div>
+      {payment && (
+        <div style={{ marginTop: 6 }}>
+          <span className={`pill-status ${payment.tone}`}>{payment.label}</span>
+          {payment.invoiceId && (
+            <Link
+              className="meta"
+              to={`/admin/billing/invoices/${payment.invoiceId}`}
+              style={{ marginLeft: 8 }}
+            >
+              Invoice ›
+            </Link>
+          )}
+        </div>
+      )}
 
       <div className="meta" style={{ marginTop: 6, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
         {v.contact_phone && (
@@ -193,6 +216,13 @@ function VendorCard({ vendor: v, owner }: { vendor: VendorRow; owner?: VendorOwn
               <div key={s.id}>
                 🏬 <b>{s.name}</b>{' '}
                 <span className="meta">{c ? `· ${c.icon ?? ''} ${c.name}` : '· No category'}</span>
+                {s.branches.map((b) => (
+                  <div key={b.id} className="meta" style={{ paddingLeft: 22 }}>
+                    📍 {s.branches.length > 1 ? `${b.name}: ` : ''}
+                    {b.address || 'No address'}
+                    {b.location ? ` · ${b.location.name}` : ''}
+                  </div>
+                ))}
               </div>
             );
           })
@@ -249,10 +279,11 @@ function VendorCard({ vendor: v, owner }: { vendor: VendorRow; owner?: VendorOwn
         {v.status !== 'approved' && v.status !== 'blocked' && (
           <button
             className="btn small"
-            disabled={update.isPending}
+            disabled={update.isPending || Boolean(waiting)}
+            title={waiting ? 'Mark the plan invoice as paid first' : undefined}
             onClick={() => run({ status: 'approved' }, 'Vendor approved')}
           >
-            Approve
+            {waiting ? 'Approve (waiting for payment)' : 'Approve'}
           </button>
         )}
         {v.status === 'blocked' ? (
