@@ -19,16 +19,82 @@
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <title>IWILLFLY – Local offers, malls and Scratch & Win near you</title>
+    <!-- Logo pre-loader styles live here so they paint before the app's CSS arrives; PageLoader reuses them. -->
+    <style>
+      .iwf-loader {
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        display: grid;
+        place-content: center;
+        justify-items: center;
+        gap: 22px;
+        background: #f4f7fb;
+      }
+      .iwf-loader--delayed {
+        opacity: 0;
+        animation: iwf-fade-in 0.2s ease 0.25s forwards;
+      }
+      .iwf-loader-logo {
+        width: 200px;
+        height: 65px;
+        border-radius: 12px;
+        box-shadow: 0 12px 30px rgba(21, 71, 148, 0.18);
+        animation: iwf-fly 1.6s ease-in-out infinite;
+      }
+      .iwf-loader-bar {
+        width: 140px;
+        height: 5px;
+        border-radius: 99px;
+        background: #e3ecfb;
+        overflow: hidden;
+      }
+      .iwf-loader-bar span {
+        display: block;
+        width: 40%;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #1760d9, #ffdc16);
+        animation: iwf-slide 1.1s ease-in-out infinite;
+      }
+      @keyframes iwf-fly {
+        0%,
+        100% {
+          transform: translateY(0) scale(1);
+        }
+        50% {
+          transform: translateY(-8px) scale(1.03);
+        }
+      }
+      @keyframes iwf-slide {
+        0% {
+          transform: translateX(-100%);
+        }
+        100% {
+          transform: translateX(250%);
+        }
+      }
+      @keyframes iwf-fade-in {
+        to {
+          opacity: 1;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .iwf-loader-logo {
+          animation: none;
+        }
+        .iwf-loader-bar span {
+          animation-duration: 2.4s;
+        }
+      }
+    </style>
   </head>
   <body>
-    <!-- Static shell painted before the app's JavaScript loads; React replaces it on start. -->
+    <!-- Logo pre-loader painted before the app's JavaScript loads; React replaces it on start. -->
     <div id="root">
-      <div class="app-shell">
-        <header class="topbar">
-          <div class="top-row">
-            <img class="logo" src="/iwillfly-logo.webp" alt="IWILLFLY" width="132" height="44" />
-          </div>
-        </header>
+      <div class="iwf-loader" role="status" aria-label="Loading IWILLFLY">
+        <img class="iwf-loader-logo" src="/iwillfly-logo.webp" alt="" width="200" height="65" />
+        <div class="iwf-loader-bar"><span></span></div>
       </div>
     </div>
     <script type="module" src="/src/main.tsx"></script>

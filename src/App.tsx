@@ -4,6 +4,7 @@ import { AuthProvider, ADMIN_ROLES } from './auth/AuthProvider';
 import { ProfileGate } from './auth/ProfileGate';
 import { RequireAuth } from './auth/RequireAuth';
 import { RequireRole } from './auth/RequireRole';
+import { PageLoader } from './components/PageLoader';
 import { ToastProvider } from './components/Toast';
 import { LocationProvider } from './lib/location';
 import Home from './customer/pages/Home';
@@ -47,7 +48,7 @@ export default function App() {
         <LocationProvider>
           <ToastProvider>
             <ProfileGate />
-            <Suspense fallback={<div className="app-shell" />}>
+            <Suspense fallback={<PageLoader />}>
               <Routes>
                 <Route path="/" element={signedIn(<Home />)} />
                 <Route path="/explore" element={signedIn(<Explore />)} />
