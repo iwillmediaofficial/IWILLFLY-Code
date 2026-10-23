@@ -800,6 +800,56 @@
     line-height: 1.2;
     overflow-wrap: anywhere;
   }
+  .sw-prize[role='link'] {
+    cursor: pointer;
+  }
+  .sw-prize .p-slider {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    touch-action: pan-y;
+  }
+  .sw-prize .p-track {
+    flex: 1;
+    display: flex;
+    transition: transform 0.4s ease;
+  }
+  .sw-prize .p-track.still {
+    transition: none;
+  }
+  .sw-prize .p-track .p-body {
+    flex: 0 0 100%;
+    min-width: 0;
+  }
+  .sw-prize .p-track .p-name {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 2.4em;
+  }
+  .sw-prize .p-dots {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    padding: 0 6px 7px;
+  }
+  .sw-prize .p-dots button {
+    width: 5px;
+    height: 5px;
+    padding: 0;
+    border: 0;
+    border-radius: 3px;
+    background: rgba(23, 96, 217, 0.22);
+    transition:
+      width 0.3s,
+      background 0.3s;
+  }
+  .sw-prize .p-dots button.on {
+    width: 12px;
+    background: var(--color-blue);
+  }
   @media (max-width: 360px) {
     .sw-panel {
       grid-template-columns: 1fr 92px;
@@ -837,6 +887,16 @@
     .sw-panel *::before,
     .sw-panel *::after {
       animation: none !important;
+    }
+    .sw-prize .p-track {
+      transition: none;
+    }
+    .sw-prize .p-track .p-body {
+      opacity: 0;
+      transition: opacity 0.4s;
+    }
+    .sw-prize .p-track .p-body.on {
+      opacity: 1;
     }
   }
   .status-card {
