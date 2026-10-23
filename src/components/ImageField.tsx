@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { mediaUrl } from '../lib/supabase';
-import { uploadImage, type UploadFolder } from '../lib/upload';
+import { uploadImage, type UploadFolder, type UploadProgress } from '../lib/upload';
+import { UploadProgressBar } from './UploadProgressBar';
 
 /** One image: shows the current picture and uploads a replacement to R2 (WebP). */
 export function ImageField({
@@ -16,7 +17,9 @@ export function ImageField({
   onChange: (key: string | null) => void;
   aspect?: string;
 }) {
-  const [busy, setBusy] = useState(false);
+  // null when no upload is running.
+  const [progress, setProgress] = useState<UploadProgress | null>(null);
+  const busy = progress !== null;
   const [error, setError] = useState('');
   return (
     <div className="field">
@@ -36,18 +39,19 @@ export function ImageField({
             const file = e.target.files?.[0];
             e.target.value = '';
             if (!file) return;
-            setBusy(true);
+            setProgress({ stage: 'preparing', percent: 0 });
             setError('');
             try {
-              onChange(await uploadImage(file, folder));
+              onChange(await uploadImage(file, folder, { onProgress: setProgress }));
             } catch (err) {
               setError(err instanceof Error ? err.message : 'Upload failed');
             } finally {
-              setBusy(false);
+              setProgress(null);
             }
           }}
         />
       </div>
+      {progress && <UploadProgressBar progress={progress} />}
       {value && (
         <button type="button" className="link-btn" onClick={() => onChange(null)}>
           Remove photo
@@ -72,7 +76,11 @@ export function ImageListField({
   onChange: (keys: string[]) => void;
   max?: number;
 }) {
-  const [busy, setBusy] = useState(false);
+  // The running upload, with which of the picked files it is; null when idle.
+  const [upload, setUpload] = useState<{ progress: UploadProgress; current: number; total: number } | null>(
+    null,
+  );
+  const busy = upload !== null;
   const [error, setError] = useState('');
   return (
     <div className="field">
@@ -107,22 +115,35 @@ export function ImageListField({
                 const files = Array.from(e.target.files ?? []).slice(0, max - value.length);
                 e.target.value = '';
                 if (!files.length) return;
-                setBusy(true);
                 setError('');
                 try {
                   const keys: string[] = [];
-                  for (const f of files) keys.push(await uploadImage(f, folder));
+                  for (const [i, f] of files.entries()) {
+                    const step = { current: i + 1, total: files.length };
+                    setUpload({ progress: { stage: 'preparing', percent: 0 }, ...step });
+                    keys.push(
+                      await uploadImage(f, folder, {
+                        onProgress: (progress) => setUpload({ progress, ...step }),
+                      }),
+                    );
+                  }
                   onChange([...value, ...keys]);
                 } catch (err) {
                   setError(err instanceof Error ? err.message : 'Upload failed');
                 } finally {
-                  setBusy(false);
+                  setUpload(null);
                 }
               }}
             />
           </div>
         )}
       </div>
+      {upload && (
+        <UploadProgressBar
+          progress={upload.progress}
+          count={{ current: upload.current, total: upload.total }}
+        />
+      )}
       {error && <p className="error-text">{error}</p>}
     </div>
   );

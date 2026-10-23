@@ -1978,6 +1978,31 @@
     gap: 8px;
     flex-wrap: wrap;
   }
+  .upload-progress {
+    margin-top: 8px;
+  }
+  .upload-progress-track {
+    height: 6px;
+    border-radius: 999px;
+    background: var(--color-line);
+    overflow: hidden;
+  }
+  .upload-progress-track span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--color-blue);
+    transition: width 0.2s ease;
+  }
+  .upload-progress-track span.preparing {
+    background: var(--color-orange);
+  }
+  .upload-progress-label {
+    margin-top: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--color-muted);
+  }
   .shop-thumb img,
   .offer-image img {
     width: 100%;

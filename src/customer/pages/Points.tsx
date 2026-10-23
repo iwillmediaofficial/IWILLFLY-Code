@@ -5,6 +5,7 @@ import { useAuth } from '../../auth/AuthProvider';
 import { AppShell, BackHeader } from '../../components/AppShell';
 import { EmptyState } from '../../components/ShopCard';
 import { useToast } from '../../components/Toast';
+import { UploadProgressBar } from '../../components/UploadProgressBar';
 import {
   REJECT_REASONS,
   addDays,
@@ -22,6 +23,7 @@ import {
 import { db, must } from '../../lib/queries';
 import { supabase } from '../../lib/supabase';
 import type { MyBill, PointsEntry, PointsWallet } from '../../lib/types';
+import { MAX_PICKED_BYTES, type UploadProgress } from '../../lib/upload';
 import { formatDay } from '../scratch';
 import { PointsTerms, Redeem } from './PointsRedeem';
 import { ErrorNotice, Loading, NoBackend, Thumb } from '../ui';
@@ -297,6 +299,8 @@ function BillForm({
   const [photo, setPhoto] = useState<File | null>(null);
   const [keepPhoto, setKeepPhoto] = useState(fix?.reject_reason === 'amount_mismatch');
   const [error, setError] = useState('');
+  // The bill photo's upload, while it is being shrunk and sent; null otherwise.
+  const [progress, setProgress] = useState<UploadProgress | null>(null);
   const preview = useMemo(() => (photo ? URL.createObjectURL(photo) : null), [photo]);
   useEffect(() => () => void (preview && URL.revokeObjectURL(preview)), [preview]);
 
@@ -328,6 +332,7 @@ function BillForm({
         photo: usingOld ? null : photo,
         keepPhotoKey: usingOld ? fix!.photo_key : null,
         resubmitOf: fix?.id ?? null,
+        onProgress: setProgress,
       },
       {
         onSuccess: () => {
@@ -335,6 +340,7 @@ function BillForm({
           navigate('/points/bills');
         },
         onError: (err) => setError(errorText(err)),
+        onSettled: () => setProgress(null),
       },
     );
   };
@@ -428,11 +434,14 @@ function BillForm({
               const f = e.target.files?.[0] ?? null;
               e.target.value = '';
               if (f && !isPhoto(f)) return setError('Choose a photo of the bill (JPG, PNG, WebP or HEIC).');
+              if (f && f.size > MAX_PICKED_BYTES)
+                return setError('This picture is too large (max 10 MB). Please choose a smaller picture.');
               setError('');
               setPhoto(f);
             }}
           />
         </div>
+        {progress && <UploadProgressBar progress={progress} />}
         {photo && (
           <button type="button" className="link-btn" onClick={() => setPhoto(null)}>
             Remove photo

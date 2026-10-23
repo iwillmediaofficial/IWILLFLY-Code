@@ -1,10 +1,11 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useToast } from '../components/Toast';
+import { UploadProgressBar } from '../components/UploadProgressBar';
 import { db, must } from '../lib/queries';
 import { mediaUrl } from '../lib/supabase';
 import type { Category } from '../lib/types';
-import { uploadImage } from '../lib/upload';
+import { uploadImage, type UploadProgress } from '../lib/upload';
 import { Empty, ErrorNotice, Loading } from './ui';
 import { PUBLIC_KEYS, friendlyError, slugify, toNumber, useInvalidate } from './util';
 
@@ -243,19 +244,21 @@ function CategoryImageField({
   emoji: string;
 }) {
   const input = useRef<HTMLInputElement>(null);
-  const [busy, setBusy] = useState(false);
+  // null when no upload is running.
+  const [progress, setProgress] = useState<UploadProgress | null>(null);
+  const busy = progress !== null;
   const [error, setError] = useState('');
 
   const pick = async (file: File | undefined) => {
     if (!file) return;
-    setBusy(true);
+    setProgress({ stage: 'preparing', percent: 0 });
     setError('');
     try {
-      onChange(await uploadImage(file, 'categories', { square: 512 }));
+      onChange(await uploadImage(file, 'categories', { square: 512, onProgress: setProgress }));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed');
     } finally {
-      setBusy(false);
+      setProgress(null);
     }
   };
 
@@ -296,6 +299,7 @@ function CategoryImageField({
             Any photo works: we crop the centre to a square (512 × 512). Without a picture, the emoji is
             shown.
           </div>
+          {progress && <UploadProgressBar progress={progress} />}
         </div>
       </div>
       <input
