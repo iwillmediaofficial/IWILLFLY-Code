@@ -106,12 +106,3 @@ export function useCreateInvoice() {
     onSuccess: () => qc.invalidateQueries({ queryKey: VENDOR_KEY }),
   });
 }
-
-export function useSubmitPayment(invoiceId: number) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (p: { ref: string; note: string | null }) =>
-      must(await db().rpc('submit_payment', { p_invoice_id: invoiceId, p_ref: p.ref, p_note: p.note })),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['vendor', 'billing'] }),
-  });
-}

@@ -12,6 +12,7 @@ import { checkPickedSize, uploadImage, type UploadProgress } from '../../lib/upl
 import type { Hours, Parking, Plan } from '../../lib/types';
 import { VENDOR_KEY } from '../api';
 import { limitText, money, planPrice } from '../billing/format';
+import { payOnline } from '../billing/pay';
 import { errorMessage } from '../format';
 import { HoursEditor } from '../HoursEditor';
 import {
@@ -130,12 +131,19 @@ export function VendorOnboarding() {
       }
     }
     await qc.invalidateQueries({ queryKey: VENDOR_KEY });
-    const paid = plan && Number(plan.price) > 0;
-    toast(
-      photoProblem ||
-        (paid ? 'Application sent! Pay the plan invoice so we can approve you.' : 'Application sent!'),
-    );
-    navigate(paid ? `/vendor/billing/invoices/${result.invoice_id}` : '/vendor', { replace: true });
+    if (plan && Number(plan.price) > 0) {
+      // Straight on to Instamojo's secure page; the invoice page offers it again if this fails.
+      setSending('Opening the secure payment page…');
+      try {
+        if ((await payOnline(result.invoice_id)) === 'leaving') return;
+      } catch (e) {
+        toast(`Application sent. ${errorMessage(e)}`);
+      }
+      navigate(`/vendor/billing/invoices/${result.invoice_id}`, { replace: true });
+      return;
+    }
+    toast(photoProblem || 'Application sent! The IWILLFLY team will review your shop.');
+    navigate('/vendor', { replace: true });
   };
 
   if (sending) {
@@ -202,7 +210,7 @@ export function VendorOnboarding() {
             </button>
           ) : (
             <button type="button" className="btn" style={{ flex: 1 }} onClick={send}>
-              Send application
+              {plan && Number(plan.price) > 0 ? 'Send and pay' : 'Send application'}
             </button>
           )}
         </div>
@@ -277,7 +285,9 @@ function PlanStep({
                 ))}
               </ul>
               {Number(p.price) > 0 && (
-                <div className="meta">Pay by UPI after sending. We approve your shop once it is paid.</div>
+                <div className="meta">
+                  Pay securely online after sending. We review your shop once it is paid.
+                </div>
               )}
             </button>
           );
@@ -660,8 +670,8 @@ function ReviewStep({
             {plan.name} · {planPrice(plan)}
             {Number(plan.price) > 0 && (
               <div className="meta">
-                An invoice for {money(plan.price)} (plus GST if any) is made when you send. Pay it by UPI and
-                we approve your shop once the payment is confirmed.
+                After you send, you pay {money(plan.price)} (plus GST if any) on Instamojo&apos;s secure page.
+                We review your shop once the payment goes through.
               </div>
             )}
           </div>

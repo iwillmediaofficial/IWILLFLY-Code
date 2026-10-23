@@ -1,19 +1,22 @@
-import { useEffect, useState, type FormEvent } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { useToast } from '../../components/Toast';
-import type { BillingSettings, Invoice, InvoiceItem } from '../../lib/types';
+import { useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
+import type { Invoice, InvoiceItem } from '../../lib/types';
+import { VENDOR_KEY } from '../api';
 import { useVendorRole } from '../context';
-import { errorMessage, formatDate, orNull } from '../format';
+import { errorMessage, formatDate } from '../format';
 import { formatDateTime } from '../scratch/format';
 import { ErrorNote, Loading, NotFound, PageHead } from '../ui';
-import { useBillingSettings, useInvoice, useSubmitPayment } from './api';
-import { invoiceClass, invoiceLabel, money, upiLink } from './format';
+import { useInvoice } from './api';
+import { invoiceClass, invoiceLabel, money } from './format';
+import { payOnline } from './pay';
 
 const methodLabel: Record<string, string> = {
   upi: 'UPI',
   cash: 'Cash',
   bank: 'Bank transfer',
   razorpay: 'Online payment',
+  instamojo: 'Online payment (Instamojo)',
   free: 'No charge',
 };
 
@@ -21,7 +24,6 @@ export default function InvoicePage() {
   const id = Number(useParams().id);
   const { isOwner } = useVendorRole();
   const { data, isPending, error } = useInvoice(id);
-  const settings = useBillingSettings();
   if (!isOwner)
     return (
       <>
@@ -40,16 +42,12 @@ export default function InvoicePage() {
       <div className="no-print">
         <PageHead title="Invoice" action={<Link to="/vendor/billing">Plan & billing</Link>} />
       </div>
-      {open && (
+      {open ? (
         <div className="no-print">
-          {settings.isPending ? (
-            <Loading />
-          ) : settings.error ? (
-            <ErrorNote error={settings.error} />
-          ) : (
-            <PayByUpi invoice={inv} settings={settings.data} />
-          )}
+          <PayOnline invoice={inv} />
         </div>
+      ) : (
+        <PaidNotice />
       )}
       <InvoiceSheet invoice={inv} items={data.items} />
       <div className="btn-row no-print" style={{ marginTop: 12 }}>
@@ -59,6 +57,13 @@ export default function InvoicePage() {
       </div>
     </>
   );
+}
+
+/** Shown once, straight after Instamojo sends the vendor back to a paid invoice. */
+function PaidNotice() {
+  const [params] = useSearchParams();
+  if (params.get('payment') !== 'paid') return null;
+  return <div className="notice no-print">Payment received, thank you! Your purchase is switched on.</div>;
 }
 
 /** The printable invoice. */
@@ -176,154 +181,80 @@ function InvoiceSheet({ invoice: i, items }: { invoice: Invoice; items: InvoiceI
   );
 }
 
-/** UPI QR, app link, UPI ID and the "I have paid" form. */
-function PayByUpi({ invoice: i, settings }: { invoice: Invoice; settings: BillingSettings | null }) {
-  const toast = useToast();
-  const upiId = settings?.upi_id;
-  if (!upiId) {
-    return (
-      <div className="notice warn">
-        <b>Online payment details are not set up yet.</b> Please{' '}
-        <Link to="/vendor/help/new" style={{ color: 'var(--color-blue)', fontWeight: 800 }}>
-          contact IWILLFLY support
-        </Link>{' '}
-        to pay invoice {i.number}.
-      </div>
-    );
-  }
-  const payee = settings.payee_name || settings.business_name || 'IWILLFLY';
-  const link = upiLink({ upiId, payee, amount: i.total, note: i.number });
+const RESULT: Record<string, { tone: string; text: string }> = {
+  paid: { tone: '', text: 'Payment received, thank you! Your purchase is switched on.' },
+  pending: {
+    tone: 'warn',
+    text: 'We are confirming your payment with Instamojo. This page updates in a minute; you will not be charged twice.',
+  },
+  failed: {
+    tone: 'bad',
+    text: 'The payment did not go through. No money was taken. You can try again below.',
+  },
+  mismatch: {
+    tone: 'bad',
+    text: 'The paid amount did not match this invoice. Please contact IWILLFLY support; nothing is lost.',
+  },
+  duplicate: {
+    tone: 'warn',
+    text: 'This invoice was already paid, so the extra payment will be refunded by the IWILLFLY team.',
+  },
+};
 
-  const copy = async () => {
+/** "Pay securely" through Instamojo; the result of a payment comes back in ?payment=. */
+function PayOnline({ invoice: i }: { invoice: Invoice }) {
+  const qc = useQueryClient();
+  const [params] = useSearchParams();
+  const result = RESULT[params.get('payment') ?? ''];
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  // Back from Instamojo before the payment was confirmed: look again a few times.
+  useEffect(() => {
+    if (params.get('payment') !== 'pending') return;
+    const t = window.setInterval(() => qc.invalidateQueries({ queryKey: VENDOR_KEY }), 8000);
+    const stop = window.setTimeout(() => window.clearInterval(t), 80_000);
+    return () => {
+      window.clearInterval(t);
+      window.clearTimeout(stop);
+    };
+  }, [params, qc]);
+
+  const pay = async () => {
+    setBusy(true);
+    setError('');
     try {
-      await navigator.clipboard.writeText(upiId);
-      toast('UPI ID copied');
-    } catch {
-      toast('Could not copy. Please select and copy it.');
+      if ((await payOnline(i.id)) === 'paid') {
+        await qc.invalidateQueries({ queryKey: VENDOR_KEY });
+        setBusy(false);
+      }
+    } catch (e) {
+      setError(errorMessage(e));
+      setBusy(false);
     }
   };
 
   return (
     <div className="form-card">
+      {result && <div className={`notice ${result.tone}`}>{result.text}</div>}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
-        <h3 style={{ margin: 0, fontSize: 16 }}>Pay by UPI</h3>
+        <h3 style={{ margin: 0, fontSize: 16 }}>Pay online</h3>
         <b style={{ fontSize: 18 }}>{money(i.total)}</b>
       </div>
-      {i.status === 'submitted' ? (
-        <div className="notice" style={{ marginTop: 10 }}>
-          <b>Thanks, we got your payment details.</b> IWILLFLY checks the payment and switches on your
-          purchase, usually within a working day. Entered the wrong transaction ID? Send the right one below.
+      <p className="meta" style={{ margin: '6px 0 12px' }}>
+        UPI, card, net banking or wallet on Instamojo&apos;s secure page. Your purchase switches on as soon as
+        the payment goes through.
+      </p>
+      {i.status === 'submitted' && (
+        <div className="notice">
+          You sent UPI payment details for this invoice earlier ({i.payer_ref}). The IWILLFLY team is checking
+          them, so only pay online if you have not paid yet.
         </div>
-      ) : (
-        <p className="meta" style={{ margin: '6px 0 0' }}>
-          Scan with any UPI app (Google Pay, PhonePe, Paytm, BHIM) or tap the button on your phone. Then enter
-          the transaction ID below.
-        </p>
       )}
-      <UpiQr link={link} />
-      <a className="btn block" href={link} style={{ display: 'block', textAlign: 'center' }}>
-        Open UPI app
-      </a>
-      <div className="field" style={{ marginTop: 12 }}>
-        <label htmlFor="upi-id">UPI ID ({payee})</label>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <input id="upi-id" value={upiId} readOnly onFocus={(e) => e.target.select()} />
-          <button type="button" className="btn secondary small" onClick={copy} style={{ flex: 'none' }}>
-            Copy
-          </button>
-        </div>
-        <div className="hint">
-          Pay exactly {money(i.total)} and add {i.number} as the note.
-        </div>
-      </div>
-      <SubmitPaymentForm invoice={i} />
-    </div>
-  );
-}
-
-function UpiQr({ link }: { link: string }) {
-  const [src, setSrc] = useState<string | null>(null);
-  const [failed, setFailed] = useState(false);
-  useEffect(() => {
-    let live = true;
-    import('qrcode')
-      .then((mod) => {
-        const qr = (mod as unknown as { default?: typeof mod }).default ?? mod;
-        return qr.toDataURL(link, { width: 480, margin: 1, errorCorrectionLevel: 'M' });
-      })
-      .then((url) => live && setSrc(url))
-      .catch(() => live && setFailed(true));
-    return () => {
-      live = false;
-    };
-  }, [link]);
-  if (failed) return null;
-  const box = { width: 220, height: 220, margin: '12px auto', display: 'block', borderRadius: 12 } as const;
-  return src ? (
-    <img src={src} alt="UPI payment QR code" width={220} height={220} decoding="async" style={box} />
-  ) : (
-    <div style={{ ...box, display: 'grid', placeItems: 'center', background: 'var(--color-bg)' }}>
-      <span className="meta">Loading QR…</span>
-    </div>
-  );
-}
-
-function SubmitPaymentForm({ invoice: i }: { invoice: Invoice }) {
-  const toast = useToast();
-  const submitPayment = useSubmitPayment(i.id);
-  const [ref, setRef] = useState(i.payer_ref ?? '');
-  const [note, setNote] = useState(i.payer_note ?? '');
-  const [error, setError] = useState('');
-
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
-    const r = ref.trim();
-    const problem =
-      (!r ? 'Enter the UPI transaction ID from your payment app.' : null) ??
-      (r.length > 60 ? 'Transaction ID is too long (60 characters max).' : null) ??
-      (note.trim().length > 300 ? 'Note is too long (300 characters max).' : null);
-    setError(problem ?? '');
-    if (problem) return;
-    submitPayment.mutate(
-      { ref: r, note: orNull(note) },
-      {
-        onSuccess: () => toast('Thanks! We will confirm your payment soon.'),
-        onError: (err) => setError(errorMessage(err)),
-      },
-    );
-  };
-
-  return (
-    <form onSubmit={submit} noValidate style={{ borderTop: '1px solid var(--color-line)', paddingTop: 12 }}>
-      <div className="field">
-        <label htmlFor="pay-ref">UPI transaction ID *</label>
-        <input
-          id="pay-ref"
-          value={ref}
-          onChange={(e) => setRef(e.target.value)}
-          maxLength={60}
-          placeholder="12-digit UTR / transaction ID"
-          autoComplete="off"
-        />
-      </div>
-      <div className="field">
-        <label htmlFor="pay-note">Note</label>
-        <input
-          id="pay-note"
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          maxLength={300}
-          placeholder="Optional, e.g. paid from my partner's account"
-        />
-      </div>
       {error && <p className="error-text">{error}</p>}
-      <button className="btn block" type="submit" disabled={submitPayment.isPending} style={{ marginTop: 4 }}>
-        {submitPayment.isPending
-          ? 'Sending…'
-          : i.status === 'submitted'
-            ? 'Update payment details'
-            : 'I have paid'}
+      <button type="button" className="btn block" onClick={pay} disabled={busy}>
+        {busy ? 'Opening the payment page…' : `🔒 Pay ${money(i.total)} securely`}
       </button>
-    </form>
+    </div>
   );
 }

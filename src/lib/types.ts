@@ -574,7 +574,7 @@ export interface Addon {
 }
 
 export type InvoiceStatus = 'unpaid' | 'submitted' | 'paid' | 'void';
-export type PaymentMethod = 'upi' | 'cash' | 'bank' | 'razorpay' | 'free';
+export type PaymentMethod = 'upi' | 'cash' | 'bank' | 'razorpay' | 'free' | 'instamojo';
 
 export interface Invoice {
   id: number;
