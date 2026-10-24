@@ -113,7 +113,7 @@ function OfferCard({ offer: o }: { offer: OfferRow }) {
         }}
         style={{ display: 'grid', gridTemplateColumns: '82px 1fr', gap: 12, cursor: 'pointer' }}
       >
-        <div className="shop-thumb">{cover ? <img src={mediaUrl(cover)} alt="" /> : '🏷️'}</div>
+        <div className="shop-thumb poster">{cover ? <img src={mediaUrl(cover)} alt="" /> : '🏷️'}</div>
         <div style={{ minWidth: 0 }}>
           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 4 }}>
             <span className={`pill-status ${o.status}`}>{o.status}</span>
