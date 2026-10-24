@@ -24,9 +24,30 @@ export interface UploadProgress {
 
 export type OnUploadProgress = (progress: UploadProgress) => void;
 
+/** Offer pictures are saved at Instagram's portrait post size, so a vendor's 4:5 poster goes up unchanged. */
+export const POSTER_WIDTH = 1080;
+export const POSTER_HEIGHT = 1350;
+export const POSTER_RATIO = POSTER_WIDTH / POSTER_HEIGHT;
+
+/**
+ * How a picture goes into the 4:5 poster frame: 'crop' takes this part of the picture (in its own pixels),
+ * 'fit' keeps the whole picture and fills the space around it with a blurred copy.
+ */
+export type PosterFrame = ({ mode: 'crop' } & PosterCrop) | { mode: 'fit' };
+
+/** A part of a picture, in its own pixels. */
+export interface PosterCrop {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export interface UploadOptions {
   /** Centre-crop to a square of this many pixels (e.g. 512) instead of the usual max-1600 px resize. */
   square?: number;
+  /** Make a 1080 x 1350 poster from this part of the picture instead of the usual max-1600 px resize. */
+  poster?: PosterFrame;
   onProgress?: OnUploadProgress;
 }
 
@@ -48,7 +69,11 @@ export async function uploadImage(
 
   const { onProgress } = options;
   onProgress?.({ stage: 'preparing', percent: 0 });
-  const webp = options.square ? await squareWebp(file, options.square) : await photoWebp(file, onProgress);
+  const webp = options.poster
+    ? await posterWebp(file, options.poster)
+    : options.square
+      ? await squareWebp(file, options.square)
+      : await photoWebp(file, onProgress);
   return sendWebp(webp, folder, token, onProgress);
 }
 
@@ -67,6 +92,65 @@ export async function photoWebp(file: File, onProgress?: OnUploadProgress): Prom
     onProgress: (percent) => onProgress?.({ stage: 'preparing', percent }),
   });
   return asWebp(resized);
+}
+
+/** Reads a picked picture's pixels, turned the way the camera held it. */
+export async function readBitmap(file: Blob): Promise<ImageBitmap> {
+  try {
+    return await createImageBitmap(file, { imageOrientation: 'from-image' });
+  } catch {
+    throw new Error('This file could not be read as an image');
+  }
+}
+
+/** True when a picture of this size is already 4:5, give or take 2%, so it needs no cropping. */
+export function isPosterShaped(width: number, height: number) {
+  return Math.abs(width / height / POSTER_RATIO - 1) <= 0.02;
+}
+
+/** The 4:5 frame centred on a picture, as large as it fits. */
+export function centredPosterCrop(width: number, height: number): PosterCrop {
+  const w = Math.min(width, height * POSTER_RATIO);
+  const h = w / POSTER_RATIO;
+  return { x: (width - w) / 2, y: (height - h) / 2, width: w, height: h };
+}
+
+/** Draws the picture into a 1080 x 1350 WebP poster, cropped or fitted whole as `frame` says. */
+export async function posterWebp(file: File, frame: PosterFrame): Promise<Blob> {
+  const bitmap = await readBitmap(file);
+  const canvas = document.createElement('canvas');
+  canvas.width = POSTER_WIDTH;
+  canvas.height = POSTER_HEIGHT;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Image processing is not available in this browser');
+  ctx.imageSmoothingQuality = 'high';
+  if (frame.mode === 'crop') {
+    ctx.drawImage(bitmap, frame.x, frame.y, frame.width, frame.height, 0, 0, POSTER_WIDTH, POSTER_HEIGHT);
+  } else {
+    // A blur that works in every browser (Safari has no canvas filter): shrink a cover-cropped copy to a few
+    // pixels, then stretch it back over the frame, slightly darkened so the picture stands out.
+    const cover = centredPosterCrop(bitmap.width, bitmap.height);
+    const tiny = document.createElement('canvas');
+    tiny.width = 16;
+    tiny.height = 20;
+    tiny.getContext('2d')?.drawImage(bitmap, cover.x, cover.y, cover.width, cover.height, 0, 0, 16, 20);
+    ctx.drawImage(tiny, 0, 0, POSTER_WIDTH, POSTER_HEIGHT);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.18)';
+    ctx.fillRect(0, 0, POSTER_WIDTH, POSTER_HEIGHT);
+    const scale = Math.min(POSTER_WIDTH / bitmap.width, POSTER_HEIGHT / bitmap.height);
+    const w = bitmap.width * scale;
+    const h = bitmap.height * scale;
+    ctx.drawImage(bitmap, (POSTER_WIDTH - w) / 2, (POSTER_HEIGHT - h) / 2, w, h);
+  }
+  bitmap.close();
+  // Re-saving drops hidden photo data such as the GPS location; aim for about 400 KB like other photos.
+  let blob: Blob | null = null;
+  for (const quality of [0.85, 0.75, 0.6]) {
+    blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', quality));
+    if (!blob) throw new Error('This picture could not be prepared');
+    if (blob.type !== 'image/webp' || blob.size <= 400 * 1024) break;
+  }
+  return asWebp(blob!);
 }
 
 /**

@@ -1,6 +1,13 @@
 import { useState } from 'react';
 import { mediaUrl } from '../lib/supabase';
-import { uploadImage, type UploadFolder, type UploadProgress } from '../lib/upload';
+import {
+  checkPickedSize,
+  uploadImage,
+  type PosterFrame,
+  type UploadFolder,
+  type UploadProgress,
+} from '../lib/upload';
+import { usePosterCrop } from './usePosterCrop';
 import { UploadProgressBar } from './UploadProgressBar';
 
 /** One image: shows the current picture and uploads a replacement to R2 (WebP). */
@@ -62,20 +69,27 @@ export function ImageField({
   );
 }
 
-/** Up to `max` images in order; the first one is the cover. */
+/**
+ * Up to `max` images in order; the first one is the cover. With `poster`, each picture is saved as a 4:5
+ * 1080 x 1350 poster, through a crop screen when it is not 4:5 already.
+ */
 export function ImageListField({
   label,
   value,
   folder,
   onChange,
   max = 5,
+  poster = false,
 }: {
   label: string;
   value: string[];
   folder: UploadFolder;
   onChange: (keys: string[]) => void;
   max?: number;
+  poster?: boolean;
 }) {
+  const crop = usePosterCrop();
+  const thumb = `image-pick small${poster ? ' poster' : ''}`;
   // The running upload, with which of the picked files it is; null when idle.
   const [upload, setUpload] = useState<{ progress: UploadProgress; current: number; total: number } | null>(
     null,
@@ -87,9 +101,14 @@ export function ImageListField({
       <label>
         {label} ({value.length}/{max})
       </label>
+      {poster && (
+        <p className="meta" style={{ margin: '0 0 6px' }}>
+          Best size 1080 × 1350 (4:5, Instagram post). Other shapes can be cropped or fitted whole.
+        </p>
+      )}
       <div className="image-strip">
         {value.map((k, i) => (
-          <div key={k} className="image-pick small">
+          <div key={k} className={thumb}>
             <img src={mediaUrl(k)} alt="" loading="lazy" decoding="async" />
             {i === 0 && <em className="cover-tag">Cover</em>}
             <button
@@ -103,7 +122,7 @@ export function ImageListField({
           </div>
         ))}
         {value.length < max && (
-          <div className="image-pick small">
+          <div className={thumb}>
             <span>{busy ? '…' : '＋'}</span>
             <input
               type="file"
@@ -120,14 +139,26 @@ export function ImageListField({
                   const keys: string[] = [];
                   for (const [i, f] of files.entries()) {
                     const step = { current: i + 1, total: files.length };
+                    let frame: PosterFrame | undefined;
+                    if (poster) {
+                      checkPickedSize(f);
+                      frame =
+                        (await crop.ask(
+                          f,
+                          files.length > 1 ? `Fit picture ${i + 1} of ${files.length}` : undefined,
+                        )) ?? undefined;
+                      // Cancel skips this picture; the others still go up.
+                      if (!frame) continue;
+                    }
                     setUpload({ progress: { stage: 'preparing', percent: 0 }, ...step });
                     keys.push(
                       await uploadImage(f, folder, {
+                        poster: frame,
                         onProgress: (progress) => setUpload({ progress, ...step }),
                       }),
                     );
                   }
-                  onChange([...value, ...keys]);
+                  if (keys.length) onChange([...value, ...keys]);
                 } catch (err) {
                   setError(err instanceof Error ? err.message : 'Upload failed');
                 } finally {
@@ -145,6 +176,7 @@ export function ImageListField({
         />
       )}
       {error && <p className="error-text">{error}</p>}
+      {crop.element}
     </div>
   );
 }

@@ -1387,7 +1387,9 @@
     width: 100%;
     scroll-snap-align: center;
     scroll-snap-stop: always;
-    aspect-ratio: 4 / 3;
+    /* Offer pictures are 4:5 posters; on wide screens the height is capped so the popup still fits. */
+    aspect-ratio: 4 / 5;
+    max-height: 62vh;
     background: var(--color-bg);
     border: 0;
     padding: 0;
@@ -2069,6 +2071,97 @@
     height: 100%;
     object-fit: cover;
     border-radius: inherit;
+  }
+  /* Offer cards show the whole 4:5 poster; older pictures of other shapes are shown whole too. */
+  .offer-card .offer-image {
+    height: auto;
+    aspect-ratio: 4 / 5;
+  }
+  .offer-card .offer-image:has(img) {
+    background: var(--color-bg);
+  }
+  .offer-card .offer-image img,
+  .shop-thumb.poster img {
+    object-fit: contain;
+  }
+  .shop-thumb.poster {
+    width: 64px;
+    height: 80px;
+    justify-self: center;
+    overflow: hidden;
+  }
+  .image-pick.small.poster {
+    height: 95px;
+  }
+  .image-pick.small.poster img {
+    object-fit: contain;
+  }
+  /* The crop screen for offer pictures. */
+  .poster-crop-modes {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  .poster-crop-modes button {
+    flex: 1;
+    padding: 9px 8px;
+    border-radius: 12px;
+    border: 1px solid var(--color-line);
+    background: #fff;
+    font-weight: 800;
+    font-size: 13px;
+    color: var(--color-muted);
+    cursor: pointer;
+  }
+  .poster-crop-modes button.active {
+    background: var(--color-blue);
+    border-color: var(--color-blue);
+    color: #fff;
+  }
+  .poster-crop-frame {
+    position: relative;
+    width: min(100%, 50vh);
+    margin: 0 auto;
+    aspect-ratio: 4 / 5;
+    overflow: hidden;
+    border-radius: 14px;
+    background: var(--color-bg);
+    touch-action: none;
+    user-select: none;
+  }
+  .poster-crop-frame.draggable {
+    cursor: grab;
+  }
+  .poster-crop-frame img {
+    display: block;
+    pointer-events: none;
+  }
+  .poster-crop-blur,
+  .poster-crop-whole {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .poster-crop-blur {
+    object-fit: cover;
+    filter: blur(18px) brightness(0.82);
+    transform: scale(1.15);
+  }
+  .poster-crop-whole {
+    object-fit: contain;
+  }
+  .poster-crop-zoom {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+    font-weight: 800;
+    font-size: 13px;
+    color: var(--color-muted);
+  }
+  .poster-crop-zoom input {
+    flex: 1;
   }
   .manage-card {
     border: 1px solid var(--color-line);

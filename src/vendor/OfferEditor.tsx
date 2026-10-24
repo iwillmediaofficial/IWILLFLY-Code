@@ -324,6 +324,7 @@ function OfferForm({
             value={f.image_keys}
             folder="offers"
             max={5}
+            poster
             onChange={(k) => set('image_keys', k)}
           />
           <div className="field-row">

@@ -87,7 +87,7 @@ function OfferRow({ offer: o, shopName }: { offer: Offer; shopName: string }) {
   const cover = o.image_keys[0];
   return (
     <Link className="shop-card" to={`/vendor/offers/${o.id}`} style={{ alignItems: 'start' }}>
-      <div className="shop-thumb">
+      <div className="shop-thumb poster">
         {cover ? <img src={mediaUrl(cover)} alt="" loading="lazy" decoding="async" /> : '🏷️'}
       </div>
       <div style={{ minWidth: 0 }}>
