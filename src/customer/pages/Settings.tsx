@@ -48,18 +48,33 @@ export default function Settings() {
             <LocationChooser />
           </>
         )}
-        {place && (
-          <button
-            className="link-btn"
-            style={{ marginTop: 8 }}
-            onClick={() => {
-              setPlace(null);
-              toast('Location cleared on this device');
-            }}
-          >
-            Clear location on this device
-          </button>
-        )}
+        {session
+          ? // Signed in, the device always falls back to the saved area, so only a GPS reading can be dropped.
+            place?.source === 'gps' &&
+            areaId != null && (
+              <button
+                className="link-btn"
+                style={{ marginTop: 8 }}
+                onClick={() => {
+                  setPlace(null);
+                  toast('Showing offers around your saved area');
+                }}
+              >
+                Use my saved area instead of GPS
+              </button>
+            )
+          : place && (
+              <button
+                className="link-btn"
+                style={{ marginTop: 8 }}
+                onClick={() => {
+                  setPlace(null);
+                  toast('Location cleared on this device');
+                }}
+              >
+                Clear location on this device
+              </button>
+            )}
       </section>
       {session && <DetailsSection />}
       {session && <MobileSection />}

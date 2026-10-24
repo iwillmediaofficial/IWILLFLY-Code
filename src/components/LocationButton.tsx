@@ -1,16 +1,26 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useAuth } from '../auth/AuthProvider';
 import { usePlace } from '../lib/location';
 import { useLocations } from '../lib/queries';
-import { pointFor } from '../lib/profileArea';
+import { pointFor, useProfileArea } from '../lib/profileArea';
 import { AreaPicker } from './AreaPicker';
+import { AreaLocationPicker } from './ScratchLocation';
 import { useToast } from './Toast';
 import { NeedsBackend, Sheet } from '../customer/ui';
 
-/** Header button showing the current place; opens a sheet to use GPS or pick an area. */
+/**
+ * Header button showing the current place; opens a sheet to use GPS or pick an area. Signed in, it shows
+ * the area saved to the account (the one Settings shows), and a pick here saves to the account too.
+ */
 export function LocationButton() {
+  const { session } = useAuth();
   const { place } = usePlace();
+  const { areaId } = useProfileArea();
+  const { data: all = [] } = useLocations();
   const [open, setOpen] = useState(false);
   const close = useCallback(() => setOpen(false), []);
+  const accountArea = areaId != null ? all.find((l) => l.id === areaId) : undefined;
+  const label = accountArea?.name ?? place?.label;
   return (
     <>
       <button
@@ -30,13 +40,31 @@ export function LocationButton() {
           fontWeight: 800,
         }}
       >
-        📍 {place ? place.label : 'Set location'}
+        📍 {label ?? 'Set location'}
       </button>
       <Sheet open={open} onClose={close} title="Your location" subtitle="Offers are sorted nearest first">
-        <LocationChooser onDone={close} />
+        {session ? open && <AreaLocationPicker onSaved={close} /> : <LocationChooser onDone={close} />}
       </Sheet>
     </>
   );
+}
+
+/**
+ * Keeps this device's place in step with the account's saved area: a new phone starts from it, and an area
+ * picked on this device before it was saved to the account gives way to it. A GPS reading is kept, since
+ * it gives truer distances.
+ */
+export function AccountPlaceSync() {
+  const { place, setPlace } = usePlace();
+  const { areaId, known } = useProfileArea();
+  const { data: all = [] } = useLocations();
+  useEffect(() => {
+    if (!known || areaId == null || place?.source === 'gps' || place?.source === areaId) return;
+    const area = all.find((l) => l.id === areaId);
+    const point = area && pointFor(all, area);
+    if (area && point) setPlace({ ...point, label: area.name, source: area.id });
+  }, [known, areaId, place?.source, all, setPlace]);
+  return null;
 }
 
 /** "Use my current location" plus an area list. Shared by the header sheet and Settings. */
