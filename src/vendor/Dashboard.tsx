@@ -6,6 +6,7 @@ import { useUnreadCount } from '../lib/engagement';
 import { db, must } from '../lib/queries';
 import type { Invoice, Vendor } from '../lib/types';
 import { useMyOffers, VENDOR_KEY } from './api';
+import { CHECK_TIME } from './billing/format';
 import { DashboardPlanCard } from './billing/PlanCard';
 import { useVendor, useVendorRole } from './context';
 import { useVendorAnalytics } from './engagement/api';
@@ -91,6 +92,7 @@ export default function Dashboard() {
 }
 
 function StatusNotice({ vendor }: { vendor: Vendor }) {
+  const inv = useLatestInvoice().data;
   if (vendor.status === 'blocked') {
     return (
       <div className="notice bad">
@@ -101,6 +103,23 @@ function StatusNotice({ vendor }: { vendor: Vendor }) {
             Note from IWILLFLY: {vendor.admin_note}
           </>
         )}
+      </div>
+    );
+  }
+  if (vendor.status === 'pending' && inv?.status === 'submitted') {
+    return (
+      <div className="notice warn">
+        <b>⏳ Payment verification pending.</b> We are checking your plan payment, {CHECK_TIME}. We will
+        notify you once your shop is approved. Meanwhile you can set up your shops, branches, logo and cover
+        photo.
+      </div>
+    );
+  }
+  if (vendor.status === 'pending' && inv?.status === 'paid') {
+    return (
+      <div className="notice warn">
+        <b>Payment received.</b> Your application is being reviewed, {CHECK_TIME}. Meanwhile you can set up
+        your shops, branches, logo and cover photo.
       </div>
     );
   }
@@ -163,7 +182,13 @@ function FinishShop() {
           : inv.status === 'submitted'
             ? 'Payment sent, we are checking it'
             : 'Pay for your plan',
-      action: inv && isOwner ? { to: `/vendor/billing/invoices/${inv.id}`, text: 'Pay now' } : undefined,
+      action:
+        inv && isOwner
+          ? {
+              to: `/vendor/billing/invoices/${inv.id}`,
+              text: inv.status === 'submitted' ? 'View' : 'Pay now',
+            }
+          : undefined,
     },
     {
       done: Boolean(shop?.logo_key && shop?.cover_key),

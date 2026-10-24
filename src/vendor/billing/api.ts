@@ -129,7 +129,8 @@ export function useSubmitPayment(invoiceId: number) {
         }),
       );
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['vendor', 'billing'] }),
+    // VENDOR_KEY also refreshes the dashboard's latest invoice, so it stops offering "Pay now".
+    onSuccess: () => qc.invalidateQueries({ queryKey: VENDOR_KEY }),
   });
 }
 

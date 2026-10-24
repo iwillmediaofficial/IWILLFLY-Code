@@ -1952,6 +1952,30 @@
   .notice.bad {
     background: #fff0f1;
   }
+  /* Invoice page: payment being checked, or paid and waiting for approval. */
+  .pay-status {
+    text-align: center;
+    margin-bottom: 12px;
+  }
+  .pay-status h3 {
+    margin: 4px 0 8px;
+    font-size: 18px;
+  }
+  .pay-status p {
+    margin: 0 0 8px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .pay-status p.meta {
+    font-size: 12px;
+  }
+  .pay-status .btn {
+    margin-top: 6px;
+  }
+  .pay-status-icon {
+    font-size: 40px;
+    line-height: 1;
+  }
   .tabs {
     display: flex;
     gap: 8px;

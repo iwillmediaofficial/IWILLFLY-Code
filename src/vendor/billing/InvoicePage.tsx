@@ -6,12 +6,12 @@ import { UploadProgressBar } from '../../components/UploadProgressBar';
 import { checkPickedSize, type UploadProgress } from '../../lib/upload';
 import type { BillingSettings, Invoice, InvoiceItem } from '../../lib/types';
 import { VENDOR_KEY } from '../api';
-import { useVendorRole } from '../context';
+import { useVendor, useVendorRole } from '../context';
 import { errorMessage, formatDate, orNull } from '../format';
 import { formatDateTime } from '../scratch/format';
 import { ErrorNote, Loading, NotFound, PageHead } from '../ui';
 import { useBillingSettings, useInvoice, useSubmitPayment } from './api';
-import { invoiceClass, invoiceLabel, money, upiLink } from './format';
+import { CHECK_TIME, invoiceClass, invoiceLabel, money, upiLink } from './format';
 import { payOnline } from './pay';
 
 const methodLabel: Record<string, string> = {
@@ -28,6 +28,11 @@ export default function InvoicePage() {
   const { isOwner } = useVendorRole();
   const { data, isPending, error } = useInvoice(id);
   const settings = useBillingSettings();
+  // "Sent the wrong details?" opens the ways to pay again while a payment is being checked. It is tied to
+  // the details sent, so sending fresh ones goes back to the pending card.
+  const sentAt = data?.invoice?.submitted_at ?? '';
+  const [changingAt, setChangingAt] = useState<string | null>(null);
+  const changing = changingAt === sentAt;
   if (!isOwner)
     return (
       <>
@@ -39,13 +44,20 @@ export default function InvoicePage() {
   if (error) return <ErrorNote error={error} />;
   if (!data.invoice) return <NotFound what="Invoice" back="/vendor/billing" />;
   const inv = data.invoice;
-  const open = inv.status === 'unpaid' || inv.status === 'submitted';
+  const open = inv.status === 'unpaid' || (inv.status === 'submitted' && changing);
 
   return (
     <>
       <div className="no-print">
         <PageHead title="Invoice" action={<Link to="/vendor/billing">Plan & billing</Link>} />
       </div>
+      {inv.status === 'submitted' && (
+        <PendingCard
+          invoice={inv}
+          changing={changing}
+          onChange={() => setChangingAt(changing ? null : sentAt)}
+        />
+      )}
       {open ? (
         <div className="no-print">
           {/* The methods an admin switched on in Admin > Billing settings. */}
@@ -58,7 +70,7 @@ export default function InvoicePage() {
           )}
         </div>
       ) : (
-        <PaidNotice />
+        inv.status === 'paid' && <PaidNotice />
       )}
       <InvoiceSheet invoice={inv} items={data.items} />
       <div className="btn-row no-print" style={{ marginTop: 12 }}>
@@ -97,9 +109,68 @@ function PayOptions({ invoice: i, settings }: { invoice: Invoice; settings: Bill
   );
 }
 
-/** Shown once, straight after Instamojo sends the vendor back to a paid invoice. */
+/** A UPI payment the vendor sent, waiting for the IWILLFLY team to check it. */
+function PendingCard({
+  invoice: i,
+  changing,
+  onChange,
+}: {
+  invoice: Invoice;
+  changing: boolean;
+  onChange: () => void;
+}) {
+  const applying = useVendor().status === 'pending';
+  return (
+    <div className="form-card pay-status no-print">
+      <div className="pay-status-icon" aria-hidden>
+        ⏳
+      </div>
+      <h3>Payment verification pending</h3>
+      <p>
+        We are checking your payment of <b>{money(i.total)}</b> for invoice {i.number}. It will take{' '}
+        <b>{CHECK_TIME}</b>.
+      </p>
+      <p className="meta">
+        {i.payer_ref ? `UPI ref ${i.payer_ref}` : 'Screenshot sent'}
+        {i.payer_ref && i.payer_proof_key && ' · screenshot sent'}
+        {i.submitted_at && ` · sent ${formatDateTime(i.submitted_at)}`}
+      </p>
+      <p className="meta">
+        {applying
+          ? 'We will notify you once your payment is confirmed and your shop is approved.'
+          : 'We will notify you and switch on your purchase once your payment is confirmed.'}
+      </p>
+      <Link className="btn block" to="/vendor" style={{ display: 'block', textAlign: 'center' }}>
+        Go to dashboard
+      </Link>
+      <button type="button" className="link-btn" onClick={onChange} style={{ marginTop: 10 }}>
+        {changing ? 'Hide payment options' : 'Sent the wrong details? Update them'}
+      </button>
+    </div>
+  );
+}
+
+/** A paid invoice: shown straight after Instamojo sends the vendor back, and to applicants waiting for approval. */
 function PaidNotice() {
   const [params] = useSearchParams();
+  const applying = useVendor().status === 'pending';
+  if (applying) {
+    return (
+      <div className="form-card pay-status no-print">
+        <div className="pay-status-icon" aria-hidden>
+          ✅
+        </div>
+        <h3>Payment received</h3>
+        <p>
+          Thank you! Your application is being reviewed, <b>{CHECK_TIME}</b>. We will notify you once your
+          shop is approved.
+        </p>
+        <Link className="btn block" to="/vendor" style={{ display: 'block', textAlign: 'center' }}>
+          Go to dashboard
+        </Link>
+      </div>
+    );
+  }
   if (params.get('payment') !== 'paid') return null;
   return <div className="notice no-print">Payment received, thank you! Your purchase is switched on.</div>;
 }
@@ -444,7 +515,8 @@ function SubmitPaymentForm({ invoice: i }: { invoice: Invoice }) {
       {
         onSuccess: () => {
           setShot(null);
-          toast('Thanks! The IWILLFLY team will check your payment and approve it soon.');
+          toast('Payment details sent');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
         },
         onError: (err) => setError(errorMessage(err)),
         onSettled: () => setProgress(null),

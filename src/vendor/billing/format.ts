@@ -38,6 +38,9 @@ export function daysUntil(iso: string, today: string) {
   return Math.round((Date.parse(`${iso}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86_400_000);
 }
 
+/** How long the IWILLFLY team usually takes to check a payment or an application. */
+export const CHECK_TIME = 'usually within 2 hours (9 AM to 5 PM)';
+
 export const invoiceLabel: Record<InvoiceStatus, string> = {
   unpaid: 'Unpaid',
   submitted: 'Payment submitted',
