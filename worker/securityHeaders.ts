@@ -6,18 +6,20 @@
  */
 export function securityHeaders(supabaseUrl: string | undefined): Record<string, string> {
   // The app talks to Supabase (REST, auth and realtime). Everything else it loads comes from this site,
-  // except images (shop pictures on the media URL, map tiles, Google profile pictures).
+  // except images (shop pictures on the media URL, map tiles, Google profile pictures) and Google's sign-in button.
+  const gsi = 'https://accounts.google.com/gsi/';
   const supabase = supabaseUrl ? new URL(supabaseUrl).origin : '';
   const realtime = supabase.replace(/^http/, 'ws');
   const csp = [
     "default-src 'self'",
     // WebAssembly: the WebP encoder used on Safari and iPhone, which cannot save WebP themselves.
-    "script-src 'self' 'wasm-unsafe-eval'",
+    `script-src 'self' 'wasm-unsafe-eval' ${gsi}client`,
     // Inline style attributes are needed by Leaflet's map pin and the QR scanner.
-    "style-src 'self' 'unsafe-inline'",
+    `style-src 'self' 'unsafe-inline' ${gsi}style`,
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
-    `connect-src 'self' ${supabase} ${realtime}`.trim(),
+    `connect-src 'self' ${gsi} ${supabase} ${realtime}`.trim(),
+    `frame-src ${gsi}`,
     "media-src 'self' blob:",
     "worker-src 'self'",
     "manifest-src 'self'",
@@ -35,7 +37,8 @@ export function securityHeaders(supabaseUrl: string | undefined): Record<string,
     'Referrer-Policy': 'strict-origin-when-cross-origin',
     // Camera is for the vendor QR scanner, location for "Near you" and the Scratch & Win check.
     'Permissions-Policy': 'camera=(self), geolocation=(self), microphone=(), payment=(), usb=()',
-    'Cross-Origin-Opener-Policy': 'same-origin',
+    // Google's sign-in popup has to report back to the page that opened it.
+    'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
   };
 }
 

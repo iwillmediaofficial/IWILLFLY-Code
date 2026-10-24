@@ -1,4 +1,5 @@
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { googleClientId, loadGoogleIdentity, newNonce } from '../lib/googleIdentity';
 import {
   clearOAuthRedirectError,
   oauthRedirectError,
@@ -88,7 +89,62 @@ export function GoogleButton({
   const { notice } = useAuth();
   const [error, setError] = useState(() => (oauthRedirectError ? friendly(oauthRedirectError) : ''));
   const [busy, setBusy] = useState(false);
+  // Google's own button when the client ID is set; the redirect button if it is not, or Google's script is blocked.
+  const [mode, setMode] = useState<'google' | 'redirect'>(googleClientId ? 'google' : 'redirect');
+  const slot = useRef<HTMLDivElement>(null);
   useEffect(clearOAuthRedirectError, []);
+
+  useEffect(() => {
+    if (mode !== 'google' || !supabase) return;
+    const sb = supabase;
+    let live = true;
+    (async () => {
+      try {
+        const [google, nonce, enabled] = await Promise.all([
+          loadGoogleIdentity(),
+          newNonce(),
+          googleEnabled(),
+        ]);
+        if (!live || !slot.current) return;
+        if (!enabled) return setError(OFF);
+        google.initialize({
+          client_id: googleClientId,
+          nonce: nonce.hashed,
+          itp_support: true,
+          use_fedcm_for_button: true,
+          callback: async ({ credential }) => {
+            setError('');
+            setBusy(true);
+            const { error } = await sb.auth.signInWithIdToken({
+              provider: 'google',
+              token: credential,
+              nonce: nonce.raw,
+            });
+            // On success the page sees the new session and moves on by itself.
+            if (error) setError(friendly(error.message));
+            setBusy(false);
+          },
+        });
+        slot.current.replaceChildren();
+        google.renderButton(slot.current, {
+          type: 'standard',
+          theme: 'outline',
+          size: 'large',
+          shape: 'rectangular',
+          logo_alignment: 'center',
+          text: /register|sign up/i.test(label) ? 'signup_with' : 'continue_with',
+          // Google allows 200 to 400 pixels.
+          width: Math.max(200, Math.min(400, slot.current.offsetWidth || 400)),
+        });
+      } catch {
+        if (live) setMode('redirect');
+      }
+    })();
+    return () => {
+      live = false;
+    };
+  }, [mode, label]);
+
   if (!supabase) return null;
   const sb = supabase;
 
@@ -112,10 +168,21 @@ export function GoogleButton({
 
   return (
     <>
-      <button type="button" style={BUTTON} onClick={go} disabled={busy}>
-        <GoogleLogo />
-        <span>{busy ? 'Opening Google…' : label}</span>
-      </button>
+      {mode === 'google' ? (
+        <div
+          ref={slot}
+          aria-busy={busy}
+          style={{ width: '100%', minHeight: 44, display: 'flex', justifyContent: 'center' }}
+        />
+      ) : (
+        <button type="button" style={BUTTON} onClick={go} disabled={busy}>
+          <GoogleLogo />
+          <span>{busy ? 'Opening Google…' : label}</span>
+        </button>
+      )}
+      {busy && mode === 'google' && (
+        <p style={{ color: 'var(--color-muted)', textAlign: 'center' }}>Signing you in…</p>
+      )}
       {(notice || error) && <p className="error-text">{notice || error}</p>}
     </>
   );
