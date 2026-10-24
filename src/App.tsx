@@ -4,6 +4,7 @@ import { AuthProvider, ADMIN_ROLES } from './auth/AuthProvider';
 import { ProfileGate } from './auth/ProfileGate';
 import { RequireAuth } from './auth/RequireAuth';
 import { RequireRole } from './auth/RequireRole';
+import { AccountPlaceSync } from './components/LocationButton';
 import { PageLoader } from './components/PageLoader';
 import { ToastProvider } from './components/Toast';
 import { LocationProvider } from './lib/location';
@@ -48,6 +49,7 @@ export default function App() {
         <LocationProvider>
           <ToastProvider>
             <ProfileGate />
+            <AccountPlaceSync />
             <Suspense fallback={<PageLoader />}>
               <Routes>
                 <Route path="/" element={signedIn(<Home />)} />
