@@ -3066,3 +3066,302 @@
     font-weight: 900;
   }
 }
+
+/*
+ * Vendor side menu. Phones: a compact header with ☰ that slides the menu in from the left.
+ * From 1024px the menu stays open as a sidebar, like the admin. Scoped to .vendor-shell.
+ */
+@layer components {
+  .vendor-topbar {
+    display: none;
+  }
+  .vendor-top-name {
+    display: block;
+    font-size: 16px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .burger,
+  .burger::before,
+  .burger::after {
+    display: block;
+    width: 18px;
+    height: 2.5px;
+    border-radius: 2px;
+    background: #fff;
+  }
+  .burger {
+    position: relative;
+  }
+  .burger::before,
+  .burger::after {
+    content: '';
+    position: absolute;
+    left: 0;
+  }
+  .burger::before {
+    top: -6px;
+  }
+  .burger::after {
+    top: 6px;
+  }
+  .vendor-avatar {
+    flex: none;
+    width: 38px;
+    height: 38px;
+    border-radius: 13px;
+    display: grid;
+    place-items: center;
+    background: #fff;
+    color: var(--color-blue);
+    font-weight: 900;
+    font-size: 16px;
+  }
+  .vendor-avatar.light {
+    width: 40px;
+    height: 40px;
+  }
+
+  .vendor-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: rgba(23, 36, 63, 0.45);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .vendor-shell.menu-open .vendor-backdrop {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .vendor-side {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 61;
+    width: min(300px, 84vw);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 18px 14px;
+    color: #fff;
+    background: linear-gradient(180deg, var(--color-blue), var(--color-blue2));
+    border-radius: 0 26px 26px 0;
+    box-shadow: 12px 0 40px rgba(11, 40, 100, 0.35);
+    transform: translateX(-105%);
+    visibility: hidden;
+    transition:
+      transform 0.25s ease,
+      visibility 0.25s;
+  }
+  .vendor-shell.menu-open .vendor-side {
+    transform: none;
+    visibility: visible;
+  }
+  .vendor-side-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .vendor-side-logo {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    padding: 8px;
+    border-radius: 16px;
+    background: #fff;
+  }
+  .vendor-side-logo img {
+    width: 110px;
+    height: 36px;
+    object-fit: contain;
+  }
+  .vendor-side-shop {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.12);
+    font-size: 11px;
+  }
+  .vendor-side-shop b {
+    display: block;
+    font-size: 14px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .vendor-side-shop > div > div {
+    opacity: 0.9;
+  }
+  .vendor-status {
+    padding: 1px 7px;
+    border-radius: 99px;
+    background: var(--color-yellow);
+    color: var(--color-ink);
+    font-weight: 800;
+    font-size: 10px;
+  }
+  .vendor-side-nav {
+    flex: 1;
+    overflow-y: auto;
+    margin: 0 -6px;
+    padding: 0 6px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+  }
+  .vendor-side-group + .vendor-side-group {
+    margin-top: 10px;
+  }
+  .vendor-side-label {
+    padding: 0 10px 4px;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.7;
+  }
+  .vendor-side-nav a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.95);
+  }
+  .vendor-side-nav a:hover {
+    background: rgba(255, 255, 255, 0.12);
+  }
+  .vendor-side-nav a.active {
+    background: #fff;
+    color: var(--color-blue);
+    font-weight: 800;
+    box-shadow: 0 6px 16px rgba(6, 34, 92, 0.25);
+  }
+  .vendor-side-nav i {
+    width: 20px;
+    text-align: center;
+    font-style: normal;
+    font-size: 15px;
+  }
+  .vendor-side-nav span {
+    flex: 1;
+    min-width: 0;
+  }
+  .vendor-side-count {
+    min-width: 22px;
+    padding: 2px 7px;
+    border-radius: 99px;
+    background: var(--color-yellow);
+    color: var(--color-ink);
+    font-size: 11px;
+    font-weight: 900;
+    text-align: center;
+  }
+  .vendor-side-back {
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.12);
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  /* Tablets: the app is a centred 520px card, so the menu opens inside it. */
+  @media (min-width: 760px) and (max-width: 1023px) {
+    .vendor-side {
+      top: 24px;
+      bottom: 24px;
+      left: calc(50% - 260px);
+      border-radius: 32px 26px 26px 32px;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    body:has(.vendor-shell) {
+      padding: 0;
+    }
+    .vendor-shell {
+      max-width: none;
+      display: grid;
+      grid-template-columns: 256px minmax(0, 1fr);
+      padding-bottom: 0;
+      border-radius: 0;
+      overflow: visible;
+      box-shadow: none;
+      background: var(--color-bg);
+    }
+    .vendor-backdrop,
+    .vendor-side-close,
+    .vendor-topbar-mobile {
+      display: none;
+    }
+    .vendor-side {
+      position: sticky;
+      height: 100vh;
+      width: auto;
+      border-radius: 0;
+      box-shadow: none;
+      transform: none;
+      visibility: visible;
+      transition: none;
+    }
+    .vendor-side-logo img {
+      width: 132px;
+      height: 44px;
+    }
+    .vendor-main {
+      min-width: 0;
+    }
+    .vendor-topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      height: 68px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      background: #fff;
+      border-bottom: 1px solid var(--color-line);
+    }
+    .vendor-topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .vendor-topbar-actions .icon-btn {
+      background: var(--color-bg);
+      color: var(--color-ink);
+    }
+    .vendor-topbar-actions .bell-badge {
+      border-color: #fff;
+    }
+    .vendor-topbar-actions .btn {
+      width: auto;
+      margin: 0;
+      padding: 11px 16px;
+    }
+    .vendor-main > .page {
+      max-width: 1100px;
+      padding: 28px 32px 40px;
+    }
+  }
+}
+
+@media print {
+  .vendor-side,
+  .vendor-topbar,
+  .vendor-backdrop {
+    display: none !important;
+  }
+  .vendor-shell {
+    display: block !important;
+  }
+}
