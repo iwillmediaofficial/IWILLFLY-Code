@@ -416,7 +416,7 @@ function PayByUpi({
       {i.status === 'submitted' ? (
         <div className="notice" style={{ marginTop: 10 }}>
           <b>Thanks, we got your payment details.</b> IWILLFLY checks the payment and switches on your
-          purchase, usually within a working day. Sent the wrong details? Send them again below.
+          purchase, {CHECK_TIME}. Sent the wrong details? Send them again below.
         </div>
       ) : (
         <p className="meta" style={{ margin: '6px 0 0' }}>
