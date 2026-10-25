@@ -119,11 +119,12 @@ export function useSavePrize(campaignId: number) {
   return useMutation({
     mutationFn: async ({ id, input, where }: { id: number | null; input: PrizeInput; where: PrizeWhere }) => {
       const row = must<{ id: number }>(
-        await (id == null
-          ? db()
-              .from('scratch_prizes')
-              .insert({ ...input, campaign_id: campaignId, sponsor_vendor_id: vendor.id })
-          : db().from('scratch_prizes').update(input).eq('id', id)
+        await (
+          id == null
+            ? db()
+                .from('scratch_prizes')
+                .insert({ ...input, campaign_id: campaignId, sponsor_vendor_id: vendor.id })
+            : db().from('scratch_prizes').update(input).eq('id', id)
         )
           .select('id')
           .single(),

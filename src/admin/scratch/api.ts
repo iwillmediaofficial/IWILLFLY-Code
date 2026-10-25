@@ -98,7 +98,10 @@ export function usePrizes(campaignId: number) {
           .select('prize_id, branches(name)')
           .in('prize_id', someBranches);
         if (!links.error) {
-          for (const l of links.data as unknown as { prize_id: number; branches: { name: string } | null }[]) {
+          for (const l of links.data as unknown as {
+            prize_id: number;
+            branches: { name: string } | null;
+          }[]) {
             const p = list.find((x) => x.id === l.prize_id);
             if (p && l.branches) p.branch_names.push(l.branches.name);
           }
