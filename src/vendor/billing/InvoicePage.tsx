@@ -12,13 +12,13 @@ import { formatDateTime } from '../scratch/format';
 import { ErrorNote, Loading, NotFound, PageHead } from '../ui';
 import { useBillingSettings, useInvoice, useSubmitPayment } from './api';
 import { CHECK_TIME, invoiceClass, invoiceLabel, money, upiLink } from './format';
-import { payOnline } from './pay';
+import { payOnline, type Gateway } from './pay';
 
 const methodLabel: Record<string, string> = {
   upi: 'UPI',
   cash: 'Cash',
   bank: 'Bank transfer',
-  razorpay: 'Online payment',
+  razorpay: 'Online payment (Razorpay)',
   instamojo: 'Online payment (Instamojo)',
   free: 'No charge',
 };
@@ -83,7 +83,11 @@ export default function InvoicePage() {
 }
 
 function PayOptions({ invoice: i, settings }: { invoice: Invoice; settings: BillingSettings | null }) {
-  const online = settings?.pay_instamojo !== false;
+  // Razorpay first: it is the main gateway when both are on.
+  const gateways: Gateway[] = [];
+  if (settings?.pay_razorpay === true) gateways.push('razorpay');
+  if (settings?.pay_instamojo !== false) gateways.push('instamojo');
+  const online = gateways.length > 0;
   const upi = settings?.pay_upi !== false;
   if (!online && !upi) {
     return (
@@ -98,7 +102,7 @@ function PayOptions({ invoice: i, settings }: { invoice: Invoice; settings: Bill
   }
   return (
     <>
-      {online && <PayOnline invoice={i} />}
+      {online && <PayOnline invoice={i} gateways={gateways} />}
       {/* Direct UPI to the admin's UPI ID; an admin checks the payment and marks the invoice paid. */}
       {upi && (
         <div style={online ? { marginTop: 12 } : undefined}>
@@ -150,7 +154,7 @@ function PendingCard({
   );
 }
 
-/** A paid invoice: shown straight after Instamojo sends the vendor back, and to applicants waiting for approval. */
+/** A paid invoice: shown straight after the payment gateway sends the vendor back, and to applicants waiting for approval. */
 function PaidNotice() {
   const [params] = useSearchParams();
   const applying = useVendor().status === 'pending';
@@ -295,7 +299,7 @@ const RESULT: Record<string, { tone: string; text: string }> = {
   paid: { tone: '', text: 'Payment received, thank you! Your purchase is switched on.' },
   pending: {
     tone: 'warn',
-    text: 'We are confirming your payment with Instamojo. This page updates in a minute; you will not be charged twice.',
+    text: 'We are confirming your payment with the payment gateway. This page updates in a minute; you will not be charged twice.',
   },
   failed: {
     tone: 'bad',
@@ -311,15 +315,17 @@ const RESULT: Record<string, { tone: string; text: string }> = {
   },
 };
 
-/** "Pay securely" through Instamojo; the result of a payment comes back in ?payment=. */
-function PayOnline({ invoice: i }: { invoice: Invoice }) {
+const GATEWAY_NAME: Record<Gateway, string> = { razorpay: 'Razorpay', instamojo: 'Instamojo' };
+
+/** "Pay securely" through Razorpay and/or Instamojo; the result of a payment comes back in ?payment=. */
+function PayOnline({ invoice: i, gateways }: { invoice: Invoice; gateways: Gateway[] }) {
   const qc = useQueryClient();
   const [params] = useSearchParams();
   const result = RESULT[params.get('payment') ?? ''];
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<Gateway | null>(null);
   const [error, setError] = useState('');
 
-  // Back from Instamojo before the payment was confirmed: look again a few times.
+  // Back from the gateway before the payment was confirmed: look again a few times.
   useEffect(() => {
     if (params.get('payment') !== 'pending') return;
     const t = window.setInterval(() => qc.invalidateQueries({ queryKey: VENDOR_KEY }), 8000);
@@ -330,19 +336,20 @@ function PayOnline({ invoice: i }: { invoice: Invoice }) {
     };
   }, [params, qc]);
 
-  const pay = async () => {
-    setBusy(true);
+  const pay = async (gateway: Gateway) => {
+    setBusy(gateway);
     setError('');
     try {
-      if ((await payOnline(i.id)) === 'paid') {
+      if ((await payOnline(i.id, gateway)) === 'paid') {
         await qc.invalidateQueries({ queryKey: VENDOR_KEY });
-        setBusy(false);
+        setBusy(null);
       }
     } catch (e) {
       setError(errorMessage(e));
-      setBusy(false);
+      setBusy(null);
     }
   };
+  const several = gateways.length > 1;
 
   return (
     <div className="form-card">
@@ -352,8 +359,8 @@ function PayOnline({ invoice: i }: { invoice: Invoice }) {
         <b style={{ fontSize: 18 }}>{money(i.total)}</b>
       </div>
       <p className="meta" style={{ margin: '6px 0 12px' }}>
-        UPI, card, net banking or wallet on Instamojo&apos;s secure page. Your purchase switches on as soon as
-        the payment goes through.
+        UPI, card, net banking or wallet on {several ? 'a' : `${GATEWAY_NAME[gateways[0]]}'s`} secure page.
+        Your purchase switches on as soon as the payment goes through.
       </p>
       {i.status === 'submitted' && (
         <div className="notice">
@@ -363,9 +370,22 @@ function PayOnline({ invoice: i }: { invoice: Invoice }) {
         </div>
       )}
       {error && <p className="error-text">{error}</p>}
-      <button type="button" className="btn block" onClick={pay} disabled={busy}>
-        {busy ? 'Opening the payment page…' : `🔒 Pay ${money(i.total)} securely`}
-      </button>
+      {gateways.map((g, n) => (
+        <button
+          key={g}
+          type="button"
+          className={`btn block${n > 0 ? ' secondary' : ''}`}
+          style={n > 0 ? { marginTop: 8 } : undefined}
+          onClick={() => pay(g)}
+          disabled={busy !== null}
+        >
+          {busy === g
+            ? 'Opening the payment page…'
+            : several
+              ? `🔒 Pay ${money(i.total)} with ${GATEWAY_NAME[g]}`
+              : `🔒 Pay ${money(i.total)} securely`}
+        </button>
+      ))}
     </div>
   );
 }

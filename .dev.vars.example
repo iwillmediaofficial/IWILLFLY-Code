@@ -14,3 +14,7 @@ INSTAMOJO_API_KEY=
 INSTAMOJO_AUTH_TOKEN=
 INSTAMOJO_SALT=
 INSTAMOJO_API_BASE=
+# Razorpay online payments (worker/razorpay.ts). Server-only secrets. Use the Test mode keys (rzp_test_...) here.
+RAZORPAY_KEY_ID=
+RAZORPAY_KEY_SECRET=
+RAZORPAY_WEBHOOK_SECRET=

@@ -17,6 +17,11 @@ export interface Env {
   INSTAMOJO_SALT?: string;
   // https://test.instamojo.com/api/1.1/ for the sandbox; live by default.
   INSTAMOJO_API_BASE?: string;
+  // Razorpay online payments (secrets; switched off until the key id and secret are set). See worker/razorpay.ts.
+  // rzp_test_ keys pay in Razorpay's test mode. The webhook secret is the one typed in the Razorpay webhook settings.
+  RAZORPAY_KEY_ID?: string;
+  RAZORPAY_KEY_SECRET?: string;
+  RAZORPAY_WEBHOOK_SECRET?: string;
 }
 
 export const json = (body: unknown, status = 200) =>

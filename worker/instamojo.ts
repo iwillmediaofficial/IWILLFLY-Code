@@ -1,4 +1,5 @@
 import { json, userIdFor, type Env } from './env';
+import { gatewayInvoiceOf as invoiceOf, gatewayRpc as rpc, indianMobile as mobile } from './gateway';
 
 // Online payments with Instamojo (API v1.1, payment requests).
 //
@@ -26,23 +27,6 @@ function gateway(env: Env): Gateway | null {
   // Only Instamojo's own servers, so a wrong setting can never send the keys elsewhere.
   if (!/^https:\/\/(www|test)\.instamojo\.com\/api\/1\.1\/$/.test(base)) return null;
   return { base, key: env.INSTAMOJO_API_KEY, token: env.INSTAMOJO_AUTH_TOKEN, salt: env.INSTAMOJO_SALT };
-}
-
-/** Calls one of the gateway_* database functions with the service role (they are closed to everyone else). */
-async function rpc<T>(env: Env, fn: string, args: Record<string, unknown>): Promise<T> {
-  const res = await fetch(`${env.VITE_SUPABASE_URL}/rest/v1/rpc/${fn}`, {
-    method: 'POST',
-    headers: {
-      apikey: env.SUPABASE_SERVICE_ROLE_KEY!,
-      Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(args),
-    signal: AbortSignal.timeout(TIMEOUT_MS),
-  });
-  const body = (await res.json().catch(() => null)) as T & { message?: string };
-  if (!res.ok) throw new Error(body?.message || `Database error (${res.status})`);
-  return body;
 }
 
 async function instamojo(g: Gateway, path: string, form?: Record<string, string>) {
@@ -96,12 +80,6 @@ async function settle(env: Env, g: Gateway, requestId: string, paymentId?: strin
       created_at: p.created_at ?? null,
     },
   });
-}
-
-/** Indian mobile number in the form Instamojo accepts, or undefined. */
-function mobile(phone: string | null | undefined) {
-  const digits = (phone ?? '').replace(/[^\d]/g, '').replace(/^91(?=\d{10}$)/, '');
-  return /^[6-9]\d{9}$/.test(digits) ? digits : undefined;
 }
 
 /**
@@ -191,22 +169,6 @@ export async function handleInstamojoStart(request: Request, env: Env): Promise<
     console.error('instamojo start', e);
     return json({ error: 'The payment page could not be opened. Please try again in a minute.' }, 502);
   }
-}
-
-/** The invoice a payment request belongs to (service role read). */
-async function invoiceOf(env: Env, requestId: string): Promise<number | null> {
-  const res = await fetch(
-    `${env.VITE_SUPABASE_URL}/rest/v1/gateway_payments?select=invoice_id&request_id=eq.${encodeURIComponent(requestId)}`,
-    {
-      headers: {
-        apikey: env.SUPABASE_SERVICE_ROLE_KEY!,
-        Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
-      },
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-    },
-  ).catch(() => null);
-  const rows = res?.ok ? ((await res.json()) as { invoice_id: number }[]) : [];
-  return rows[0]?.invoice_id ?? null;
 }
 
 /**

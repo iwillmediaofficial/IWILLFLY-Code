@@ -4,6 +4,7 @@ import type { Env } from './env';
 import { handleInstamojoReturn, handleInstamojoStart, handleInstamojoWebhook } from './instamojo';
 import { handleMapsResolve } from './mapsLink';
 import { dispatchPush, handleDispatch } from './push';
+import { handleRazorpayReturn, handleRazorpayStart, handleRazorpayWebhook } from './razorpay';
 import { withSecurityHeaders } from './securityHeaders';
 import { handleSeo } from './seo';
 import { cleanupUploadLog, handleUpload } from './upload';
@@ -26,6 +27,12 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
     return handleInstamojoReturn(request, env);
   if (request.method === 'POST' && pathname === '/api/pay/instamojo/webhook')
     return handleInstamojoWebhook(request, env);
+  if (request.method === 'POST' && pathname === '/api/pay/razorpay/start')
+    return handleRazorpayStart(request, env);
+  if (request.method === 'GET' && pathname === '/api/pay/razorpay/return')
+    return handleRazorpayReturn(request, env);
+  if (request.method === 'POST' && pathname === '/api/pay/razorpay/webhook')
+    return handleRazorpayWebhook(request, env);
   if (pathname.startsWith('/api/')) return new Response('Not found', { status: 404 });
   const seo = await handleSeo(request, env, ctx);
   if (seo) return seo;

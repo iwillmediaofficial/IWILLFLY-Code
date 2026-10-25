@@ -131,7 +131,7 @@ export function VendorOnboarding() {
     }
     await qc.invalidateQueries({ queryKey: VENDOR_KEY });
     if (plan && Number(plan.price) > 0) {
-      // On to the invoice, which offers both ways to pay: Instamojo, or UPI with a transaction ID/screenshot.
+      // On to the invoice, which offers the ways to pay an admin switched on: Razorpay, Instamojo, or UPI with a transaction ID/screenshot.
       toast(photoProblem || 'Application sent! Now pay the plan invoice so we can approve you.');
       navigate(`/vendor/billing/invoices/${result.invoice_id}`, { replace: true });
       return;
