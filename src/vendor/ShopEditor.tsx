@@ -17,7 +17,8 @@ export default function ShopEditor() {
   if (isPending) return <Loading />;
   if (error) return <ErrorNote error={error} />;
   // One shop per business: once it exists, more locations are added as branches.
-  if (!id) return shops.length ? <Navigate to={`/vendor/shops/${shops[0].id}`} replace /> : <ShopForm shop={null} />;
+  if (!id)
+    return shops.length ? <Navigate to={`/vendor/shops/${shops[0].id}`} replace /> : <ShopForm shop={null} />;
   const shop = shops.find((s) => s.id === Number(id));
   if (!shop) return <NotFound what="Shop" back="/vendor/shops" />;
   return (
@@ -252,6 +253,11 @@ function BranchList({ shopId }: { shopId: number }) {
                       style={{ marginTop: 6 }}
                     >
                       {b.review_status === 'rejected' ? 'Not approved' : 'Waiting for approval'}
+                    </span>
+                  )}
+                  {b.awaiting_payment && b.review_status !== 'rejected' && (
+                    <span className="pill-status pending" style={{ marginTop: 6, marginLeft: 4 }}>
+                      Waiting for payment
                     </span>
                   )}
                 </div>

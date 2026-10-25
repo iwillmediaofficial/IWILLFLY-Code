@@ -93,6 +93,22 @@ export interface Branch {
   /** Branches added after the business is approved wait for an admin. */
   review_status: BranchReview;
   review_note: string | null;
+  /** Added over the plan's included branches and not paid yet: hidden from customers */
+  awaiting_payment: boolean;
+  /** Its part-month invoice; null while it waits for the plan renewal invoice */
+  payment_invoice_id: number | null;
+}
+
+/** branch_price_quote(): what one more branch costs today, or null when it is free. */
+export interface BranchQuote {
+  amount: number;
+  days_left: number;
+  renews_on: string;
+  price: number;
+  period_days: number;
+  plan: string;
+  /** 3 days or fewer left: no part-month invoice, it waits for the renewal invoice */
+  deferred: boolean;
 }
 
 export type BranchReview = 'approved' | 'pending' | 'rejected';
