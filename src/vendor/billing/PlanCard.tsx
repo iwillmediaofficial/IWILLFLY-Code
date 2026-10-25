@@ -48,10 +48,6 @@ export function CurrentPlanCard() {
 
       <div className="info-grid" style={{ marginTop: 12 }}>
         <div className="info-card">
-          <span>Shops</span>
-          <strong>{usageText(b.usage.shops, p?.max_shops ?? null)}</strong>
-        </div>
-        <div className="info-card">
           <span>Offers for all branches</span>
           <strong>{usageText(b.usage.live_offers, p?.max_live_offers ?? null)}</strong>
         </div>

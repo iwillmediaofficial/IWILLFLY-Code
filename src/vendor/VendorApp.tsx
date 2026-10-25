@@ -36,7 +36,7 @@ type Tab = {
 const tabs: Tab[] = [
   { to: '/vendor', label: 'Dashboard', icon: '🏠', end: true, staffToo: true, branch: 'all' },
   { to: '/vendor/branches/mine', label: 'My branch', icon: '📍', branch: 'all', branchOnly: true },
-  { to: '/vendor/shops', label: 'Shops', icon: '🏬' },
+  { to: '/vendor/shops', label: 'My shop', icon: '🏬' },
   { to: '/vendor/offers', label: 'Offers', icon: '🏷️', branch: 'manager' },
   { to: '/vendor/scratch', label: 'Scratch & Win', icon: '🎟️', staffToo: true, branch: 'all' },
   { to: '/vendor/insights', label: 'Insights', icon: '📈', staffToo: true },
@@ -61,7 +61,7 @@ function tabsFor(v: MyVendor): Tab[] {
 
 /** How the side menu groups the tabs above. */
 const GROUPS: { label: string; items: string[] }[] = [
-  { label: 'My shop', items: ['Dashboard', 'My branch', 'Shops', 'Offers'] },
+  { label: 'My shop', items: ['Dashboard', 'My branch', 'My shop', 'Offers'] },
   { label: 'Grow sales', items: ['Scratch & Win', 'Insights', 'Festivals', 'Promote'] },
   { label: 'Account', items: ['Plan & billing', 'Team', 'Help'] },
 ];

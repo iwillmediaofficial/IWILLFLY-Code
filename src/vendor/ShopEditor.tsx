@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { ImageField } from '../components/ImageField';
 import { useToast } from '../components/Toast';
 import { openState } from '../lib/hours';
@@ -14,9 +14,10 @@ import { BlockedNote, ErrorNote, FormError, Loading, Lockable, NotFound, PageHea
 export default function ShopEditor() {
   const { id } = useParams();
   const { data: shops, isPending, error } = useMyShops();
-  if (!id) return <ShopForm shop={null} />;
   if (isPending) return <Loading />;
   if (error) return <ErrorNote error={error} />;
+  // One shop per business: once it exists, more locations are added as branches.
+  if (!id) return shops.length ? <Navigate to={`/vendor/shops/${shops[0].id}`} replace /> : <ShopForm shop={null} />;
   const shop = shops.find((s) => s.id === Number(id));
   if (!shop) return <NotFound what="Shop" back="/vendor/shops" />;
   return (
@@ -36,6 +37,8 @@ function ShopForm({ shop }: { shop: Shop | null }) {
   const toast = useToast();
   const navigate = useNavigate();
   const { data: categories = [] } = useCategories();
+  // Businesses from before the one-shop rule may still have more than one.
+  const shopCount = useMyShops().data?.length ?? 0;
   const [f, setF] = useState({
     name: shop?.name ?? '',
     category_id: shop?.category_id ?? null,
@@ -106,7 +109,10 @@ function ShopForm({ shop }: { shop: Shop | null }) {
 
   return (
     <>
-      <PageHead title={shop ? 'Edit shop' : 'New shop'} action={<Link to="/vendor/shops">All shops</Link>} />
+      <PageHead
+        title={shop ? 'My shop' : 'Add your shop'}
+        action={shopCount > 1 && <Link to="/vendor/shops">All shops</Link>}
+      />
       {readOnly && <BlockedNote />}
       <form className="form-card" onSubmit={submit} noValidate>
         <Lockable locked={readOnly}>

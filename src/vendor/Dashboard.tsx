@@ -73,8 +73,8 @@ export default function Dashboard() {
                 ＋ New offer
               </Link>
             )}
-            <Link className="btn secondary" to="/vendor/shops/new">
-              ＋ Add shop
+            <Link className="btn secondary" to="/vendor/shops">
+              My shop &amp; branches
             </Link>
             <Link className="btn secondary" to="/vendor/offers?status=pending">
               Offers in review

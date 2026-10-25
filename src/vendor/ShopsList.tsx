@@ -1,18 +1,20 @@
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { useCategories } from '../lib/queries';
 import { mediaUrl } from '../lib/supabase';
 import { useMyShops } from './api';
 import { useReadOnly } from './context';
 import { ErrorNote, Loading, PageHead } from './ui';
 
+/** A business has one shop (with many branches): this opens it, or lets the owner add it. */
 export default function ShopsList() {
   const { data: shops, isPending, error } = useMyShops();
   const { data: categories = [] } = useCategories();
   const readOnly = useReadOnly();
+  if (shops?.length === 1) return <Navigate to={`/vendor/shops/${shops[0].id}`} replace />;
 
   return (
     <>
-      <PageHead title="Your shops" action={!readOnly && <Link to="/vendor/shops/new">＋ Add shop</Link>} />
+      <PageHead title="My shop" />
       {isPending ? (
         <Loading />
       ) : error ? (
@@ -20,11 +22,11 @@ export default function ShopsList() {
       ) : shops.length === 0 ? (
         <div className="saved-empty">
           <div className="emoji">🏪</div>
-          <h3>No shops yet</h3>
+          <h3>No shop yet</h3>
           <p>Add your shop, then its branches and offers.</p>
           {!readOnly && (
             <Link className="btn" to="/vendor/shops/new" style={{ display: 'inline-block', marginTop: 8 }}>
-              Add your first shop
+              Add your shop
             </Link>
           )}
         </div>

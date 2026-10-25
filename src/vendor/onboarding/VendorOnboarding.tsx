@@ -271,7 +271,6 @@ function PlanStep({
               </div>
               {p.description && <p>{p.description}</p>}
               <ul>
-                <li>{limitText(p.max_shops, 'shop', 'shops')}</li>
                 <li>{limitText(p.max_branches ?? null, 'branch', 'branches')}</li>
                 <li>{offerLimitText(p.max_live_offers)}</li>
                 {branchPriceText(p) && <li>{branchPriceText(p)}</li>}
