@@ -2,7 +2,9 @@ import { useMemo, useState, type FormEvent } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useToast } from '../components/Toast';
 import { db, must, useLocations } from '../lib/queries';
+import { mediaUrl } from '../lib/supabase';
 import type { LocationNode } from '../lib/types';
+import { SquareImageField } from './SquareImageField';
 import { Empty, ErrorNotice, Loading } from './ui';
 import { PUBLIC_KEYS, friendlyError, slugify, toNumber, useInvalidate } from './util';
 
@@ -123,7 +125,17 @@ function LocationRow({ node, onEdit, onAdd }: { node: LocationNode; onEdit: () =
         opacity: node.is_active ? 1 : 0.6,
       }}
     >
-      <span style={{ fontSize: 18 }}>{KIND_ICON[node.kind]}</span>
+      {node.image_key ? (
+        <img
+          src={mediaUrl(node.image_key)}
+          alt=""
+          width={28}
+          height={28}
+          style={{ width: 28, height: 28, borderRadius: 8, objectFit: 'cover' }}
+        />
+      ) : (
+        <span style={{ fontSize: 18 }}>{KIND_ICON[node.kind]}</span>
+      )}
       <div className="grow" style={{ minWidth: 0 }}>
         <b style={{ fontSize: 14 }}>{node.name}</b>{' '}
         <span className="meta">
@@ -175,6 +187,7 @@ function LocationForm({
   const [lat, setLat] = useState(node?.lat != null ? String(node.lat) : '');
   const [lng, setLng] = useState(node?.lng != null ? String(node.lng) : '');
   const [sort, setSort] = useState(String(node?.sort_order ?? 0));
+  const [imageKey, setImageKey] = useState<string | null>(node?.image_key ?? null);
   const [error, setError] = useState('');
 
   const save = useMutation({
@@ -186,6 +199,8 @@ function LocationForm({
         lat: toNumber(lat),
         lng: toNumber(lng),
         sort_order: Math.round(toNumber(sort) ?? 0),
+        // Sent only when changed, so the form keeps working before the district-picture column exists.
+        ...(imageKey !== (node?.image_key ?? null) && { image_key: imageKey }),
       };
       if (node) must(await db().from('locations').update(row).eq('id', node.id));
       else
@@ -277,6 +292,15 @@ function LocationForm({
           Areas need lat/lng for “nearby” sorting. Tip: long-press the spot in Google Maps to copy its
           coordinates.
         </p>
+      )}
+      {kind === 'district' && (
+        <SquareImageField
+          value={imageKey}
+          onChange={setImageKey}
+          emoji={KIND_ICON.district}
+          folder="locations"
+          alt="District picture"
+        />
       )}
       <div className="field" style={{ maxWidth: 160 }}>
         <label htmlFor="loc-sort">Sort order</label>

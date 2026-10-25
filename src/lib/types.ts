@@ -26,6 +26,8 @@ export interface LocationNode {
   lng: number | null;
   is_active: boolean;
   sort_order: number;
+  /** District picture, uploaded by admins; null shows a district icon */
+  image_key?: string | null;
 }
 
 export interface Vendor {

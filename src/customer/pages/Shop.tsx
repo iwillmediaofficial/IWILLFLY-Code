@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { AppShell, BackHeader } from '../../components/AppShell';
@@ -14,6 +14,7 @@ import { usePageMeta } from '../../lib/pageMeta';
 import { db, must, useLocations, useSavedIds } from '../../lib/queries';
 import { mediaUrl, supabase } from '../../lib/supabase';
 import type { Branch, Category, Offer, Shop as ShopRow } from '../../lib/types';
+import { BranchesByDistrict } from '../BranchesByDistrict';
 import { ErrorNotice, Loading, NoBackend, OfferImage, Sheet } from '../ui';
 import { directionsLink, formatDate, toneFor, useSaveToggle, validity, whatsappLink } from '../util';
 
@@ -138,7 +139,6 @@ export default function Shop() {
     (linkedOffer && links.isSuccess ? withKm.find((b) => at(linkedOffer, b.id)) : undefined) ??
     withKm[0];
   const mallOf = (bid: number) => malls.data?.find((m) => m.branch_id === bid);
-  const areaOf = (b: Branch) => locations?.find((l) => l.id === b.location_id)?.name;
   const openOffer = linkedOffer;
   const showOffer = (oid: number | null) => {
     const p = new URLSearchParams(params);
@@ -258,6 +258,14 @@ export default function Shop() {
   const today = nowIST().day;
   // Offers at the chosen branch: those for all branches and the branch's own.
   const live = (offers.data ?? []).filter((o) => at(o, branch?.id));
+  // Branches have no picture of their own: the shop's cover, else its logo or category icon.
+  const branchPhoto =
+    s.cover_key || s.logo_key ? (
+      <img src={mediaUrl((s.cover_key ?? s.logo_key)!)} alt="" loading="lazy" decoding="async" />
+    ) : (
+      <CategoryIcon category={s.category} fallback="🏪" size={40} />
+    );
+  const homeArea = typeof place?.source === 'number' ? place.source : null;
 
   return (
     <AppShell header={header}>
@@ -398,42 +406,19 @@ export default function Shop() {
       </section>
       {withKm.length > 1 && (
         <section className="section">
-          <div className="section-head">
-            <h2>Branches</h2>
-            <button>{withKm.length} locations</button>
-          </div>
-          <div className="list">
-            {withKm.map((b) => {
-              const st = openState(b);
-              const active = b.id === branch?.id;
-              return (
-                <div
-                  key={b.id}
-                  className="shop-card"
-                  role="button"
-                  aria-pressed={active}
-                  onClick={() => goToBranch(b)}
-                  style={{
-                    gridTemplateColumns: '1fr auto',
-                    borderColor: active ? 'var(--color-blue)' : undefined,
-                  }}
-                >
-                  <div>
-                    <h4>{b.name}</h4>
-                    <div className="meta">
-                      {[mallOf(b.id)?.mall?.name, b.address, formatKm(b.km, approx)]
-                        .filter(Boolean)
-                        .join(' · ')}
-                    </div>
-                    <div className="meta" style={{ marginTop: 3, color: st.open ? '#16a85a' : '#e53a42' }}>
-                      {st.label}
-                    </div>
-                  </div>
-                  <div className="chev">{active ? '✓' : '›'}</div>
-                </div>
-              );
-            })}
-          </div>
+          <BranchesByDistrict
+            branches={withKm}
+            locations={locations ?? []}
+            photo={branchPhoto}
+            approx={approx}
+            homeArea={homeArea}
+            activeId={branch?.id}
+            extra={(b) => {
+              const m = mallOf(b.id)?.mall?.name;
+              return m ? <div className="meta">🏬 {m}</div> : null;
+            }}
+            onView={goToBranch}
+          />
         </section>
       )}
       <section className="section form-card">
@@ -546,13 +531,26 @@ export default function Shop() {
               where={withKm.length > 1 && branch ? branch.name : null}
             />
             {withKm.length > 1 && branch && (
-              <OtherBranches
-                shopName={s.name}
-                branches={withKm.filter((b) => b.id !== branch.id)}
+              <BranchesByDistrict
+                branches={withKm}
+                locations={locations ?? []}
+                photo={branchPhoto}
                 approx={approx}
-                area={(b) => mallOf(b.id)?.mall?.name ?? areaOf(b) ?? b.address}
-                offerCount={(b) => (offers.data ?? []).filter((o) => at(o, b.id)).length}
-                hasThisOffer={(b) => at(openOffer, b.id)}
+                homeArea={homeArea}
+                activeId={branch.id}
+                extra={(b) => {
+                  const n = (offers.data ?? []).filter((o) => at(o, b.id)).length;
+                  return (
+                    <div className="meta" style={{ marginTop: 3 }}>
+                      {n === 0 ? 'No live offers' : `${n} live ${n === 1 ? 'offer' : 'offers'}`}
+                      {at(openOffer, b.id) && (
+                        <span className="pill-status live" style={{ marginLeft: 6 }}>
+                          This offer too
+                        </span>
+                      )}
+                    </div>
+                  );
+                }}
                 onView={goToBranch}
               />
             )}
@@ -635,76 +633,6 @@ function OfferDetails({
       <p className="meta" style={{ textAlign: 'center' }}>
         Show this offer at the shop to claim it.
       </p>
-    </div>
-  );
-}
-
-type BranchWithKm = Branch & { km: number | null };
-
-/** Under an offer: the shop's other branches, nearest first, each with a View offers button. */
-function OtherBranches({
-  shopName,
-  branches,
-  approx,
-  area,
-  offerCount,
-  hasThisOffer,
-  onView,
-}: {
-  shopName: string;
-  branches: BranchWithKm[];
-  approx: boolean;
-  area: (b: BranchWithKm) => string | null | undefined;
-  offerCount: (b: BranchWithKm) => number;
-  hasThisOffer: (b: BranchWithKm) => boolean;
-  onView: (b: BranchWithKm) => void;
-}) {
-  const [all, setAll] = useState(false);
-  const shown = all ? branches : branches.slice(0, 5);
-  return (
-    <div style={{ marginTop: 18 }}>
-      <h3 style={{ margin: '0 0 8px', fontSize: 15 }}>Other branches of {shopName}</h3>
-      <div className="list">
-        {shown.map((b) => {
-          const st = openState(b);
-          const n = offerCount(b);
-          return (
-            <div
-              key={b.id}
-              className="shop-card"
-              style={{ gridTemplateColumns: '1fr auto', cursor: 'default' }}
-            >
-              <div style={{ minWidth: 0 }}>
-                <h4>{b.name}</h4>
-                <div className="meta">{[area(b), formatKm(b.km, approx)].filter(Boolean).join(' · ')}</div>
-                <div className="meta" style={{ marginTop: 3 }}>
-                  <span style={{ color: st.open ? '#16a85a' : '#e53a42' }}>{st.label}</span>
-                  {' · '}
-                  {n === 0 ? 'No live offers' : `${n} live ${n === 1 ? 'offer' : 'offers'}`}
-                </div>
-                {hasThisOffer(b) && (
-                  <span className="pill-status live" style={{ marginTop: 4 }}>
-                    This offer too
-                  </span>
-                )}
-              </div>
-              <button type="button" className="btn small" onClick={() => onView(b)}>
-                View offers
-              </button>
-            </div>
-          );
-        })}
-      </div>
-      {!all && branches.length > 5 && (
-        <button
-          type="button"
-          className="btn secondary block"
-          style={{ marginTop: 8 }}
-          onClick={() => setAll(true)}
-        >
-          See all branches ({branches.length})
-        </button>
-      )}
     </div>
   );
 }

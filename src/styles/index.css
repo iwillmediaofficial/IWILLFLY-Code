@@ -3365,3 +3365,128 @@
     display: block !important;
   }
 }
+
+/* A shop's branches grouped by district (shop page and offer popup). */
+@layer components {
+  .districts {
+    margin-top: 18px;
+  }
+  .districts-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .districts-head h3 {
+    margin: 0;
+    font-size: 16px;
+  }
+  .districts-head select {
+    width: auto;
+    max-width: 55%;
+    padding: 7px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .district-card {
+    border: 1px solid #e4eaf3;
+    border-radius: 18px;
+    background: #fff;
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+  .district-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 12px 14px;
+    background: none;
+    border: 0;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .district-top:disabled {
+    cursor: default;
+  }
+  .district-top b {
+    display: block;
+    font-size: 15px;
+  }
+  .district-pic {
+    flex: none;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    font-size: 24px;
+    overflow: hidden;
+    background: linear-gradient(135deg, #e6efff, #d7e6ff);
+  }
+  .district-pic img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .district-list {
+    border-top: 1px solid #eef2f7;
+    padding: 4px 12px 8px;
+  }
+  .district-branch {
+    display: grid;
+    grid-template-columns: 64px 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid #f1f4f9;
+  }
+  .district-branch:last-child {
+    border-bottom: 0;
+  }
+  .district-branch.active h4 {
+    color: var(--color-blue);
+  }
+  .district-branch h4 {
+    margin: 0 0 2px;
+    font-size: 14px;
+  }
+  .district-photo {
+    width: 64px;
+    height: 64px;
+    border-radius: 14px;
+    overflow: hidden;
+    display: grid;
+    place-items: center;
+    font-size: 30px;
+    background: linear-gradient(135deg, #e6efff, #d7e6ff);
+  }
+  .district-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .district-tags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+  }
+  .district-open {
+    border-radius: 99px;
+    padding: 2px 8px;
+    font-size: 10px;
+    font-weight: 900;
+    background: #e8f8ef;
+    color: #0e8a43;
+  }
+  .district-open.closed {
+    background: #fff0f1;
+    color: var(--color-red);
+  }
+}
