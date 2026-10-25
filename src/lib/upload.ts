@@ -1,7 +1,8 @@
 import imageCompression from 'browser-image-compression';
 import { supabase } from './supabase';
 
-export type UploadFolder = 'shops' | 'offers' | 'ads' | 'prizes' | 'support' | 'categories' | 'test';
+export type UploadFolder =
+  'shops' | 'offers' | 'ads' | 'prizes' | 'support' | 'categories' | 'locations' | 'test';
 
 /** The upload route's limit for one image (worker/upload.ts), also checked here before sending. */
 export const MAX_UPLOAD_BYTES = 1024 * 1024;

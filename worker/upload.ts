@@ -1,7 +1,7 @@
 import { handleBillUpload } from './bills';
 import { isWebp, json, rolesFor, userIdFor, type Env } from './env';
 
-const FOLDERS = ['shops', 'offers', 'ads', 'prizes', 'support', 'categories', 'test'] as const;
+const FOLDERS = ['shops', 'offers', 'ads', 'prizes', 'support', 'categories', 'locations', 'test'] as const;
 const STAFF_UPLOAD_ROLES = ['admin', 'super_admin', 'campaign_manager'];
 export const MAX_BYTES = 1024 * 1024; // images arrive as ~150 KB WebP; 1 MB is a hard ceiling
 // Approved vendor teams may upload this many images per India day; staff have no limit.
