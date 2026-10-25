@@ -206,6 +206,25 @@ function VendorLayout({ vendor }: { vendor: MyVendor }) {
           </div>
         </div>
         <main className="page">
+          {vendor.status === 'approved' && vendor.plan_running === false && (
+            <div className="notice bad">
+              <b>Your plan has expired.</b> Customers can't see your shop, branches, offers or prizes until it
+              is renewed.
+              {vendor.my_role === 'owner' ? (
+                <div>
+                  <Link
+                    className="btn"
+                    style={{ display: 'inline-block', marginTop: 10 }}
+                    to="/vendor/billing"
+                  >
+                    💳 Renew now
+                  </Link>
+                </div>
+              ) : (
+                ' Ask the business owner to renew it.'
+              )}
+            </div>
+          )}
           <Routes>
             <Route index element={<Dashboard />} />
             <Route path="shops" element={<ShopsList />} />

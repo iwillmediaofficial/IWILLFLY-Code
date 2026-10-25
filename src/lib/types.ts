@@ -53,6 +53,8 @@ export interface MyVendor extends Vendor {
   my_branch_shop_id: number | null;
   /** Username of a branch login (signs in with it instead of an email). */
   my_login_name: string | null;
+  /** False when a paid plan ran out: customers can't see the shop until it is renewed */
+  plan_running?: boolean;
 }
 
 export interface Shop {

@@ -379,3 +379,101 @@ as $$
   left join public.vendors v on v.id = p.vendor_id
   where c.id = p.campaign_id;
 $$;
+
+-- A paid plan that ran out hides the shop ---------------------------------------------------------------
+-- On a paid plan, customers see the shop (its branches, offers and prizes) only while a plan period is
+-- running. Free plans and businesses with no plan are not affected. The owner, the team and admins still
+-- see everything, and the owner can renew from Plan & billing.
+
+-- True unless the business is on a paid plan with no period running today.
+create or replace function private.vendor_plan_running(v bigint)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select coalesce((private.vendor_plan(v)).price, 0) = 0
+    or exists (select 1 from public.subscriptions s
+               where s.vendor_id = v and s.cancelled_at is null
+                 and private.today_ist() between s.starts_on and s.ends_on);
+$$;
+revoke execute on function private.vendor_plan_running(bigint) from public;
+grant execute on function private.vendor_plan_running(bigint) to authenticated;
+
+-- What customers see: approved, and the plan running.
+create or replace function private.vendor_is_listed(v bigint)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$ select private.vendor_is_live(v) and private.vendor_plan_running(v) $$;
+revoke execute on function private.vendor_is_listed(bigint) from public;
+grant execute on function private.vendor_is_listed(bigint) to authenticated;
+
+-- Branches, offers, malls and events of the shop follow it (they all ask shop_is_live).
+create or replace function private.shop_is_live(s bigint)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1 from public.shops sh join public.vendors v on v.id = sh.vendor_id
+    where sh.id = s and sh.is_active and v.status = 'approved' and private.vendor_plan_running(v.id)
+  );
+$$;
+
+-- ("shops: public read live" is a service_role leftover with no effect; it stays as it is.)
+drop policy if exists "shops: read live, own team or admin" on public.shops;
+create policy "shops: read live, own team or admin" on public.shops
+  for select to authenticated
+  using ((is_active and private.vendor_is_listed(vendor_id)) or private.can_see_own_shop(id)
+         or (select private.is_admin()));
+
+-- Same as earlier in this file, plus: a sponsor whose paid plan ran out gives no prizes.
+create or replace function private.prize_available_for(p_prize_id bigint, uid uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select (not exists (select 1 from public.scratch_prize_locations where prize_id = p_prize_id)
+          or exists (
+            select 1 from public.scratch_prize_locations spl
+            where spl.prize_id = p_prize_id
+              and private.location_within((select location_id from public.profiles where id = uid), spl.location_id)))
+    and (exists (select 1 from public.scratch_prizes where id = p_prize_id and all_branches)
+         or exists (select 1 from public.scratch_prize_branches pb
+                    where pb.prize_id = p_prize_id and private.branch_is_live(pb.branch_id)))
+    and coalesce((select private.vendor_plan_running(sponsor_vendor_id) from public.scratch_prizes
+                  where id = p_prize_id and sponsor_vendor_id is not null), true);
+$$;
+revoke execute on function private.prize_available_for(bigint, uuid) from public, anon, authenticated;
+
+-- The vendor area knows whether customers can see the shop (plan_running).
+create or replace function public.my_vendor()
+returns jsonb
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select to_jsonb(v) || jsonb_build_object(
+    'my_role', case when v.owner_id = (select auth.uid()) then 'owner' else st.role::text end,
+    'my_branch_id', st.branch_id,
+    'my_branch_name', b.name,
+    'my_branch_shop_id', b.shop_id,
+    'my_login_name', st.login_name,
+    'plan_running', private.vendor_plan_running(v.id))
+  from public.vendors v
+  left join public.vendor_staff st on st.vendor_id = v.id and st.user_id = (select auth.uid())
+    and st.removed_at is null and st.disabled_at is null
+  left join public.branches b on b.id = st.branch_id
+  where v.owner_id = (select auth.uid()) or st.user_id is not null
+  order by (v.owner_id = (select auth.uid())) desc
+  limit 1;
+$$;

@@ -171,4 +171,27 @@ insert into public.subscriptions (vendor_id, plan_id, starts_on, ends_on)
 select pg_temp.check(not (select awaiting_payment from public.branches where name = 'Vytilla'),
   'once its period is over and the renewal is running, an unpaid old charge no longer hides the branch');
 
+-- A paid plan that ran out hides the shop from customers ------------------------------------------------
+update public.subscriptions set cancelled_at = now() where vendor_id = (select v from ids where k = 'v');
+select pg_temp.act_as('00000000-0000-0000-0000-0000000000c1');
+set local role authenticated;
+select pg_temp.check((select count(*) from public.shops where id = (select v from ids where k = 'shop')) = 0,
+  'customers cannot see a shop whose paid plan ran out');
+select pg_temp.check((select count(*) from public.branches where shop_id = (select v from ids where k = 'shop')) = 0,
+  'nor its branches');
+reset role;
+select pg_temp.act_as('00000000-0000-0000-0000-0000000000b1');
+set local role authenticated;
+select pg_temp.check((select count(*) from public.shops where id = (select v from ids where k = 'shop')) = 1,
+  'the owner still sees the shop');
+select pg_temp.check(not (public.my_vendor()->>'plan_running')::boolean, 'the vendor area knows the plan ran out');
+reset role;
+insert into public.plans (name, price, period_days) values ('Free', 0, 30);
+update public.vendors set plan_id = (select id from public.plans where name = 'Free') where id = (select v from ids where k = 'v');
+select pg_temp.act_as('00000000-0000-0000-0000-0000000000c1');
+set local role authenticated;
+select pg_temp.check((select count(*) from public.shops where id = (select v from ids where k = 'shop')) = 1,
+  'a business on a free plan is never hidden');
+reset role;
+
 rollback;
