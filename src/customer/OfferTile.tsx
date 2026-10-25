@@ -7,6 +7,7 @@ import { OfferImage } from './ui';
 export function OfferTile({
   shopId,
   offerId,
+  shopPath,
   imageKey,
   icon,
   badge,
@@ -16,6 +17,8 @@ export function OfferTile({
 }: {
   shopId: number;
   offerId: number;
+  /** Opens this path (e.g. the branch page) instead of /shop/<id>. */
+  shopPath?: string;
   imageKey?: string | null;
   icon?: ReactNode;
   badge: string;
@@ -26,7 +29,7 @@ export function OfferTile({
   const navigate = useNavigate();
   const open = () => {
     track('click', shopId, offerId);
-    navigate(`/shop/${shopId}?offer=${offerId}`);
+    navigate(`${shopPath ?? `/shop/${shopId}`}?offer=${offerId}`);
   };
   return (
     <article

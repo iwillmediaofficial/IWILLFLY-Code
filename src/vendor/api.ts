@@ -52,7 +52,21 @@ export function useBranch(id: number | null) {
   });
 }
 
-/** Offers of the vendor's own shops, newest first. */
+/** Every branch of the vendor's shops (branch members see them all, but change only their own). */
+export function useMyBranches() {
+  const shops = useMyShops();
+  const ids = (shops.data ?? []).map((s) => s.id);
+  return useQuery({
+    queryKey: ['vendor', 'all-branches', ids],
+    queryFn: async () =>
+      ids.length
+        ? must<Branch[]>(await db().from('branches').select('*').in('shop_id', ids).order('id'))
+        : [],
+    enabled: shops.isSuccess,
+  });
+}
+
+/** Offers of the vendor's own shops, newest first, with the branches of branch-only offers. */
 export function useMyOffers() {
   const shops = useMyShops();
   const ids = (shops.data ?? []).map((s) => s.id);
@@ -70,10 +84,27 @@ export function useMyOffers() {
         : [],
     enabled: shops.isSuccess,
   });
+  const offerIds = (offers.data ?? []).filter((o) => !o.all_branches).map((o) => o.id);
+  const links = useQuery({
+    queryKey: ['vendor', 'offer-branches', offerIds],
+    queryFn: async () => {
+      const rows = offerIds.length
+        ? must<{ offer_id: number; branch_id: number }[]>(
+            await db().from('offer_branches').select('offer_id, branch_id').in('offer_id', offerIds),
+          )
+        : [];
+      const map = new Map<number, number[]>();
+      for (const r of rows) map.set(r.offer_id, [...(map.get(r.offer_id) ?? []), r.branch_id]);
+      return map;
+    },
+    enabled: offers.isSuccess,
+  });
   return {
     offers: offers.data,
     shops: shops.data,
-    isPending: shops.isPending || offers.isPending,
-    error: shops.error ?? offers.error,
+    /** offer id -> branch ids, for offers that are not for all branches */
+    branchesOf: links.data,
+    isPending: shops.isPending || offers.isPending || links.isPending,
+    error: shops.error ?? offers.error ?? links.error,
   };
 }

@@ -42,7 +42,16 @@ function useVendorShops(vendorId: number) {
   });
 }
 
-type TeamRow = { user_id: string; email: string; full_name: string | null; role: string; added_at: string };
+type TeamRow = {
+  user_id: string;
+  email: string;
+  full_name: string | null;
+  role: string;
+  added_at: string;
+  branch_name: string | null;
+  login_name: string | null;
+  disabled: boolean;
+};
 
 const VENDOR_KEYS = (id: number) => [
   ['admin', 'vendor', id],
@@ -94,7 +103,17 @@ export function VendorDetail() {
 
 type AppBranch = Pick<
   Branch,
-  'id' | 'name' | 'address' | 'lat' | 'lng' | 'phone' | 'hours' | 'parking' | 'parking_note'
+  | 'id'
+  | 'name'
+  | 'address'
+  | 'lat'
+  | 'lng'
+  | 'phone'
+  | 'hours'
+  | 'parking'
+  | 'parking_note'
+  | 'review_status'
+  | 'review_note'
 > & { location: { name: string } | null };
 type AppShop = {
   id: number;
@@ -122,7 +141,7 @@ function ApplicationCard({ vendorId }: { vendorId: number }) {
         await db()
           .from('vendors')
           .select(
-            `${PLAN_SELECT}, shops(id, name, logo_key, cover_key, branches(id, name, address, lat, lng, phone, hours, parking, parking_note, location:locations(name)))`,
+            `${PLAN_SELECT}, shops(id, name, logo_key, cover_key, branches(id, name, address, lat, lng, phone, hours, parking, parking_note, review_status, review_note, location:locations(name)))`,
           )
           .eq('id', vendorId)
           .single(),
@@ -185,7 +204,18 @@ function ApplicationCard({ vendorId }: { vendorId: number }) {
                 <div>
                   <b>{b.name}</b>
                   {b.location && <span className="meta"> · {b.location.name}</span>}
+                  {b.review_status !== 'approved' && (
+                    <span
+                      className={`pill-status ${b.review_status === 'rejected' ? 'rejected' : 'pending'}`}
+                      style={{ marginLeft: 6 }}
+                    >
+                      {b.review_status === 'rejected' ? 'Refused' : 'Waiting for review'}
+                    </span>
+                  )}
                 </div>
+                {b.review_status === 'rejected' && b.review_note && (
+                  <div className="meta">Reason: {b.review_note}</div>
+                )}
                 <div>{b.address || <span className="meta">No address</span>}</div>
                 <div className="meta">
                   {b.lat != null && b.lng != null ? (
@@ -206,12 +236,60 @@ function ApplicationCard({ vendorId }: { vendorId: number }) {
                   {b.parking_note && ` (${b.parking_note})`}
                 </div>
                 <div className="meta">🕘 {hoursText(b.hours)}</div>
+                {b.review_status !== 'approved' && <BranchReview vendorId={vendorId} branch={b} />}
               </div>
             );
           })}
         </div>
       ))}
     </section>
+  );
+}
+
+/** Approve or refuse a branch added after the vendor was approved. */
+function BranchReview({ vendorId, branch: b }: { vendorId: number; branch: AppBranch }) {
+  const toast = useToast();
+  const invalidate = useInvalidate();
+  const review = useMutation({
+    mutationFn: async (v: { approve: boolean; note?: string }) =>
+      must(
+        await db().rpc('review_branch', { p_branch_id: b.id, p_approve: v.approve, p_note: v.note ?? null }),
+      ),
+    onSuccess: (_, v) => {
+      invalidate(
+        ['admin', 'vendor', vendorId],
+        ['admin', 'pending-branches'],
+        ['admin-attention'],
+        ...PUBLIC_KEYS,
+      );
+      toast(v.approve ? 'Branch approved' : 'Branch refused');
+    },
+    onError: (e) => toast(friendlyError(e)),
+  });
+  return (
+    <div className="btn-row">
+      <button
+        type="button"
+        className="btn small"
+        disabled={review.isPending}
+        onClick={() => review.mutate({ approve: true })}
+      >
+        Approve branch
+      </button>
+      {b.review_status === 'pending' && (
+        <button
+          type="button"
+          className="btn danger small"
+          disabled={review.isPending}
+          onClick={() => {
+            const note = window.prompt('Why is this branch refused? The vendor will see this.', '');
+            if (note?.trim()) review.mutate({ approve: false, note: note.trim().slice(0, 300) });
+          }}
+        >
+          Refuse
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -399,8 +477,11 @@ function TeamCard({ vendorId }: { vendorId: number }) {
       )}
       {team.data?.map((m) => (
         <div key={m.user_id} className="meta" style={{ padding: '4px 0' }}>
-          <b>{m.full_name ?? m.email}</b> · {m.role}
-          {m.full_name ? ` · ${m.email}` : ''} · added {formatDate(m.added_at)}
+          <b>{m.full_name ?? m.login_name ?? m.email}</b> ·{' '}
+          {m.branch_name ? `branch ${m.role}, ${m.branch_name}` : m.role}
+          {m.login_name ? ` · username ${m.login_name}` : m.full_name ? ` · ${m.email}` : ''} · added{' '}
+          {formatDate(m.added_at)}
+          {m.disabled && ' · switched off'}
         </div>
       ))}
     </section>

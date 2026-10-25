@@ -14,7 +14,12 @@ export function ShopCard({ shop, showStatus = true }: { shop: ShopResult; showSt
     .filter(Boolean)
     .join(' · ');
   return (
-    <Link className="shop-card" to={`/shop/${shop.shop_id}`} onClick={() => track('click', shop.shop_id)}>
+    <Link
+      className="shop-card"
+      // Shops with several branches open the nearest branch's page.
+      to={`/shop/${shop.shop_slug ?? shop.shop_id}${shop.branch_count > 1 && shop.branch_slug ? `/${shop.branch_slug}` : ''}`}
+      onClick={() => track('click', shop.shop_id)}
+    >
       <Thumb
         imageKey={shop.logo_key}
         icon={
@@ -26,7 +31,10 @@ export function ShopCard({ shop, showStatus = true }: { shop: ShopResult; showSt
         }
       />
       <div>
-        <h4>{shop.name}</h4>
+        <h4>
+          {shop.name}
+          {shop.branch_count > 1 && shop.branch_name ? ` · ${shop.branch_name}` : ''}
+        </h4>
         <div className="meta">
           {meta}
           {showStatus && state && (

@@ -37,6 +37,7 @@ const VendorApply = lazy(() => import('./vendor/VendorApply'));
 const VendorSignup = lazy(() => import('./vendor/VendorSignup'));
 const VendorLogin = lazy(() => import('./vendor/VendorLogin'));
 const VendorApp = lazy(() => import('./vendor/VendorApp'));
+const VendorJoin = lazy(() => import('./vendor/VendorJoin'));
 const AdminApp = lazy(() => import('./admin/AdminApp'));
 
 /** The customer app is for signed-in users only; guests are sent to /login. */
@@ -58,6 +59,7 @@ export default function App() {
                 <Route path="/malls" element={signedIn(<Malls />)} />
                 <Route path="/mall/:id" element={signedIn(<Mall />)} />
                 <Route path="/shop/:id" element={signedIn(<Shop />)} />
+                <Route path="/shop/:id/:branch" element={signedIn(<Shop />)} />
                 <Route path="/saved" element={signedIn(<Saved />)} />
                 <Route path="/prizes" element={signedIn(<Prizes />)} />
                 {/* Open to guests, so the rules can be read before signing up. */}
@@ -78,6 +80,8 @@ export default function App() {
                 <Route path="/vendor/apply" element={<VendorApply />} />
                 <Route path="/vendor/signup" element={<VendorSignup />} />
                 <Route path="/vendor/login" element={<VendorLogin />} />
+                {/* Invite links are opened before the person is on a team. */}
+                <Route path="/vendor/join/:token" element={signedIn(<VendorJoin />)} />
                 <Route
                   path="/vendor/*"
                   element={

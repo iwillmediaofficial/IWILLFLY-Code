@@ -71,8 +71,10 @@ export async function handleSeo(request: Request, env: Env, ctx: ExecutionContex
   if (url.pathname === '/robots.txt') res = robots(url.origin);
   else if (url.pathname === '/sitemap.xml') res = sitemap(url.origin);
   else {
-    const m = /^\/(shop|mall)\/([a-z0-9-]{1,80})\/?$/.exec(url.pathname);
-    if (m) res = await detailPage(m[1] as 'shop' | 'mall', m[2], url, env, ctx);
+    // /shop/<slug>/<branch slug> is a branch of the shop: same tags, link kept.
+    const m = /^\/(shop|mall)\/([a-z0-9-]{1,80})(?:\/([a-z0-9-]{1,80}))?\/?$/.exec(url.pathname);
+    if (m && (m[1] === 'shop' || !m[3]))
+      res = await detailPage(m[1] as 'shop' | 'mall', m[2], url, env, ctx, m[3]);
   }
   if (res && request.method === 'HEAD') return new Response(null, res);
   return res;
@@ -86,7 +88,9 @@ async function detailPage(
   url: URL,
   env: Env,
   ctx: ExecutionContext,
+  branch?: string,
 ): Promise<Response> {
+  const tail = branch ? `/${branch}` : '';
   const [shell, row] = await Promise.all([
     // The SPA's index.html. Fetched without the visitor's conditional headers so it is never a 304.
     env.ASSETS.fetch(new URL('/', url.origin)),
@@ -95,7 +99,10 @@ async function detailPage(
   if (row && row.slug !== key) {
     return new Response(null, {
       status: 301,
-      headers: { Location: `/${kind}/${row.slug}${url.search}`, 'Cache-Control': 'public, max-age=3600' },
+      headers: {
+        Location: `/${kind}/${row.slug}${tail}${url.search}`,
+        'Cache-Control': 'public, max-age=3600',
+      },
     });
   }
   if (!shell.ok || row === undefined) return shell;
@@ -114,7 +121,7 @@ async function detailPage(
       .transform(base);
   }
 
-  const canonical = `${url.origin}/${kind}/${row.slug}`;
+  const canonical = `${url.origin}/${kind}/${row.slug}${tail}`;
   const meta =
     kind === 'shop'
       ? shopMeta(row as ShopRow, canonical, url.origin, env)
@@ -221,7 +228,7 @@ function lookupShop(key: string, origin: string, env: Env, ctx: ExecutionContext
     const rows = await rest<ShopRow[]>(
       env,
       `shops?${filter}&is_active=is.true&vendors.status=eq.approved` +
-        `&select=${encodeURIComponent(select)}&branches.order=id.asc&limit=1`,
+        `&select=${encodeURIComponent(select)}&branches.review_status=eq.approved&branches.order=id.asc&limit=1`,
     );
     return rows && (rows[0] ?? null);
   };

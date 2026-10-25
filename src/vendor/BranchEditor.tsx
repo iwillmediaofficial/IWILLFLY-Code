@@ -8,7 +8,7 @@ import { PARKING } from '../lib/parking';
 import { db, must, useLocations } from '../lib/queries';
 import type { Branch, Hours, Shop } from '../lib/types';
 import { useBranch, useMyShops, VENDOR_KEY } from './api';
-import { useReadOnly } from './context';
+import { useApproved, useBranchScope, useReadOnly, useVendor } from './context';
 import { errorMessage, hoursError, orNull, phoneError } from './format';
 import { HolidaysEditor, HoursEditor } from './HoursEditor';
 import { BlockedNote, ErrorNote, Loading, Lockable, NotFound, PageHead } from './ui';
@@ -31,7 +31,18 @@ export default function BranchEditor() {
   return <BranchForm key={branchId ?? 'new'} shop={shop} branch={branch.data ?? null} />;
 }
 
-type Form = Omit<Branch, 'id' | 'shop_id' | 'address' | 'phone' | 'temp_closed_note' | 'parking_note'> & {
+type Form = Omit<
+  Branch,
+  | 'id'
+  | 'shop_id'
+  | 'address'
+  | 'phone'
+  | 'temp_closed_note'
+  | 'parking_note'
+  | 'slug'
+  | 'review_status'
+  | 'review_note'
+> & {
   address: string;
   phone: string;
   temp_closed_note: string;
@@ -39,7 +50,14 @@ type Form = Omit<Branch, 'id' | 'shop_id' | 'address' | 'phone' | 'temp_closed_n
 };
 
 function BranchForm({ shop, branch }: { shop: Shop; branch: Branch | null }) {
-  const readOnly = useReadOnly();
+  const brandReadOnly = useReadOnly();
+  const vendor = useVendor();
+  const approved = useApproved();
+  const { branchId: myBranch, isBranchManager, isBranchMember } = useBranchScope();
+  // Brand editors change every branch; a branch manager changes their own branch only.
+  const ownBranch =
+    isBranchManager && branch != null && branch.id === myBranch && vendor.status !== 'blocked';
+  const readOnly = brandReadOnly && !ownBranch;
   const qc = useQueryClient();
   const toast = useToast();
   const navigate = useNavigate();
@@ -60,7 +78,7 @@ function BranchForm({ shop, branch }: { shop: Shop; branch: Branch | null }) {
   });
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setF((cur) => ({ ...cur, [k]: v }));
   const [error, setError] = useState('');
-  const back = `/vendor/shops/${shop.id}`;
+  const back = isBranchMember ? '/vendor' : `/vendor/shops/${shop.id}`;
   const area = locations.find((l) => l.id === f.location_id);
   const preview = openState(f);
 
@@ -116,8 +134,39 @@ function BranchForm({ shop, branch }: { shop: Shop; branch: Branch | null }) {
 
   return (
     <>
-      <PageHead title={branch ? 'Edit branch' : 'New branch'} action={<Link to={back}>‹ {shop.name}</Link>} />
-      {readOnly && <BlockedNote />}
+      <PageHead
+        title={branch ? (ownBranch ? 'My branch' : 'Edit branch') : 'New branch'}
+        action={<Link to={back}>‹ {isBranchMember ? 'Dashboard' : shop.name}</Link>}
+      />
+      {readOnly &&
+        (isBranchMember && vendor.status !== 'blocked' ? (
+          <div className="notice">
+            You can look at this branch. Only its branch manager or the owner can change it.
+          </div>
+        ) : (
+          <BlockedNote />
+        ))}
+      {!branch && approved && (
+        <div className="notice">
+          New branches are checked by the IWILLFLY team before customers can see them.
+        </div>
+      )}
+      {branch?.review_status === 'pending' && (
+        <div className="notice warn">
+          Waiting for the IWILLFLY team to check this branch. Customers will see it once it is approved.
+        </div>
+      )}
+      {branch?.review_status === 'rejected' && (
+        <div className="notice bad">
+          <b>Not approved.</b> {branch.review_note ?? 'No reason given.'} Fix the details and save to send it
+          again.
+        </div>
+      )}
+      {branch?.review_status === 'approved' && (
+        <p className="meta" style={{ marginTop: 0 }}>
+          🔗 {window.location.host}/shop/{shop.slug}/{branch.slug}
+        </p>
+      )}
       <form className="form-card" onSubmit={submit} noValidate>
         <Lockable locked={readOnly}>
           <div className="field">
@@ -216,7 +265,7 @@ function BranchForm({ shop, branch }: { shop: Shop; branch: Branch | null }) {
             <button className="btn" type="submit" disabled={save.isPending} style={{ flex: 1 }}>
               {save.isPending ? 'Saving…' : branch ? 'Save branch' : 'Add branch'}
             </button>
-            {branch && (
+            {branch && !brandReadOnly && (
               <button
                 className="btn danger"
                 type="button"

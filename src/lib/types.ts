@@ -47,6 +47,12 @@ export interface Vendor {
 export type VendorRole = 'owner' | 'manager' | 'staff';
 export interface MyVendor extends Vendor {
   my_role: VendorRole;
+  /** Set for branch managers and branch staff: the one branch they work at. */
+  my_branch_id: number | null;
+  my_branch_name: string | null;
+  my_branch_shop_id: number | null;
+  /** Username of a branch login (signs in with it instead of an email). */
+  my_login_name: string | null;
 }
 
 export interface Shop {
@@ -82,7 +88,14 @@ export interface Branch {
   temp_closed_note: string | null;
   parking: Parking | null;
   parking_note: string | null;
+  /** Used in the branch link (/shop/<shop slug>/<branch slug>). Set by the database. */
+  slug: string;
+  /** Branches added after the business is approved wait for an admin. */
+  review_status: BranchReview;
+  review_note: string | null;
 }
+
+export type BranchReview = 'approved' | 'pending' | 'rejected';
 
 export type Parking = 'free' | 'free_bike' | 'paid' | 'street' | 'none';
 
@@ -119,6 +132,10 @@ export interface Offer {
   reject_reason: string | null;
   created_at: string;
   updated_at: string;
+  /** False when the offer runs only at the branches in offer_branches. */
+  all_branches: boolean;
+  /** Who made it (shown to admins; null for older offers). */
+  created_by?: string | null;
 }
 
 /** Row from the search_shops RPC. */
@@ -143,6 +160,10 @@ export interface ShopResult {
   offer_count: number;
   top_offer: string | null;
   featured: boolean;
+  shop_slug: string;
+  /** The nearest branch, whose offers offer_count counts. */
+  branch_slug: string | null;
+  branch_count: number;
 }
 
 /** Row from the search_offers RPC. */
@@ -162,6 +183,10 @@ export interface OfferResult {
   category_name: string | null;
   category_icon: string | null;
   distance_km: number | null;
+  shop_slug: string;
+  /** The nearest branch that has the offer. */
+  branch_slug: string | null;
+  branch_name: string | null;
 }
 
 /** Row from the list_malls RPC. */
@@ -558,7 +583,11 @@ export interface Plan {
   max_shops: number | null;
   /** Branches across all of a vendor's shops; null = no limit. */
   max_branches: number | null;
+  /** Live offers for all branches, and again for each branch's own offers; null = no limit. */
   max_live_offers: number | null;
+  /** Branches the price covers; each one more costs extra_branch_price. null = all included. */
+  included_branches?: number | null;
+  extra_branch_price?: number | string;
   is_default: boolean;
   is_active: boolean;
   sort_order: number;
@@ -659,7 +688,15 @@ export interface MyBilling {
   plan: Plan | null;
   subscription: Subscription | null;
   paid_until: string | null;
-  usage: { shops: number; live_offers: number };
+  usage: {
+    shops: number;
+    /** Brand-wide (all branches) offers that count towards the limit. */
+    live_offers: number;
+    branches?: number;
+    extra_branches?: number;
+    /** Own offers at the branch that has the most. */
+    busiest_branch_offers?: number;
+  };
   addons: {
     id: number;
     kind: AddonKind;
@@ -681,6 +718,12 @@ export interface TeamMember {
   full_name: string | null;
   role: VendorRole;
   added_at: string;
+  /** Branch managers and branch staff work at one branch; null = the whole business. */
+  branch_id: number | null;
+  branch_name: string | null;
+  /** Username logins have no email shown. */
+  login_name: string | null;
+  disabled: boolean;
 }
 
 export type TicketStatus = 'open' | 'waiting' | 'resolved' | 'closed';

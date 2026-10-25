@@ -11,7 +11,7 @@ import { db, must, useCategories, useLocations } from '../../lib/queries';
 import { checkPickedSize, uploadImage, type UploadProgress } from '../../lib/upload';
 import type { Hours, Parking, Plan } from '../../lib/types';
 import { VENDOR_KEY } from '../api';
-import { limitText, money, planPrice } from '../billing/format';
+import { limitText, offerLimitText, branchPriceText, money, planPrice } from '../billing/format';
 import { errorMessage } from '../format';
 import { HoursEditor } from '../HoursEditor';
 import {
@@ -273,7 +273,8 @@ function PlanStep({
               <ul>
                 <li>{limitText(p.max_shops, 'shop', 'shops')}</li>
                 <li>{limitText(p.max_branches ?? null, 'branch', 'branches')}</li>
-                <li>{limitText(p.max_live_offers, 'live offer', 'live offers')}</li>
+                <li>{offerLimitText(p.max_live_offers)}</li>
+                {branchPriceText(p) && <li>{branchPriceText(p)}</li>}
                 {p.features.map((f) => (
                   <li key={f}>{f}</li>
                 ))}

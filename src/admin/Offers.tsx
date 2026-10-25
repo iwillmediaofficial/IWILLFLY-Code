@@ -17,8 +17,16 @@ const TABS: { key: Tab; label: string }[] = [
   { key: 'featured', label: 'Featured' },
 ];
 
-type ShopRef = { id: number; name: string };
-type OfferRow = Offer & { shop: ShopRef | ShopRef[] | null };
+type ShopRef = {
+  id: number;
+  name: string;
+  vendor: { owner_id: string } | { owner_id: string }[] | null;
+  branches: { id: number }[];
+};
+type OfferRow = Offer & {
+  shop: ShopRef | ShopRef[] | null;
+  offer_branches: { branch: { name: string } | { name: string }[] | null }[];
+};
 
 export function Offers() {
   const [params, setParams] = useSearchParams();
@@ -30,7 +38,9 @@ export function Offers() {
       // The review queue is oldest first; edits send an offer back to pending, so use updated_at.
       let q = db()
         .from('offers')
-        .select('*, shop:shops(id, name)')
+        .select(
+          '*, shop:shops(id, name, vendor:vendors(owner_id), branches(id)), offer_branches(branch:branches(name))',
+        )
         .order('updated_at', { ascending: tab === 'pending' })
         .limit(200);
       q = tab === 'featured' ? q.eq('is_featured', true) : q.eq('status', tab);
@@ -73,6 +83,17 @@ function OfferCard({ offer: o }: { offer: OfferRow }) {
   const [open, setOpen] = useState(false);
   const shop = one(o.shop);
   const cover = o.image_keys[0];
+  // Where it runs (for shops with several branches) and who made it.
+  const branchNames = o.offer_branches.map((x) => one(x.branch)?.name).filter(Boolean);
+  const where =
+    (shop?.branches.length ?? 0) > 1
+      ? o.all_branches
+        ? 'All branches'
+        : branchNames.length > 3
+          ? `${branchNames.slice(0, 3).join(', ')} +${branchNames.length - 3}`
+          : branchNames.join(', ') || 'No branch'
+      : null;
+  const byTeam = o.created_by != null && o.created_by !== one(shop?.vendor ?? null)?.owner_id;
 
   const update = useMutation({
     mutationFn: async (patch: Partial<Offer>) => {
@@ -125,6 +146,13 @@ function OfferCard({ offer: o }: { offer: OfferRow }) {
             {shop?.name ?? 'Unknown shop'}
             {o.product_name ? ` · ${o.product_name}` : ''}
           </div>
+          {(where || byTeam) && (
+            <div className="meta">
+              {where && `📍 ${where}`}
+              {where && byTeam && ' · '}
+              {byTeam && (o.all_branches ? 'Made by a manager' : 'Made by a branch manager')}
+            </div>
+          )}
           <div style={{ fontSize: 13, marginTop: 4 }}>
             {o.offer_price != null && <b>{formatPrice(o.offer_price)} </b>}
             {o.original_price != null && (

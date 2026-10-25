@@ -28,6 +28,24 @@ export function limitText(max: number | null, one: string, many: string) {
   return `Up to ${max} ${max === 1 ? one : many}`;
 }
 
+/** The plan's offer limit: one pool for all-branch offers and one per branch. */
+export function offerLimitText(max: number | null) {
+  if (max == null) return 'Unlimited live offers';
+  const n = `${max} live ${max === 1 ? 'offer' : 'offers'}`;
+  return `Up to ${n} for all branches, plus ${max} per branch`;
+}
+
+/** "Includes 5 branches · ₹100 per extra branch", or null when extra branches cost nothing. */
+export function branchPriceText(p: {
+  included_branches?: number | null;
+  extra_branch_price?: number | string;
+}) {
+  const price = Number(p.extra_branch_price ?? 0);
+  if (p.included_branches == null || !(price > 0)) return null;
+  const n = p.included_branches;
+  return `Includes ${n} ${n === 1 ? 'branch' : 'branches'} · ₹${price.toLocaleString('en-IN')} per extra branch`;
+}
+
 /** "1 of 3", or "1 · No limit" */
 export function usageText(used: number, max: number | null) {
   return max == null ? `${used} · No limit` : `${used} of ${max}`;

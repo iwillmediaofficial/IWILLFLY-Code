@@ -240,6 +240,14 @@ function BranchList({ shopId }: { shopId: number }) {
                     <span className="light" />
                     {state.label} · {state.today}
                   </div>
+                  {b.review_status !== 'approved' && (
+                    <span
+                      className={`pill-status${b.review_status === 'rejected' ? ' rejected' : ' pending'}`}
+                      style={{ marginTop: 6 }}
+                    >
+                      {b.review_status === 'rejected' ? 'Not approved' : 'Waiting for approval'}
+                    </span>
+                  )}
                 </div>
                 <div className="chev">›</div>
               </Link>

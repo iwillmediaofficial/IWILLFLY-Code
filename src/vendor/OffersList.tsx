@@ -2,8 +2,8 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { formatPrice } from '../lib/hours';
 import { mediaUrl } from '../lib/supabase';
 import type { Offer, OfferStatus } from '../lib/types';
-import { useMyOffers } from './api';
-import { useApproved, useReadOnly } from './context';
+import { useMyBranches, useMyOffers } from './api';
+import { useApproved, useBranchScope, useCanEditOffers, useReadOnly } from './context';
 import { formatDate, offerPhase, phaseClass, phaseLabel } from './format';
 import { ErrorNote, Loading, PageHead } from './ui';
 
@@ -15,22 +15,42 @@ const filters: { key: OfferStatus | 'all'; label: string }[] = [
 ];
 
 export default function OffersList() {
-  const { offers, shops, isPending, error } = useMyOffers();
+  const { offers: all, shops, branchesOf, isPending, error } = useMyOffers();
+  const { data: branches } = useMyBranches();
   const [params, setParams] = useSearchParams();
   const readOnly = useReadOnly();
+  const canPost = useCanEditOffers();
   const approved = useApproved();
+  const { branchId, branchName } = useBranchScope();
+  // Branch members see the offers shown at their branch: brand-wide ones and their branch's own.
+  const offers = (all ?? []).filter(
+    (o) => branchId == null || o.all_branches || (branchesOf?.get(o.id) ?? []).includes(branchId),
+  );
   const status = filters.find((x) => x.key === params.get('status'))?.key ?? 'all';
-  const shown = (offers ?? []).filter((o) => status === 'all' || o.status === status);
+  const shown = offers.filter((o) => status === 'all' || o.status === status);
   const shopName = (id: number) => shops?.find((s) => s.id === id)?.name ?? '';
-  const count = (key: OfferStatus | 'all') =>
-    (offers ?? []).filter((o) => key === 'all' || o.status === key).length;
+  const many = (branches ?? []).length > 1;
+  /** "All branches", "Kakkanad", "Kakkanad, Edappally +2" */
+  const scope = (o: Offer) => {
+    if (!many) return '';
+    if (o.all_branches) return 'All branches';
+    const names = (branchesOf?.get(o.id) ?? []).map((b) => branches?.find((x) => x.id === b)?.name ?? '');
+    if (names.length === 0) return 'No branch chosen';
+    return names.length > 2 ? `${names.slice(0, 2).join(', ')} +${names.length - 2}` : names.join(', ');
+  };
+  const count = (key: OfferStatus | 'all') => offers.filter((o) => key === 'all' || o.status === key).length;
 
   return (
     <>
       <PageHead
-        title="Your offers"
-        action={!readOnly && approved && <Link to="/vendor/offers/new">＋ New offer</Link>}
+        title={branchName ? `Offers at ${branchName}` : 'Your offers'}
+        action={canPost && approved && <Link to="/vendor/offers/new">＋ New offer</Link>}
       />
+      {branchId != null && (
+        <p className="meta" style={{ marginTop: 0 }}>
+          You can change your branch's own offers. Offers for all branches are set by the business owner.
+        </p>
+      )}
       <div className="tabs" role="tablist">
         {filters.map((x) => (
           <button
@@ -42,7 +62,7 @@ export default function OffersList() {
             onClick={() => setParams(x.key === 'all' ? {} : { status: x.key }, { replace: true })}
           >
             {x.label}
-            {offers ? ` (${count(x.key)})` : ''}
+            {all ? ` (${count(x.key)})` : ''}
           </button>
         ))}
       </div>
@@ -74,7 +94,7 @@ export default function OffersList() {
       ) : (
         <div className="list">
           {shown.map((o) => (
-            <OfferRow key={o.id} offer={o} shopName={shopName(o.shop_id)} />
+            <OfferRow key={o.id} offer={o} shopName={shopName(o.shop_id)} scope={scope(o)} />
           ))}
         </div>
       )}
@@ -82,7 +102,7 @@ export default function OffersList() {
   );
 }
 
-function OfferRow({ offer: o, shopName }: { offer: Offer; shopName: string }) {
+function OfferRow({ offer: o, shopName, scope }: { offer: Offer; shopName: string; scope: string }) {
   const phase = offerPhase(o);
   const cover = o.image_keys[0];
   return (
@@ -94,6 +114,7 @@ function OfferRow({ offer: o, shopName }: { offer: Offer; shopName: string }) {
         <h4>{o.title}</h4>
         <div className="meta">
           {shopName}
+          {scope && ` · 📍 ${scope}`}
           {o.offer_price != null && ` · ${formatPrice(o.offer_price)}`}
           {o.discount_label && ` · ${o.discount_label}`}
         </div>
