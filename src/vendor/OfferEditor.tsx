@@ -6,6 +6,7 @@ import { useToast } from '../components/Toast';
 import { db, must, useCategories } from '../lib/queries';
 import type { Branch, Offer, OfferStatus, Shop } from '../lib/types';
 import { useMyBranches, useMyOffers, VENDOR_KEY } from './api';
+import { BranchChoice } from './BranchChoice';
 import { useApproved, useBranchScope, useCanEditOffer, useCanEditOffers } from './context';
 import {
   errorMessage,
@@ -292,6 +293,9 @@ function OfferForm({
           </div>
           {choose && (
             <BranchChoice
+              name="o-where"
+              label="Where is this offer? *"
+              hint="Each branch has its own offer limit on your plan; offers for all branches share one."
               branches={shopBranches}
               all={f.all_branches}
               picked={f.branch_ids}
@@ -445,83 +449,5 @@ function OfferForm({
         </Lockable>
       </form>
     </>
-  );
-}
-
-/** "Where is this offer?": all branches, or ticked ones (with a search box for big brands). */
-function BranchChoice({
-  branches,
-  all,
-  picked,
-  onChange,
-}: {
-  branches: Branch[];
-  all: boolean;
-  picked: number[];
-  onChange: (all: boolean, picked: number[]) => void;
-}) {
-  const [q, setQ] = useState('');
-  const usable = branches.filter((b) => b.review_status !== 'rejected');
-  const shown = usable.filter((b) => !q.trim() || b.name.toLowerCase().includes(q.trim().toLowerCase()));
-  const toggle = (id: number) =>
-    onChange(false, picked.includes(id) ? picked.filter((x) => x !== id) : [...picked, id]);
-  return (
-    <div className="field">
-      <label>Where is this offer? *</label>
-      <label className="check-row">
-        <input type="radio" name="o-where" checked={all} onChange={() => onChange(true, picked)} />
-        All branches ({usable.length})
-      </label>
-      <label className="check-row">
-        <input type="radio" name="o-where" checked={!all} onChange={() => onChange(false, picked)} />
-        Only some branches
-      </label>
-      {!all && (
-        <>
-          {usable.length > 8 && (
-            <input
-              type="search"
-              placeholder="Search branches"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              aria-label="Search branches"
-              style={{ marginTop: 6 }}
-            />
-          )}
-          <div style={{ display: 'flex', gap: 14, alignItems: 'center', marginTop: 4 }}>
-            <button
-              type="button"
-              className="link-btn"
-              onClick={() =>
-                onChange(
-                  false,
-                  usable.map((b) => b.id),
-                )
-              }
-            >
-              Select all
-            </button>
-            <button type="button" className="link-btn" onClick={() => onChange(false, [])}>
-              Clear
-            </button>
-            <span className="meta">{picked.length} chosen</span>
-          </div>
-          <div className="check-list">
-            {shown.map((b) => (
-              <label key={b.id}>
-                <input type="checkbox" checked={picked.includes(b.id)} onChange={() => toggle(b.id)} />
-                <span>
-                  {b.name}
-                  {b.review_status === 'pending' && <span className="meta"> · waiting for approval</span>}
-                </span>
-              </label>
-            ))}
-          </div>
-        </>
-      )}
-      <div className="hint">
-        Each branch has its own offer limit on your plan; offers for all branches share one.
-      </div>
-    </div>
   );
 }

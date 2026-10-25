@@ -57,6 +57,16 @@ export function useCanEditOffer() {
         (branchIds ?? []).every((b) => b === branchId)));
 }
 
+/** Who may add Scratch & Win prizes: brand editors, and branch managers for their own branch. */
+export function useCanEditPrizes() {
+  return useCanEditOffers();
+}
+
+/** Whether this prize can be changed by the signed-in member (branch managers: their branch's alone). */
+export function useCanEditPrize() {
+  return useCanEditOffer();
+}
+
 /** Offers and pictures can be added only once the IWILLFLY team approves the business. */
 export function useApproved() {
   return useVendor().status === 'approved';

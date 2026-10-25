@@ -88,7 +88,22 @@ export function usePrizes(campaignId: number) {
         probability: Number(p.probability),
         daily_limit: p.daily_limit ?? null,
         location_ids: (scratch_prize_locations ?? []).map((l) => l.location_id),
+        branch_names: [],
       }));
+      // Branches a vendor prize is collected at (only for prizes not for all branches).
+      const someBranches = list.filter((p) => p.all_branches === false).map((p) => p.id);
+      if (someBranches.length) {
+        const links = await db()
+          .from('scratch_prize_branches')
+          .select('prize_id, branches(name)')
+          .in('prize_id', someBranches);
+        if (!links.error) {
+          for (const l of links.data as unknown as { prize_id: number; branches: { name: string } | null }[]) {
+            const p = list.find((x) => x.id === l.prize_id);
+            if (p && l.branches) p.branch_names.push(l.branches.name);
+          }
+        }
+      }
       return { list, upgraded };
     },
   });
@@ -188,7 +203,8 @@ export type PrizeInput = Pick<
 > & { remaining?: number; daily_limit?: number | null };
 
 /** A prize with the locations where it can be won (empty = everywhere). */
-export type AdminPrize = ScratchPrize & { location_ids: number[] };
+/** branch_names: where a vendor prize is collected when it is not for all branches */
+export type AdminPrize = ScratchPrize & { location_ids: number[]; branch_names: string[] };
 
 /**
  * Saves the prize, then makes its win locations match `locationIds` (empty = everywhere).

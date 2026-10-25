@@ -11,6 +11,7 @@ import { useBranch, useMyShops, VENDOR_KEY } from './api';
 import { useApproved, useBranchScope, useReadOnly, useVendor } from './context';
 import { errorMessage, hoursError, orNull, phoneError } from './format';
 import { HolidaysEditor, HoursEditor } from './HoursEditor';
+import { BranchPrizes } from './scratch/BranchPrizes';
 import { BlockedNote, ErrorNote, Loading, Lockable, NotFound, PageHead } from './ui';
 
 // Leaflet is only downloaded when a branch editor opens.
@@ -280,6 +281,7 @@ function BranchForm({ shop, branch }: { shop: Shop; branch: Branch | null }) {
           </div>
         </Lockable>
       </form>
+      {branch && <BranchPrizes branch={branch} />}
     </>
   );
 }

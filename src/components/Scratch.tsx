@@ -434,7 +434,11 @@ function ResultScreen({ result, onClose }: { result: PlayResult; onClose: () => 
       {result.sponsor && <div className="meta">Sponsored by {result.sponsor.name}</div>}
       {result.claim_code && <div className="claim-code">{formatCode(result.claim_code)}</div>}
       <div className="meta" style={{ marginBottom: 12 }}>
-        {result.sponsor ? `Show this code at ${result.sponsor.name}. ` : ''}
+        {result.sponsor
+          ? `Show this code at ${result.sponsor.name}${
+              result.sponsor.collect_at?.length ? ` (${result.sponsor.collect_at.join(', ')})` : ''
+            }. `
+          : ''}
         {result.expires_at && `Valid till ${formatDay(result.expires_at)}`}
       </div>
       <Link className="btn block" to="/prizes" style={{ display: 'block', textAlign: 'center' }}>

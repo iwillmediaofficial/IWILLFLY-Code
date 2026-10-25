@@ -176,7 +176,12 @@ function PrizeCard({
             )}
           </div>
           <h4>{p.name}</h4>
-          <div className="meta">Sponsor: {sponsorName}</div>
+          <div className="meta">
+            Sponsor: {sponsorName}
+            {p.sponsor_vendor_id != null && p.all_branches === false && (
+              <> · Collect at: {p.branch_names.length ? p.branch_names.sort().join(', ') : 'no branch yet'}</>
+            )}
+          </div>
           <div className="meta">
             <b style={{ color: 'var(--color-ink)' }}>
               {p.remaining}/{p.quantity}

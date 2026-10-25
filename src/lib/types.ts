@@ -241,6 +241,8 @@ export interface ScratchPrize {
   /** Most wins per India day; null = no daily limit */
   daily_limit: number | null;
   is_active: boolean;
+  /** Collected at every branch of the sponsor, or only at the branches in scratch_prize_branches */
+  all_branches: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -260,6 +262,8 @@ export interface PlayResult {
     phone?: string | null;
     whatsapp?: string | null;
     shop_id?: number | null;
+    /** Branch names where the prize is collected; null = any branch */
+    collect_at?: string[] | null;
   } | null;
   claim_code: string | null;
   /** already 'expired' when past expires_at, even before the hourly job runs */

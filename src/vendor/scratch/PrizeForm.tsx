@@ -1,22 +1,38 @@
 import { useState, type FormEvent } from 'react';
 import { ImageField } from '../../components/ImageField';
 import { useToast } from '../../components/Toast';
-import type { ScratchPrize } from '../../lib/types';
+import type { Branch } from '../../lib/types';
+import { BranchChoice } from '../BranchChoice';
+import { useBranchScope } from '../context';
 import { errorMessage, orNull } from '../format';
-import { useSavePrize } from './api';
+import { useSavePrize, type BranchPrize, type PrizeWhere } from './api';
 
-/** Add a sponsored prize, or edit one of the vendor's own. */
+/** Add a sponsored prize, or edit one of the vendor's own, and choose the branches that hand it over. */
 export function PrizeForm({
   campaignId,
   prize,
+  branches,
+  forBranch = null,
   onDone,
 }: {
   campaignId: number;
-  prize: ScratchPrize | null;
+  prize: BranchPrize | null;
+  /** Every branch of the vendor's shops */
+  branches: Branch[];
+  /** A new prize opened from a branch page starts for that branch only */
+  forBranch?: number | null;
   onDone: () => void;
 }) {
   const toast = useToast();
   const save = useSavePrize(campaignId);
+  const { branchId, branchName } = useBranchScope();
+  // Brand editors choose where it is collected when the business has more than one branch.
+  const choose = branchId == null && branches.length > 1;
+  const startFor = !prize && forBranch != null && branches.some((b) => b.id === forBranch);
+  const [allBranches, setAllBranches] = useState(prize?.all_branches ?? !startFor);
+  const [branchIds, setBranchIds] = useState<number[]>(
+    prize?.branch_ids ?? (startFor ? [forBranch as number] : []),
+  );
   const won = prize ? prize.quantity - prize.remaining : 0;
   const [name, setName] = useState(prize?.name ?? '');
   const [description, setDescription] = useState(prize?.description ?? '');
@@ -31,6 +47,8 @@ export function PrizeForm({
     if (quantity.trim() === '' || !Number.isInteger(qty) || qty < 0 || qty > 100000)
       return 'Quantity: enter a whole number from 0 to 100000.';
     if (qty < won) return `Quantity cannot go below the ${won} prizes already won.`;
+    if (choose && !allBranches && branchIds.length === 0)
+      return 'Choose at least one branch, or pick All branches.';
     return null;
   };
 
@@ -40,6 +58,13 @@ export function PrizeForm({
     const problem = validate(qty);
     setError(problem ?? '');
     if (problem) return;
+    // Only brand editors set branches, and only when they changed (a new prize starts for all branches).
+    const before = prize
+      ? { all: prize.all_branches, ids: [...prize.branch_ids].sort().join() }
+      : { all: true, ids: '' };
+    const changed =
+      before.all !== allBranches || (!allBranches && before.ids !== [...branchIds].sort().join());
+    const where: PrizeWhere = choose && changed ? { all: allBranches, branchIds } : null;
     save.mutate(
       {
         id: prize?.id ?? null,
@@ -49,6 +74,7 @@ export function PrizeForm({
           image_key: imageKey,
           quantity: qty,
         },
+        where,
       },
       {
         onSuccess: () => {
@@ -67,6 +93,11 @@ export function PrizeForm({
         <div className="notice">
           IWILLFLY reviews new prizes and sets how often they can be won. Your prize goes live once the team
           switches it on.
+        </div>
+      )}
+      {branchId != null && (
+        <div className="notice">
+          {prize ? 'This prize is' : 'Prizes you add are'} collected at your branch only: {branchName}.
         </div>
       )}
       <div className="field">
@@ -115,6 +146,20 @@ export function PrizeForm({
           </div>
         )}
       </div>
+      {choose && (
+        <BranchChoice
+          name={`p-where-${prize?.id ?? 'new'}`}
+          label="Where can winners collect it? *"
+          hint="Staff of other branches can't check this prize's codes."
+          branches={branches}
+          all={allBranches}
+          picked={branchIds}
+          onChange={(all, picked) => {
+            setAllBranches(all);
+            setBranchIds(picked);
+          }}
+        />
+      )}
       {error && <p className="error-text">{error}</p>}
       <div className="btn-row">
         <button className="btn" type="submit" disabled={save.isPending} style={{ flex: 1 }}>
