@@ -228,20 +228,33 @@ function BranchForm({ shop, branch }: { shop: Shop; branch: Branch | null }) {
           {isOwner ? (
             waitingInvoice.data?.status === 'void' ? (
               <>
-                Its invoice was cancelled.{' '}
-                <button
-                  type="button"
-                  className="link-btn"
-                  disabled={rebill.isPending}
-                  onClick={() => rebill.mutate()}
-                >
-                  Get a new invoice
-                </button>
+                Its invoice was cancelled.
+                <div>
+                  <button
+                    type="button"
+                    className="btn"
+                    style={{ marginTop: 10 }}
+                    disabled={rebill.isPending}
+                    onClick={() => rebill.mutate()}
+                  >
+                    {rebill.isPending ? 'Making the invoice…' : 'Get a new invoice'}
+                  </button>
+                </div>
               </>
-            ) : branch.payment_invoice_id != null ? (
-              <Link to={`/vendor/billing/invoices/${branch.payment_invoice_id}`}>Pay the invoice</Link>
             ) : (
-              <Link to="/vendor/billing">Go to billing</Link>
+              <div>
+                <Link
+                  className="btn"
+                  style={{ display: 'inline-block', marginTop: 10 }}
+                  to={
+                    branch.payment_invoice_id != null
+                      ? `/vendor/billing/invoices/${branch.payment_invoice_id}`
+                      : '/vendor/billing'
+                  }
+                >
+                  {branch.payment_invoice_id != null ? '💳 Pay the invoice' : 'Go to billing'}
+                </Link>
+              </div>
             )
           ) : (
             'The business owner pays for branches.'
