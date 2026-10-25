@@ -1,4 +1,5 @@
-import type { ClaimStatus, ScratchCampaign } from '../../lib/types';
+import type { Branch, ClaimStatus, ScratchCampaign } from '../../lib/types';
+import type { BranchPrize } from './api';
 import { formatTime } from '../../lib/scratch';
 import { formatDate, todayIST } from '../format';
 
@@ -66,3 +67,10 @@ export const campaignPhaseClass: Record<CampaignPhase, string> = {
   ended: '',
   off: '',
 };
+
+/** "All branches", or the names of the branches that hand the prize over. */
+export function collectAt(p: BranchPrize, branches: Branch[]) {
+  if (p.all_branches) return 'All branches';
+  const names = p.branch_ids.map((id) => branches.find((b) => b.id === id)?.name).filter(Boolean);
+  return names.length ? names.join(', ') : 'No branch chosen yet';
+}

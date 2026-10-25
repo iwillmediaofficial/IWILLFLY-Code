@@ -7,6 +7,7 @@ import { Categories } from './Categories';
 import { Locations } from './Locations';
 import { MallEdit, Malls } from './Malls';
 import { Offers } from './Offers';
+import { PendingBranches } from './Branches';
 import ScratchAdmin from './scratch/ScratchAdmin';
 import PointsAdmin from './points/PointsAdmin';
 import AdminAds from './engagement/Ads';
@@ -29,12 +30,13 @@ const SUPPORT: AppRole[] = [...ADMIN, 'support'];
 const EVERYONE: AppRole[] = [...ADMIN, 'support', 'campaign_manager'];
 
 /** Tabs by role. Hiding a tab is only a convenience: RLS decides what each role can read and change. */
-type CountKey = 'vendors' | 'offers' | 'points' | 'billing' | 'support';
+type CountKey = 'vendors' | 'branches' | 'offers' | 'points' | 'billing' | 'support';
 type Tab = { to: string; label: string; icon: string; end?: boolean; roles: AppRole[]; count?: CountKey };
 
 const tabs: Tab[] = [
   { to: '/admin', label: 'Dashboard', icon: '◧', end: true, roles: EVERYONE },
   { to: '/admin/vendors', label: 'Vendors', icon: '🏬', roles: ADMIN, count: 'vendors' },
+  { to: '/admin/branches', label: 'New branches', icon: '📍', roles: ADMIN, count: 'branches' },
   { to: '/admin/offers', label: 'Offers', icon: '🏷️', roles: ADMIN, count: 'offers' },
   { to: '/admin/scratch', label: 'Scratch & Win', icon: '🎟️', roles: CAMPAIGN },
   { to: '/admin/festivals', label: 'Festivals', icon: '🪔', roles: CAMPAIGN },
@@ -56,7 +58,7 @@ const tabs: Tab[] = [
 /** How the desktop sidebar groups the tabs above. */
 const GROUPS: { label: string; items: string[] }[] = [
   { label: 'Overview', items: ['Dashboard', 'Analytics', 'Reports'] },
-  { label: 'Marketplace', items: ['Vendors', 'Offers', 'Categories', 'Malls', 'Locations'] },
+  { label: 'Marketplace', items: ['Vendors', 'New branches', 'Offers', 'Categories', 'Malls', 'Locations'] },
   { label: 'Engagement', items: ['Scratch & Win', 'Festivals', 'Home ads', 'Requests', 'Notify'] },
   { label: 'Money', items: ['Points', 'Billing'] },
   { label: 'Team', items: ['Support', 'Team', 'Audit log'] },
@@ -174,6 +176,7 @@ function AdminPage({ visible }: { visible: Tab[] }) {
         <Route path="vendors/new" element={<VendorCreate />} />
         <Route path="vendors/:id" element={<VendorDetail />} />
         <Route path="offers" element={<Offers />} />
+        <Route path="branches" element={<PendingBranches />} />
         <Route path="categories" element={<Categories />} />
         <Route path="malls" element={<Malls />} />
         <Route path="malls/new" element={<MallEdit />} />
@@ -236,7 +239,7 @@ function useAttention() {
   return useQuery({
     queryKey: ['admin-attention', isAdmin],
     queryFn: async () => {
-      const [invoices, bills, payouts, tickets] = await Promise.all([
+      const [invoices, bills, payouts, tickets, branches] = await Promise.all([
         isAdmin
           ? countRows(
               db().from('invoices').select('id', { count: 'exact', head: true }).eq('status', 'submitted'),
@@ -258,8 +261,16 @@ function useAttention() {
         countRows(
           db().from('support_tickets').select('id', { count: 'exact', head: true }).eq('status', 'open'),
         ),
+        isAdmin
+          ? countRows(
+              db()
+                .from('branches')
+                .select('id', { count: 'exact', head: true })
+                .eq('review_status', 'pending'),
+            )
+          : Promise.resolve(null),
       ]);
-      return { invoices, bills, payouts, tickets };
+      return { invoices, bills, payouts, tickets, branches };
     },
     enabled: isSupport,
   });
@@ -271,6 +282,7 @@ function useNavCounts(): Record<CountKey, number> {
   const a = useAttention().data;
   return {
     vendors: s?.vendors_pending ?? 0,
+    branches: a?.branches ?? 0,
     offers: s?.offers_pending ?? 0,
     points: (a?.bills ?? 0) + (a?.payouts ?? 0),
     billing: a?.invoices ?? 0,
@@ -313,6 +325,12 @@ function Dashboard() {
   const attentionTiles: { label: string; icon: string; value: number | null | undefined; to: string }[] = [
     ...(isAdmin
       ? [
+          {
+            label: 'New branches to check',
+            icon: '📍',
+            value: a?.branches,
+            to: '/admin/branches',
+          },
           {
             label: 'Payments to check',
             icon: '💳',

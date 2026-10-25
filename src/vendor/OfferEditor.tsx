@@ -4,9 +4,10 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { ImageListField } from '../components/ImageField';
 import { useToast } from '../components/Toast';
 import { db, must, useCategories } from '../lib/queries';
-import type { Offer, OfferStatus, Shop } from '../lib/types';
-import { useMyOffers, VENDOR_KEY } from './api';
-import { useApproved, useReadOnly } from './context';
+import type { Branch, Offer, OfferStatus, Shop } from '../lib/types';
+import { useMyBranches, useMyOffers, VENDOR_KEY } from './api';
+import { BranchChoice } from './BranchChoice';
+import { useApproved, useBranchScope, useCanEditOffer, useCanEditOffers } from './context';
 import {
   errorMessage,
   offerPhase,
@@ -21,10 +22,14 @@ import { BlockedNote, ErrorNote, FormError, Loading, Lockable, NotFound, PageHea
 export default function OfferEditor() {
   const { id } = useParams();
   const [params] = useSearchParams();
-  const { offers, shops, isPending, error } = useMyOffers();
+  const { offers, shops: allShops, branchesOf, isPending, error } = useMyOffers();
+  const branches = useMyBranches();
   const approved = useApproved();
-  if (isPending) return <Loading />;
-  if (error || !offers || !shops) return <ErrorNote error={error} />;
+  const { branchShopId } = useBranchScope();
+  if (isPending || branches.isPending) return <Loading />;
+  if (error || branches.error || !offers || !allShops) return <ErrorNote error={error ?? branches.error} />;
+  // A branch manager posts for their branch's shop only.
+  const shops = branchShopId == null ? allShops : allShops.filter((s) => s.id === branchShopId);
   if (shops.length === 0) {
     return (
       <div className="saved-empty">
@@ -55,13 +60,24 @@ export default function OfferEditor() {
       <OfferForm
         offer={null}
         shops={shops}
+        branches={branches.data ?? []}
+        linked={[]}
         defaultShop={shops.some((s) => s.id === preset) ? preset : shops[0].id}
       />
     );
   }
   const offer = offers.find((o) => o.id === Number(id));
   if (!offer) return <NotFound what="Offer" back="/vendor/offers" />;
-  return <OfferForm key={offer.id} offer={offer} shops={shops} defaultShop={offer.shop_id} />;
+  return (
+    <OfferForm
+      key={offer.id}
+      offer={offer}
+      shops={allShops}
+      branches={branches.data ?? []}
+      linked={branchesOf?.get(offer.id) ?? []}
+      defaultShop={offer.shop_id}
+    />
+  );
 }
 
 /** "" -> null, "12.5" -> 12.5, junk -> NaN */
@@ -71,13 +87,22 @@ const priceText = (n: number | null) => (n == null ? '' : String(n));
 function OfferForm({
   offer,
   shops,
+  branches,
+  linked,
   defaultShop,
 }: {
   offer: Offer | null;
   shops: Shop[];
+  /** Every branch of the vendor's shops */
+  branches: Branch[];
+  /** The offer's branches when it is not for all branches */
+  linked: number[];
   defaultShop: number;
 }) {
-  const readOnly = useReadOnly();
+  const canPost = useCanEditOffers();
+  const canEditOffer = useCanEditOffer();
+  const { branchId, branchName } = useBranchScope();
+  const readOnly = offer ? !canEditOffer(offer, linked) : !canPost;
   const qc = useQueryClient();
   const toast = useToast();
   const navigate = useNavigate();
@@ -94,7 +119,12 @@ function OfferForm({
     image_keys: offer?.image_keys ?? [],
     starts_on: offer?.starts_on ?? todayIST(),
     ends_on: offer?.ends_on ?? '',
+    all_branches: offer?.all_branches ?? true,
+    branch_ids: linked,
   });
+  const shopBranches = branches.filter((b) => b.shop_id === f.shop_id);
+  // Brand editors choose where it runs when the shop has more than one branch.
+  const choose = branchId == null && shopBranches.length > 1;
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((cur) => ({ ...cur, [k]: v }));
   const [error, setError] = useState('');
   const original = parsePrice(f.original_price);
@@ -115,12 +145,32 @@ function OfferForm({
         starts_on: f.starts_on,
         ends_on: f.ends_on || null,
       };
+      // Without the choice (one branch), an offer keeps where it already runs.
+      const all = branchId == null && (choose ? f.all_branches : (offer?.all_branches ?? true));
       const q = offer
         ? db().from('offers').update(content).eq('id', offer.id)
         : db()
             .from('offers')
-            .insert({ ...content, shop_id: f.shop_id });
-      return must<{ status: OfferStatus }>(await q.select('status').single()).status;
+            .insert({ ...content, shop_id: f.shop_id, all_branches: all });
+      const row = must<{ id: number; status: OfferStatus }>(await q.select('id, status').single());
+      // Where it runs: a branch manager's offer is for their branch; brand editors pick.
+      const sameBranches =
+        offer != null &&
+        offer.all_branches === all &&
+        (all || [...linked].sort().join() === [...f.branch_ids].sort().join());
+      if (branchId != null ? !offer : !sameBranches && (offer != null || !all)) {
+        const res = await db().rpc('set_offer_branches', {
+          p_offer_id: row.id,
+          p_all: all,
+          p_branch_ids: branchId != null ? [branchId] : all ? [] : f.branch_ids,
+        });
+        if (res.error) {
+          // A new offer that cannot go to those branches is not kept.
+          if (!offer) await db().from('offers').delete().eq('id', row.id);
+          throw new Error(res.error.message);
+        }
+      }
+      return row.status;
     },
     onSuccess: (status) => {
       qc.invalidateQueries({ queryKey: VENDOR_KEY });
@@ -155,6 +205,8 @@ function OfferForm({
   const validate = () => {
     const t = f.title.trim();
     if (!f.shop_id) return 'Choose the shop this offer is for.';
+    if (choose && !f.all_branches && f.branch_ids.length === 0)
+      return 'Choose at least one branch, or pick All branches.';
     if (t.length < 2 || t.length > 120) return 'Title should be 2 to 120 characters.';
     if (f.product_name.trim().length > 120) return 'Product name is too long (120 characters max).';
     if (f.description.trim().length > 2000) return 'Description is too long (2000 characters max).';
@@ -212,6 +264,13 @@ function OfferForm({
       )}
       {offer?.status === 'pending' && <div className="notice">This offer is waiting for review.</div>}
       {!offer && <div className="notice">New offers go live after the IWILLFLY team approves them.</div>}
+      {branchId != null && (
+        <div className="notice">
+          {readOnly
+            ? 'This offer is set by the business owner, so you can look but not change it.'
+            : `This offer is for your branch only: ${branchName}.`}
+        </div>
+      )}
       <form className="form-card" onSubmit={submit} noValidate>
         <Lockable locked={readOnly}>
           <div className="field">
@@ -220,7 +279,7 @@ function OfferForm({
               id="o-shop"
               value={f.shop_id}
               disabled={Boolean(offer)}
-              onChange={(e) => set('shop_id', Number(e.target.value))}
+              onChange={(e) => setF((cur) => ({ ...cur, shop_id: Number(e.target.value), branch_ids: [] }))}
             >
               {shops.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -232,6 +291,17 @@ function OfferForm({
               <div className="hint">An offer can't move to another shop. Create a new one instead.</div>
             )}
           </div>
+          {choose && (
+            <BranchChoice
+              name="o-where"
+              label="Where is this offer? *"
+              hint="Each branch has its own offer limit on your plan; offers for all branches share one."
+              branches={shopBranches}
+              all={f.all_branches}
+              picked={f.branch_ids}
+              onChange={(all, picked) => setF((cur) => ({ ...cur, all_branches: all, branch_ids: picked }))}
+            />
+          )}
           <div className="field">
             <label htmlFor="o-title">Offer title *</label>
             <input

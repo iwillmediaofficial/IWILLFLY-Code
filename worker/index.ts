@@ -1,4 +1,5 @@
 import { handleCreateVendor, handleSetVendorPassword } from './adminVendors';
+import { handleBranchLoginActive, handleBranchLoginPassword, handleCreateBranchLogin } from './branchLogins';
 import { cleanupBillPhotos, handlePhoto, handlePhotoLink } from './bills';
 import type { Env } from './env';
 import { handleInstamojoReturn, handleInstamojoStart, handleInstamojoWebhook } from './instamojo';
@@ -18,6 +19,12 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
   if (request.method === 'POST' && pathname === '/api/admin/vendors') return handleCreateVendor(request, env);
   if (request.method === 'POST' && pathname === '/api/admin/vendors/password')
     return handleSetVendorPassword(request, env);
+  if (request.method === 'POST' && pathname === '/api/vendor/branch-login')
+    return handleCreateBranchLogin(request, env);
+  if (request.method === 'POST' && pathname === '/api/vendor/branch-login/password')
+    return handleBranchLoginPassword(request, env);
+  if (request.method === 'POST' && pathname === '/api/vendor/branch-login/active')
+    return handleBranchLoginActive(request, env);
   if (request.method === 'POST' && pathname === '/api/bills/photo-link') return handlePhotoLink(request, env);
   if (request.method === 'GET' && pathname === '/api/bills/photo') return handlePhoto(request, env);
   if (request.method === 'POST' && pathname === '/api/maps/resolve') return handleMapsResolve(request, env);

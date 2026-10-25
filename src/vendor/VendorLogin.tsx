@@ -1,9 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
-import { EmailCodeForm, EmailField, PasswordInput, passwordSignInError } from '../auth/forms';
+import { EmailCodeForm, PasswordInput, passwordSignInError } from '../auth/forms';
 import { GoogleButton } from '../auth/GoogleButton';
 import { AppShell, LogoHeader } from '../components/AppShell';
+import { signInEmail } from '../lib/branchLogin';
 import { supabase } from '../lib/supabase';
 
 /** Sign-in for shop owners. Opens the vendor dashboard, or points non-vendors to registration. */
@@ -30,7 +31,8 @@ export default function VendorLogin() {
     e.preventDefault();
     setBusy(true);
     setError('');
-    const { error } = await sb.auth.signInWithPassword({ email: email.trim(), password });
+    // Branch logins type a username instead of an email.
+    const { error } = await sb.auth.signInWithPassword({ email: signInEmail(email), password });
     setBusy(false);
     if (error) setError(passwordSignInError(error.message));
   };
@@ -68,7 +70,18 @@ export default function VendorLogin() {
           />
         ) : (
           <form onSubmit={submit}>
-            <EmailField value={email} onChange={setEmail} />
+            <div className="field">
+              <label htmlFor="email">Email or branch username</label>
+              <input
+                id="email"
+                required
+                autoComplete="username"
+                autoCapitalize="none"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com or lulu-kakkanad"
+              />
+            </div>
             <div className="field">
               <label htmlFor="password">Password</label>
               <PasswordInput
@@ -92,6 +105,9 @@ export default function VendorLogin() {
             >
               Forgot password? Email me a login code
             </button>
+            <p className="meta" style={{ textAlign: 'center', marginBottom: 0 }}>
+              Branch login? Ask your business owner to change your password.
+            </p>
             {error && <p className="error-text">{error}</p>}
           </form>
         )}

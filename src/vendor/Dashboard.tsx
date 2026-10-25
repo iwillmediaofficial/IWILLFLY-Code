@@ -5,10 +5,10 @@ import { useToast } from '../components/Toast';
 import { useUnreadCount } from '../lib/engagement';
 import { db, must } from '../lib/queries';
 import type { Invoice, Vendor } from '../lib/types';
-import { useMyOffers, VENDOR_KEY } from './api';
+import { useBranch, useMyOffers, VENDOR_KEY } from './api';
 import { CHECK_TIME } from './billing/format';
 import { DashboardPlanCard } from './billing/PlanCard';
-import { useVendor, useVendorRole } from './context';
+import { useBranchScope, useVendor, useVendorRole } from './context';
 import { useVendorAnalytics } from './engagement/api';
 import { num } from './engagement/format';
 import { errorMessage, offerPhase, orNull, phoneError } from './format';
@@ -17,6 +17,8 @@ import { ErrorNote, Lockable } from './ui';
 export default function Dashboard() {
   const vendor = useVendor();
   const { isOwner, canEdit } = useVendorRole();
+  const { isBranchMember } = useBranchScope();
+  if (isBranchMember) return <BranchDashboard />;
   return (
     <>
       <section className="hero">
@@ -71,8 +73,8 @@ export default function Dashboard() {
                 ＋ New offer
               </Link>
             )}
-            <Link className="btn secondary" to="/vendor/shops/new">
-              ＋ Add shop
+            <Link className="btn secondary" to="/vendor/shops">
+              My shop &amp; branches
             </Link>
             <Link className="btn secondary" to="/vendor/offers?status=pending">
               Offers in review
@@ -345,5 +347,85 @@ function BusinessForm({ vendor, locked }: { vendor: Vendor; locked: boolean }) {
         </button>
       </Lockable>
     </form>
+  );
+}
+
+/** Dashboard for branch managers and branch staff: their branch and its offers. */
+function BranchDashboard() {
+  const vendor = useVendor();
+  const { branchId, branchName, isBranchManager } = useBranchScope();
+  const branch = useBranch(branchId).data;
+  const { offers, branchesOf } = useMyOffers();
+  const mine = (offers ?? []).filter(
+    (o) => o.all_branches || (branchesOf?.get(o.id) ?? []).includes(branchId!),
+  );
+  const own = mine.filter((o) => !o.all_branches);
+  const live = mine.filter((o) => offerPhase(o) === 'live').length;
+  const review = own.filter((o) => offerPhase(o) === 'pending').length;
+  return (
+    <>
+      <section className="hero">
+        <h1>{branchName}</h1>
+        <p>
+          {vendor.business_name} · {isBranchManager ? 'Branch manager' : 'Branch staff'}
+        </p>
+        <span className="hero-pill">
+          {vendor.status === 'blocked'
+            ? 'Blocked'
+            : branch?.review_status === 'pending'
+              ? 'Waiting for approval'
+              : branch?.review_status === 'rejected'
+                ? 'Branch not approved'
+                : vendor.status === 'approved'
+                  ? 'Live'
+                  : 'Under review'}
+        </span>
+      </section>
+      <section className="section">
+        {vendor.status === 'blocked' ? (
+          <div className="notice bad">
+            <b>This business is blocked.</b> Its shops and offers are hidden and editing is switched off.
+          </div>
+        ) : branch?.review_status === 'pending' ? (
+          <div className="notice warn">
+            The IWILLFLY team is checking this branch. Customers will see it once it is approved.
+          </div>
+        ) : null}
+        <div className="info-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+          <Link className="info-card" to="/vendor/offers?status=approved">
+            <span>Live here</span>
+            <strong>{offers ? live : '…'}</strong>
+          </Link>
+          <Link className="info-card" to="/vendor/offers">
+            <span>Branch offers</span>
+            <strong>{offers ? own.length : '…'}</strong>
+          </Link>
+          <Link className="info-card" to="/vendor/offers?status=pending">
+            <span>In review</span>
+            <strong>{offers ? review : '…'}</strong>
+          </Link>
+        </div>
+      </section>
+      <section className="section">
+        <div className="section-head">
+          <h2>Quick actions</h2>
+        </div>
+        <div className="btn-row" style={{ marginTop: 0 }}>
+          {isBranchManager && vendor.status === 'approved' && (
+            <Link className="btn" to="/vendor/offers/new">
+              ＋ New offer
+            </Link>
+          )}
+          {branchId != null && (
+            <Link className="btn secondary" to={`/vendor/branches/${branchId}`}>
+              {isBranchManager ? 'Edit my branch' : 'My branch'}
+            </Link>
+          )}
+          <Link className="btn secondary" to="/vendor/scratch/claim">
+            📷 Verify a prize
+          </Link>
+        </div>
+      </section>
+    </>
   );
 }

@@ -1,16 +1,19 @@
 import { lazy, Suspense, useState, type FormEvent } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { AreaPicker } from '../components/AreaPicker';
 import { useToast } from '../components/Toast';
 import { openState } from '../lib/hours';
 import { PARKING } from '../lib/parking';
 import { db, must, useLocations } from '../lib/queries';
-import type { Branch, Hours, Shop } from '../lib/types';
+import type { Branch, BranchQuote, Hours, Shop } from '../lib/types';
 import { useBranch, useMyShops, VENDOR_KEY } from './api';
-import { useReadOnly } from './context';
+import { useApproved, useBranchScope, useReadOnly, useVendor, useVendorRole } from './context';
+import { money } from './billing/format';
+import { formatDate } from './format';
 import { errorMessage, hoursError, orNull, phoneError } from './format';
 import { HolidaysEditor, HoursEditor } from './HoursEditor';
+import { BranchPrizes } from './scratch/BranchPrizes';
 import { BlockedNote, ErrorNote, Loading, Lockable, NotFound, PageHead } from './ui';
 
 // Leaflet is only downloaded when a branch editor opens.
@@ -31,7 +34,20 @@ export default function BranchEditor() {
   return <BranchForm key={branchId ?? 'new'} shop={shop} branch={branch.data ?? null} />;
 }
 
-type Form = Omit<Branch, 'id' | 'shop_id' | 'address' | 'phone' | 'temp_closed_note' | 'parking_note'> & {
+type Form = Omit<
+  Branch,
+  | 'id'
+  | 'shop_id'
+  | 'address'
+  | 'phone'
+  | 'temp_closed_note'
+  | 'parking_note'
+  | 'slug'
+  | 'review_status'
+  | 'review_note'
+  | 'awaiting_payment'
+  | 'payment_invoice_id'
+> & {
   address: string;
   phone: string;
   temp_closed_note: string;
@@ -39,7 +55,14 @@ type Form = Omit<Branch, 'id' | 'shop_id' | 'address' | 'phone' | 'temp_closed_n
 };
 
 function BranchForm({ shop, branch }: { shop: Shop; branch: Branch | null }) {
-  const readOnly = useReadOnly();
+  const brandReadOnly = useReadOnly();
+  const vendor = useVendor();
+  const approved = useApproved();
+  const { branchId: myBranch, isBranchManager, isBranchMember } = useBranchScope();
+  // Brand editors change every branch; a branch manager changes their own branch only.
+  const ownBranch =
+    isBranchManager && branch != null && branch.id === myBranch && vendor.status !== 'blocked';
+  const readOnly = brandReadOnly && !ownBranch;
   const qc = useQueryClient();
   const toast = useToast();
   const navigate = useNavigate();
@@ -60,9 +83,45 @@ function BranchForm({ shop, branch }: { shop: Shop; branch: Branch | null }) {
   });
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setF((cur) => ({ ...cur, [k]: v }));
   const [error, setError] = useState('');
-  const back = `/vendor/shops/${shop.id}`;
+  const back = isBranchMember ? '/vendor' : `/vendor/shops/${shop.id}`;
   const area = locations.find((l) => l.id === f.location_id);
   const preview = openState(f);
+  const { isOwner } = useVendorRole();
+  // What one more branch costs (brand editors adding a branch).
+  const quote = useQuery({
+    queryKey: [...VENDOR_KEY, 'branch-quote'],
+    queryFn: async () => must<BranchQuote | null>(await db().rpc('branch_price_quote')),
+    enabled: !branch && !brandReadOnly,
+  });
+  // A waiting branch's invoice: the owner asks for a new one if it was cancelled or the branch was taken
+  // off it (refused, then approved after a fix).
+  const waitingInvoice = useQuery({
+    queryKey: [...VENDOR_KEY, 'branch-invoice', branch?.payment_invoice_id, branch?.review_status],
+    queryFn: async () => {
+      const inv = must<{ status: string }>(
+        await db().from('invoices').select('status').eq('id', branch!.payment_invoice_id!).single(),
+      );
+      const lines = must<{ id: number }[]>(
+        await db()
+          .from('invoice_items')
+          .select('id')
+          .eq('invoice_id', branch!.payment_invoice_id!)
+          .eq('branch_id', branch!.id)
+          .eq('branch_charge', true),
+      );
+      return { billed: inv.status !== 'void' && lines.length > 0 };
+    },
+    enabled: isOwner && Boolean(branch?.awaiting_payment) && branch?.payment_invoice_id != null,
+  });
+  const rebill = useMutation({
+    mutationFn: async () => must<number | null>(await db().rpc('bill_waiting_branches')),
+    onSuccess: (inv) => {
+      qc.invalidateQueries({ queryKey: VENDOR_KEY });
+      if (inv != null) navigate(`/vendor/billing/invoices/${inv}`);
+      else toast('Done. Nothing is left to pay for this branch.');
+    },
+    onError: (e) => toast(errorMessage(e)),
+  });
 
   const save = useMutation({
     mutationFn: async () => {
@@ -74,17 +133,41 @@ function BranchForm({ shop, branch }: { shop: Shop; branch: Branch | null }) {
         temp_closed_note: f.temp_closed ? orNull(f.temp_closed_note) : null,
         parking_note: f.parking ? orNull(f.parking_note) : null,
       };
-      if (branch) must(await db().from('branches').update(row).eq('id', branch.id));
-      else
-        must(
-          await db()
-            .from('branches')
-            .insert({ ...row, shop_id: shop.id }),
-        );
+      if (branch) {
+        must(await db().from('branches').update(row).eq('id', branch.id));
+        return null;
+      }
+      const added = must<{ id: number }>(
+        await db()
+          .from('branches')
+          .insert({ ...row, shop_id: shop.id })
+          .select('id')
+          .single(),
+      );
+      // The database charges a branch over the plan's included ones right after it is added.
+      return must<Pick<Branch, 'awaiting_payment' | 'payment_invoice_id'>>(
+        await db()
+          .from('branches')
+          .select('awaiting_payment, payment_invoice_id')
+          .eq('id', added.id)
+          .single(),
+      );
     },
-    onSuccess: () => {
+    onSuccess: (added) => {
       qc.invalidateQueries({ queryKey: VENDOR_KEY });
-      toast(branch ? 'Branch saved' : 'Branch added');
+      if (added?.awaiting_payment && added.payment_invoice_id != null) {
+        // Paid once the IWILLFLY team approves it (the branch page then shows "Pay the invoice").
+        toast('Branch added. Once the IWILLFLY team approves it, pay its invoice to make it live.');
+        navigate(back);
+        return;
+      }
+      toast(
+        added?.awaiting_payment
+          ? 'Branch added. It goes live with your plan renewal payment.'
+          : branch
+            ? 'Branch saved'
+            : 'Branch added',
+      );
       navigate(back);
     },
     onError: (e) => setError(errorMessage(e)),
@@ -116,8 +199,109 @@ function BranchForm({ shop, branch }: { shop: Shop; branch: Branch | null }) {
 
   return (
     <>
-      <PageHead title={branch ? 'Edit branch' : 'New branch'} action={<Link to={back}>‹ {shop.name}</Link>} />
-      {readOnly && <BlockedNote />}
+      <PageHead
+        title={branch ? (ownBranch ? 'My branch' : 'Edit branch') : 'New branch'}
+        action={<Link to={back}>‹ {isBranchMember ? 'Dashboard' : shop.name}</Link>}
+      />
+      {readOnly &&
+        (isBranchMember && vendor.status !== 'blocked' ? (
+          <div className="notice">
+            You can look at this branch. Only its branch manager or the owner can change it.
+          </div>
+        ) : (
+          <BlockedNote />
+        ))}
+      {!branch && approved && (
+        <div className="notice">
+          New branches are checked by the IWILLFLY team before customers can see them.
+        </div>
+      )}
+      {!branch && quote.data && (
+        <div className="notice warn">
+          {quote.data.no_plan ? (
+            <>
+              Your {quote.data.plan} plan is not running. This branch goes live once you renew the plan from
+              Plan &amp; billing ({money(quote.data.price)} every {quote.data.period_days} days for each extra
+              branch) and the IWILLFLY team approves it.
+            </>
+          ) : quote.data.deferred ? (
+            <>
+              Your {quote.data.plan} plan renews on {formatDate(quote.data.renews_on)}. This branch is added
+              to that renewal invoice ({money(quote.data.price)} every {quote.data.period_days} days) and goes
+              live when it is paid.
+            </>
+          ) : (
+            <>
+              This branch costs <b>{money(quote.data.amount)}</b> now for the {quote.data.days_left} days left
+              in your {quote.data.plan} plan, then {money(quote.data.price)} every {quote.data.period_days}{' '}
+              days with your plan. It goes live once the invoice is paid and the IWILLFLY team approves it.
+            </>
+          )}
+        </div>
+      )}
+      {branch?.awaiting_payment && (
+        <div className="notice warn">
+          <b>Waiting for payment.</b> Customers will see this branch once{' '}
+          {branch.payment_invoice_id == null ? 'your plan renewal invoice' : 'its invoice'} is paid.{' '}
+          {branch.review_status !== 'approved' ? (
+            // Paid only once approved, so nothing is paid for a branch that is refused.
+            branch.review_status === 'pending' ? (
+              'You can pay once the IWILLFLY team approves it.'
+            ) : (
+              'Fix the branch first; you can pay once it is approved.'
+            )
+          ) : isOwner ? (
+            waitingInvoice.data?.billed === false ? (
+              <>
+                Its invoice was cancelled.
+                <div>
+                  <button
+                    type="button"
+                    className="btn"
+                    style={{ marginTop: 10 }}
+                    disabled={rebill.isPending}
+                    onClick={() => rebill.mutate()}
+                  >
+                    {rebill.isPending ? 'Making the invoice…' : 'Get a new invoice'}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div>
+                <Link
+                  className="btn"
+                  style={{ display: 'inline-block', marginTop: 10 }}
+                  to={
+                    branch.payment_invoice_id != null
+                      ? `/vendor/billing/invoices/${branch.payment_invoice_id}`
+                      : '/vendor/billing'
+                  }
+                >
+                  {branch.payment_invoice_id != null ? '💳 Pay the invoice' : 'Go to billing'}
+                </Link>
+              </div>
+            )
+          ) : (
+            'The business owner pays for branches.'
+          )}
+        </div>
+      )}
+      {branch?.review_status === 'pending' && (
+        <div className="notice warn">
+          Waiting for the IWILLFLY team to check this branch. Customers will see it once it is approved.
+        </div>
+      )}
+      {branch?.review_status === 'rejected' && (
+        <div className="notice bad">
+          <b>Not approved.</b> {branch.review_note ?? 'No reason given.'} Fix the details and save to send it
+          again.
+        </div>
+      )}
+      {branch?.review_status === 'approved' && (
+        <p className="meta" style={{ marginTop: 0 }}>
+          🔗 {window.location.host}/shop/{shop.slug}/{branch.slug}
+        </p>
+      )}
       <form className="form-card" onSubmit={submit} noValidate>
         <Lockable locked={readOnly}>
           <div className="field">
@@ -216,7 +400,7 @@ function BranchForm({ shop, branch }: { shop: Shop; branch: Branch | null }) {
             <button className="btn" type="submit" disabled={save.isPending} style={{ flex: 1 }}>
               {save.isPending ? 'Saving…' : branch ? 'Save branch' : 'Add branch'}
             </button>
-            {branch && (
+            {branch && !brandReadOnly && (
               <button
                 className="btn danger"
                 type="button"
@@ -231,6 +415,7 @@ function BranchForm({ shop, branch }: { shop: Shop; branch: Branch | null }) {
           </div>
         </Lockable>
       </form>
+      {branch && <BranchPrizes branch={branch} />}
     </>
   );
 }

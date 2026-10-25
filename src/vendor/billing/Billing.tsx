@@ -7,7 +7,17 @@ import { useVendor, useVendorRole } from '../context';
 import { errorMessage, formatDate, offerPhase } from '../format';
 import { ErrorNote, Loading, PageHead } from '../ui';
 import { useAddons, useCreateInvoice, useInvoices, useMyBilling, usePlans } from './api';
-import { addonHint, invoiceClass, invoiceLabel, limitText, money, periodText, planPrice } from './format';
+import {
+  addonHint,
+  invoiceClass,
+  invoiceLabel,
+  limitText,
+  offerLimitText,
+  branchPriceText,
+  money,
+  periodText,
+  planPrice,
+} from './format';
 import InvoicePage from './InvoicePage';
 import { CurrentPlanCard } from './PlanCard';
 
@@ -149,9 +159,9 @@ function PlanOption({ plan: p, billing }: { plan: Plan; billing: MyBilling | und
       </div>
       {p.description && <p style={{ fontSize: 13, lineHeight: 1.5, margin: '6px 0 0' }}>{p.description}</p>}
       <ul style={{ fontSize: 13, lineHeight: 1.6, margin: '8px 0 0', paddingLeft: 18 }}>
-        <li>{limitText(p.max_shops, 'shop', 'shops')}</li>
         <li>{limitText(p.max_branches ?? null, 'branch', 'branches')}</li>
-        <li>{limitText(p.max_live_offers, 'live offer', 'live offers')}</li>
+        <li>{offerLimitText(p.max_live_offers)}</li>
+        {branchPriceText(p) && <li>{branchPriceText(p)}</li>}
         {p.features.map((f) => (
           <li key={f}>{f}</li>
         ))}

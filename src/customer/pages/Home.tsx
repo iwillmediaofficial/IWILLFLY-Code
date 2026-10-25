@@ -334,6 +334,7 @@ function NearOffers() {
           key={o.offer_id}
           shopId={o.shop_id}
           offerId={o.offer_id}
+          shopPath={`/shop/${o.shop_slug}${o.branch_slug ? `/${o.branch_slug}` : ''}`}
           imageKey={o.image_key}
           icon={
             <CategoryIcon
@@ -344,7 +345,11 @@ function NearOffers() {
           }
           badge={o.discount_label ?? (o.is_featured ? 'FEATURED' : 'OFFER')}
           tone={toneFor(i)}
-          title={o.shop_name}
+          title={
+            o.branch_name && o.branch_name !== 'Main branch'
+              ? `${o.shop_name} · ${o.branch_name}`
+              : o.shop_name
+          }
           meta={[formatKm(o.distance_km, approx), o.title].filter(Boolean).join(' · ')}
         />
       ))}

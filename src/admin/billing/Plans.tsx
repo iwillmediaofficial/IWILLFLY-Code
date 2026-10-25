@@ -47,9 +47,11 @@ export function Plans() {
                     <span className="meta"> / {p.period_days} days</span>
                   </h4>
                   <div className="meta">
-                    {p.max_shops == null ? 'Unlimited shops' : `${p.max_shops} shops`} ·{' '}
                     {p.max_branches == null ? 'unlimited branches' : `${p.max_branches} branches`} ·{' '}
                     {p.max_live_offers == null ? 'unlimited live offers' : `${p.max_live_offers} live offers`}{' '}
+                    {p.included_branches != null && Number(p.extra_branch_price) > 0
+                      ? `· ${p.included_branches} branches included, ${money(p.extra_branch_price ?? 0)} per extra `
+                      : ''}
                     · order {p.sort_order}
                   </div>
                 </div>
@@ -90,6 +92,8 @@ type Form = {
   max_shops: string;
   max_branches: string;
   max_live_offers: string;
+  included_branches: string;
+  extra_branch_price: string;
   is_default: boolean;
   is_active: boolean;
   sort_order: string;
@@ -105,6 +109,8 @@ function toForm(p: Plan | undefined, nextSort: number): Form {
     max_shops: p?.max_shops == null ? '' : String(p.max_shops),
     max_branches: p?.max_branches == null ? '' : String(p.max_branches),
     max_live_offers: p?.max_live_offers == null ? '' : String(p.max_live_offers),
+    included_branches: p?.included_branches == null ? '' : String(p.included_branches),
+    extra_branch_price: Number(p?.extra_branch_price ?? 0) > 0 ? String(Number(p!.extra_branch_price)) : '',
     is_default: p?.is_default ?? false,
     is_active: p?.is_active ?? true,
     sort_order: String(p?.sort_order ?? nextSort),
@@ -149,6 +155,8 @@ function PlanForm({ plan, nextSort, onDone }: { plan?: Plan; nextSort: number; o
     const branches = toNumber(f.max_branches);
     const offers = toNumber(f.max_live_offers);
     const sort = toNumber(f.sort_order);
+    const included = toNumber(f.included_branches);
+    const extra = toNumber(f.extra_branch_price);
     if (f.name.trim().length < 2) return setError('Enter the plan name.');
     if (price == null || price < 0) return setError('Enter the price in rupees (0 for free).');
     if (!isWhole(days) || days! < 1 || days! > 1100)
@@ -159,6 +167,12 @@ function PlanForm({ plan, nextSort, onDone }: { plan?: Plan; nextSort: number; o
       return setError('Max branches must be a whole number, or blank for no limit.');
     if (f.max_live_offers.trim() && (!isWhole(offers) || offers! < 0))
       return setError('Max live offers must be a whole number, or blank for no limit.');
+    if (f.included_branches.trim() && (!isWhole(included) || included! < 1))
+      return setError('Branches included must be a whole number, 1 or more, or blank.');
+    if (f.extra_branch_price.trim() && (extra == null || extra < 0))
+      return setError('Price per extra branch: enter rupees, or leave blank.');
+    if (extra != null && extra > 0 && !f.included_branches.trim())
+      return setError('Set how many branches the price includes, so extra branches can be charged.');
     if (!isWhole(sort)) return setError('Sort order must be a whole number.');
     const features = f.features
       .split('\n')
@@ -174,6 +188,8 @@ function PlanForm({ plan, nextSort, onDone }: { plan?: Plan; nextSort: number; o
       max_shops: f.max_shops.trim() ? shops : null,
       max_branches: f.max_branches.trim() ? branches : null,
       max_live_offers: f.max_live_offers.trim() ? offers : null,
+      included_branches: f.included_branches.trim() ? included : null,
+      extra_branch_price: f.extra_branch_price.trim() ? Math.round(extra! * 100) / 100 : 0,
       is_default: f.is_default,
       is_active: f.is_active,
       sort_order: sort!,
@@ -244,19 +260,6 @@ function PlanForm({ plan, nextSort, onDone }: { plan?: Plan; nextSort: number; o
       </div>
       <div className="field-row">
         <div className="field">
-          <label htmlFor="pl-shops">Max shops</label>
-          <input
-            id="pl-shops"
-            type="number"
-            min={0}
-            step={1}
-            inputMode="numeric"
-            placeholder="No limit"
-            value={f.max_shops}
-            onChange={(e) => set({ max_shops: e.target.value })}
-          />
-        </div>
-        <div className="field">
           <label htmlFor="pl-branches">Max branches</label>
           <input
             id="pl-branches"
@@ -284,7 +287,39 @@ function PlanForm({ plan, nextSort, onDone }: { plan?: Plan; nextSort: number; o
         </div>
       </div>
       <div className="hint" style={{ fontSize: 11, color: 'var(--color-muted)', margin: '-6px 0 12px' }}>
-        Leave a limit blank for no limit.
+        Leave a limit blank for no limit. Max live offers counts offers for all branches, and again each
+        branch's own offers.
+      </div>
+      <div className="field-row">
+        <div className="field">
+          <label htmlFor="pl-incl">Branches included</label>
+          <input
+            id="pl-incl"
+            type="number"
+            min={1}
+            step={1}
+            inputMode="numeric"
+            placeholder="All"
+            value={f.included_branches}
+            onChange={(e) => set({ included_branches: e.target.value })}
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="pl-extra">Price per extra branch (₹)</label>
+          <input
+            id="pl-extra"
+            type="number"
+            min={0}
+            step="0.01"
+            inputMode="decimal"
+            placeholder="Free"
+            value={f.extra_branch_price}
+            onChange={(e) => set({ extra_branch_price: e.target.value })}
+          />
+        </div>
+      </div>
+      <div className="hint" style={{ fontSize: 11, color: 'var(--color-muted)', margin: '-6px 0 12px' }}>
+        Each branch over the included number is added to the plan invoice, per plan period.
       </div>
       <div className="field">
         <label htmlFor="pl-sort">Sort order</label>

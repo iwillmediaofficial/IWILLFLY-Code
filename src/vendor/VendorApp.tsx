@@ -22,24 +22,46 @@ import { ErrorNote, Loading } from './ui';
 import { offerPhase } from './format';
 
 // staffToo: shown to Staff, who only check prize codes and see insights.
-type Tab = { to: string; label: string; icon: string; end?: boolean; staffToo?: boolean };
+// branch: shown to branch managers ('manager') or to all branch members ('all'); others are brand-level.
+type Tab = {
+  to: string;
+  label: string;
+  icon: string;
+  end?: boolean;
+  staffToo?: boolean;
+  branch?: 'manager' | 'all';
+  branchOnly?: boolean;
+};
 
 const tabs: Tab[] = [
-  { to: '/vendor', label: 'Dashboard', icon: '🏠', end: true, staffToo: true },
-  { to: '/vendor/shops', label: 'Shops', icon: '🏬' },
-  { to: '/vendor/offers', label: 'Offers', icon: '🏷️' },
-  { to: '/vendor/scratch', label: 'Scratch & Win', icon: '🎟️', staffToo: true },
+  { to: '/vendor', label: 'Dashboard', icon: '🏠', end: true, staffToo: true, branch: 'all' },
+  { to: '/vendor/branches/mine', label: 'My branch', icon: '📍', branch: 'all', branchOnly: true },
+  { to: '/vendor/shops', label: 'My shop', icon: '🏬' },
+  { to: '/vendor/offers', label: 'Offers', icon: '🏷️', branch: 'manager' },
+  { to: '/vendor/scratch', label: 'Scratch & Win', icon: '🎟️', staffToo: true, branch: 'all' },
   { to: '/vendor/insights', label: 'Insights', icon: '📈', staffToo: true },
   { to: '/vendor/festivals', label: 'Festivals', icon: '🪔' },
   { to: '/vendor/promote', label: 'Promote', icon: '📣' },
   { to: '/vendor/billing', label: 'Plan & billing', icon: '💳', staffToo: true },
-  { to: '/vendor/team', label: 'Team', icon: '👥', staffToo: true },
-  { to: '/vendor/help', label: 'Help', icon: '💬', staffToo: true },
+  { to: '/vendor/team', label: 'Team', icon: '👥', staffToo: true, branch: 'all' },
+  { to: '/vendor/help', label: 'Help', icon: '💬', staffToo: true, branch: 'all' },
 ];
+
+/** The menu for this member: branch members get their branch's pages only. */
+function tabsFor(v: MyVendor): Tab[] {
+  if (v.my_branch_id != null) {
+    const manager = v.my_role === 'manager';
+    return tabs
+      .filter((t) => t.branch === 'all' || (t.branch === 'manager' && manager))
+      .map((t) => (t.branchOnly ? { ...t, to: `/vendor/branches/${v.my_branch_id}` } : t));
+  }
+  const canEdit = v.my_role !== 'staff';
+  return tabs.filter((t) => !t.branchOnly && (t.staffToo || canEdit));
+}
 
 /** How the side menu groups the tabs above. */
 const GROUPS: { label: string; items: string[] }[] = [
-  { label: 'My shop', items: ['Dashboard', 'Shops', 'Offers'] },
+  { label: 'My shop', items: ['Dashboard', 'My branch', 'My shop', 'Offers'] },
   { label: 'Grow sales', items: ['Scratch & Win', 'Insights', 'Festivals', 'Promote'] },
   { label: 'Account', items: ['Plan & billing', 'Team', 'Help'] },
 ];
@@ -48,6 +70,10 @@ const GROUPS: { label: string; items: string[] }[] = [
 const needsOnboarding = (v: MyVendor) => v.status === 'pending' && v.my_role === 'owner' && v.plan_id == null;
 
 const roleName: Record<VendorRole, string> = { owner: 'Owner', manager: 'Manager', staff: 'Staff' };
+const roleLabel = (v: MyVendor) =>
+  v.my_branch_id != null
+    ? `Branch ${v.my_role === 'manager' ? 'manager' : 'staff'} · ${v.my_branch_name ?? ''}`
+    : roleName[v.my_role];
 
 const statusName = { approved: 'Approved', blocked: 'Blocked', pending: 'Under review' } as const;
 
@@ -90,7 +116,7 @@ function VendorLayout({ vendor }: { vendor: MyVendor }) {
   const menuOpen = openOn === pathname;
   const setMenuOpen = (open: boolean) => setOpenOn(open ? pathname : null);
   const canEdit = vendor.my_role !== 'staff';
-  const visible = tabs.filter((t) => t.staffToo || canEdit);
+  const visible = tabsFor(vendor);
   const current =
     visible.find((t) => t.end && matchPath({ path: t.to, end: true }, pathname)) ??
     visible.find((t) => !t.end && matchPath({ path: t.to, end: false }, pathname)) ??
@@ -133,7 +159,7 @@ function VendorLayout({ vendor }: { vendor: MyVendor }) {
           <div style={{ minWidth: 0 }}>
             <b>{vendor.business_name}</b>
             <div>
-              {roleName[vendor.my_role]} · <span className="vendor-status">{statusName[vendor.status]}</span>
+              {roleLabel(vendor)} · <span className="vendor-status">{statusName[vendor.status]}</span>
             </div>
           </div>
         </div>
@@ -180,6 +206,25 @@ function VendorLayout({ vendor }: { vendor: MyVendor }) {
           </div>
         </div>
         <main className="page">
+          {vendor.status === 'approved' && vendor.plan_running === false && (
+            <div className="notice bad">
+              <b>Your plan has expired.</b> Customers can't see your shop, branches, offers or prizes until it
+              is renewed.
+              {vendor.my_role === 'owner' ? (
+                <div>
+                  <Link
+                    className="btn"
+                    style={{ display: 'inline-block', marginTop: 10 }}
+                    to="/vendor/billing"
+                  >
+                    💳 Renew now
+                  </Link>
+                </div>
+              ) : (
+                ' Ask the business owner to renew it.'
+              )}
+            </div>
+          )}
           <Routes>
             <Route index element={<Dashboard />} />
             <Route path="shops" element={<ShopsList />} />

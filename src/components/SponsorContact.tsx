@@ -30,6 +30,11 @@ export function SponsorContact({ result }: { result: PlayResult }) {
               ? 'Ask about timings or how to collect your prize.'
               : 'Visit the shop with your claim code.'}
           </div>
+          {s.collect_at && s.collect_at.length > 0 && (
+            <div className="meta">
+              <b>Collect at:</b> {s.collect_at.join(', ')}
+            </div>
+          )}
         </div>
       </div>
       <ContactButtons

@@ -4,7 +4,7 @@ import { useVendor, useVendorRole } from '../context';
 import { formatDate, todayIST } from '../format';
 import { ErrorNote, Loading } from '../ui';
 import { useMyBilling } from './api';
-import { daysUntil, planPrice, usageText } from './format';
+import { daysUntil, planPrice, usageText, branchPriceText } from './format';
 
 /** "Paid until 12 Oct 2026" and whether it ends within a week. */
 function endInfo(b: MyBilling) {
@@ -48,16 +48,33 @@ export function CurrentPlanCard() {
 
       <div className="info-grid" style={{ marginTop: 12 }}>
         <div className="info-card">
-          <span>Shops</span>
-          <strong>{usageText(b.usage.shops, p?.max_shops ?? null)}</strong>
-        </div>
-        <div className="info-card">
-          <span>Live offers</span>
+          <span>Offers for all branches</span>
           <strong>{usageText(b.usage.live_offers, p?.max_live_offers ?? null)}</strong>
         </div>
+        {(b.usage.branches ?? 0) > 1 && (
+          <>
+            <div className="info-card">
+              <span>Branches</span>
+              <strong>{usageText(b.usage.branches ?? 0, p?.max_branches ?? null)}</strong>
+            </div>
+            <div className="info-card">
+              <span>Most offers at one branch</span>
+              <strong>{usageText(b.usage.busiest_branch_offers ?? 0, p?.max_live_offers ?? null)}</strong>
+            </div>
+          </>
+        )}
       </div>
       <div className="meta" style={{ marginTop: 6 }}>
-        Live offers count every offer that hasn't ended or been rejected, including ones in review.
+        Live offers count every offer that hasn't ended or been rejected, including ones in review. Offers for
+        all branches share one limit; each branch has the same limit again for its own offers.
+        {p && branchPriceText(p) && (
+          <>
+            {' '}
+            {branchPriceText(p)}
+            {(b.usage.extra_branches ?? 0) > 0 &&
+              `: ${b.usage.extra_branches} extra now, added to your next plan invoice.`}
+          </>
+        )}
       </div>
 
       {end ? (

@@ -68,20 +68,34 @@ export function useJoinCampaign() {
   });
 }
 
-/** Prizes this vendor sponsors in one campaign. */
-export function useMyPrizes(campaignId: number) {
+/** A prize with the branches it is collected at (empty when it is for all branches). */
+export type BranchPrize = ScratchPrize & { branch_ids: number[] };
+
+type PrizeRow = ScratchPrize & { scratch_prize_branches: { branch_id: number }[] | null };
+
+/**
+ * Prizes this vendor sponsors: in one campaign, or (campaignId null) every campaign. Branch members get
+ * the prizes collected at their branch only.
+ */
+export function useMyPrizes(campaignId: number | null) {
   const vendor = useVendor();
+  const branchId = vendor.my_branch_id ?? null;
   return useQuery({
-    queryKey: ['vendor-scratch', 'prizes', vendor.id, campaignId],
-    queryFn: async () =>
-      must<ScratchPrize[]>(
-        await db()
-          .from('scratch_prizes')
-          .select('*')
-          .eq('campaign_id', campaignId)
-          .eq('sponsor_vendor_id', vendor.id)
-          .order('id'),
-      ),
+    queryKey: ['vendor-scratch', 'prizes', vendor.id, campaignId, branchId],
+    queryFn: async () => {
+      let q = db()
+        .from('scratch_prizes')
+        .select('*, scratch_prize_branches(branch_id)')
+        .eq('sponsor_vendor_id', vendor.id);
+      if (campaignId != null) q = q.eq('campaign_id', campaignId);
+      const rows = must<PrizeRow[]>(await q.order('id'));
+      return rows
+        .map(({ scratch_prize_branches, ...p }): BranchPrize => ({
+          ...p,
+          branch_ids: (scratch_prize_branches ?? []).map((b) => b.branch_id),
+        }))
+        .filter((p) => branchId == null || p.all_branches || p.branch_ids.includes(branchId));
+    },
   });
 }
 
@@ -92,20 +106,47 @@ export interface PrizeInput {
   quantity: number;
 }
 
-/** Adds a prize (it starts switched off, IWILLFLY reviews it) or edits one of the vendor's own. */
+/** Where a prize is collected; null = leave it as it is (branch managers: always their branch). */
+export type PrizeWhere = { all: boolean; branchIds: number[] } | null;
+
+/**
+ * Adds a prize (it starts switched off, IWILLFLY reviews it) or edits one of the vendor's own, then sets
+ * its branches. A branch manager's new prize is linked to their branch by the database.
+ */
 export function useSavePrize(campaignId: number) {
   const vendor = useVendor();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, input }: { id: number | null; input: PrizeInput }) =>
-      id == null
-        ? must(
-            await db()
-              .from('scratch_prizes')
-              .insert({ ...input, campaign_id: campaignId, sponsor_vendor_id: vendor.id }),
-          )
-        : must(await db().from('scratch_prizes').update(input).eq('id', id)),
-    onSuccess: () => qc.invalidateQueries({ queryKey: SCRATCH_KEY }),
+    mutationFn: async ({ id, input, where }: { id: number | null; input: PrizeInput; where: PrizeWhere }) => {
+      const row = must<{ id: number }>(
+        await (
+          id == null
+            ? db()
+                .from('scratch_prizes')
+                .insert({ ...input, campaign_id: campaignId, sponsor_vendor_id: vendor.id })
+            : db().from('scratch_prizes').update(input).eq('id', id)
+        )
+          .select('id')
+          .single(),
+      );
+      if (where) {
+        const res = await db().rpc('set_prize_branches', {
+          p_prize_id: row.id,
+          p_all: where.all,
+          p_branch_ids: where.all ? [] : where.branchIds,
+        });
+        if (res.error) {
+          // A new prize stays for all branches (and switched off) until the branches are fixed.
+          throw new Error(
+            id == null
+              ? `The prize was added for all branches, but its branches could not be set: ${res.error.message}`
+              : res.error.message,
+          );
+        }
+      }
+      return row.id;
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: SCRATCH_KEY }),
   });
 }
 
