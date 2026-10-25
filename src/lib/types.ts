@@ -103,12 +103,15 @@ export interface Branch {
 export interface BranchQuote {
   amount: number;
   days_left: number;
-  renews_on: string;
+  /** null when the plan is not running */
+  renews_on: string | null;
   price: number;
   period_days: number;
   plan: string;
-  /** 3 days or fewer left: no part-month invoice, it waits for the renewal invoice */
+  /** 3 days or fewer left, or the plan is not running: it waits for the plan invoice */
   deferred: boolean;
+  /** The paid plan is not running: the branch goes live when the plan is renewed */
+  no_plan?: boolean;
 }
 
 export type BranchReview = 'approved' | 'pending' | 'rejected';

@@ -47,7 +47,6 @@ export function Plans() {
                     <span className="meta"> / {p.period_days} days</span>
                   </h4>
                   <div className="meta">
-                    {p.max_shops == null ? 'Unlimited shops' : `${p.max_shops} shops`} ·{' '}
                     {p.max_branches == null ? 'unlimited branches' : `${p.max_branches} branches`} ·{' '}
                     {p.max_live_offers == null ? 'unlimited live offers' : `${p.max_live_offers} live offers`}{' '}
                     {p.included_branches != null && Number(p.extra_branch_price) > 0
@@ -260,19 +259,6 @@ function PlanForm({ plan, nextSort, onDone }: { plan?: Plan; nextSort: number; o
         </div>
       </div>
       <div className="field-row">
-        <div className="field">
-          <label htmlFor="pl-shops">Max shops</label>
-          <input
-            id="pl-shops"
-            type="number"
-            min={0}
-            step={1}
-            inputMode="numeric"
-            placeholder="No limit"
-            value={f.max_shops}
-            onChange={(e) => set({ max_shops: e.target.value })}
-          />
-        </div>
         <div className="field">
           <label htmlFor="pl-branches">Max branches</label>
           <input

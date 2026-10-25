@@ -93,13 +93,24 @@ function BranchForm({ shop, branch }: { shop: Shop; branch: Branch | null }) {
     queryFn: async () => must<BranchQuote | null>(await db().rpc('branch_price_quote')),
     enabled: !branch && !brandReadOnly,
   });
-  // A waiting branch's invoice: the owner can ask for a new one if it was cancelled.
+  // A waiting branch's invoice: the owner asks for a new one if it was cancelled or the branch was taken
+  // off it (refused, then approved after a fix).
   const waitingInvoice = useQuery({
-    queryKey: [...VENDOR_KEY, 'branch-invoice', branch?.payment_invoice_id],
-    queryFn: async () =>
-      must<{ status: string }>(
+    queryKey: [...VENDOR_KEY, 'branch-invoice', branch?.payment_invoice_id, branch?.review_status],
+    queryFn: async () => {
+      const inv = must<{ status: string }>(
         await db().from('invoices').select('status').eq('id', branch!.payment_invoice_id!).single(),
-      ),
+      );
+      const lines = must<{ id: number }[]>(
+        await db()
+          .from('invoice_items')
+          .select('id')
+          .eq('invoice_id', branch!.payment_invoice_id!)
+          .eq('branch_id', branch!.id)
+          .eq('branch_charge', true),
+      );
+      return { billed: inv.status !== 'void' && lines.length > 0 };
+    },
     enabled: isOwner && Boolean(branch?.awaiting_payment) && branch?.payment_invoice_id != null,
   });
   const rebill = useMutation({
@@ -145,8 +156,9 @@ function BranchForm({ shop, branch }: { shop: Shop; branch: Branch | null }) {
     onSuccess: (added) => {
       qc.invalidateQueries({ queryKey: VENDOR_KEY });
       if (added?.awaiting_payment && added.payment_invoice_id != null) {
-        toast('Branch added. Pay its invoice and it goes live once approved.');
-        navigate(isOwner ? `/vendor/billing/invoices/${added.payment_invoice_id}` : back);
+        // Paid once the IWILLFLY team approves it (the branch page then shows "Pay the invoice").
+        toast('Branch added. Once the IWILLFLY team approves it, pay its invoice to make it live.');
+        navigate(back);
         return;
       }
       toast(
@@ -206,7 +218,13 @@ function BranchForm({ shop, branch }: { shop: Shop; branch: Branch | null }) {
       )}
       {!branch && quote.data && (
         <div className="notice warn">
-          {quote.data.deferred ? (
+          {quote.data.no_plan ? (
+            <>
+              Your {quote.data.plan} plan is not running. This branch goes live once you renew the plan from
+              Plan &amp; billing ({money(quote.data.price)} every {quote.data.period_days} days for each extra
+              branch) and the IWILLFLY team approves it.
+            </>
+          ) : quote.data.deferred ? (
             <>
               Your {quote.data.plan} plan renews on {formatDate(quote.data.renews_on)}. This branch is added
               to that renewal invoice ({money(quote.data.price)} every {quote.data.period_days} days) and goes
@@ -225,8 +243,15 @@ function BranchForm({ shop, branch }: { shop: Shop; branch: Branch | null }) {
         <div className="notice warn">
           <b>Waiting for payment.</b> Customers will see this branch once{' '}
           {branch.payment_invoice_id == null ? 'your plan renewal invoice' : 'its invoice'} is paid.{' '}
-          {isOwner ? (
-            waitingInvoice.data?.status === 'void' ? (
+          {branch.review_status !== 'approved' ? (
+            // Paid only once approved, so nothing is paid for a branch that is refused.
+            branch.review_status === 'pending' ? (
+              'You can pay once the IWILLFLY team approves it.'
+            ) : (
+              'Fix the branch first; you can pay once it is approved.'
+            )
+          ) : isOwner ? (
+            waitingInvoice.data?.billed === false ? (
               <>
                 Its invoice was cancelled.
                 <div>
