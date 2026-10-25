@@ -543,6 +543,7 @@ export interface BillingSettings {
   // Which payment methods vendors are offered (Admin > Billing settings)
   pay_instamojo?: boolean;
   pay_upi?: boolean;
+  pay_razorpay?: boolean;
   updated_at: string;
 }
 

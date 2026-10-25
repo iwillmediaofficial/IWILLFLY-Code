@@ -35,6 +35,7 @@ function SettingsForm({ settings: s }: { settings: BillingSettings }) {
     gst_percent: String(Number(s.gst_percent)),
     invoice_prefix: s.invoice_prefix,
     payment_note: s.payment_note ?? '',
+    pay_razorpay: s.pay_razorpay === true,
     pay_instamojo: s.pay_instamojo !== false,
     pay_upi: s.pay_upi !== false,
   });
@@ -72,6 +73,7 @@ function SettingsForm({ settings: s }: { settings: BillingSettings }) {
       gst_percent: Math.round(gst * 100) / 100,
       invoice_prefix: prefix,
       payment_note: f.payment_note.trim() || null,
+      pay_razorpay: f.pay_razorpay,
       pay_instamojo: f.pay_instamojo,
       pay_upi: f.pay_upi,
     });
@@ -83,6 +85,18 @@ function SettingsForm({ settings: s }: { settings: BillingSettings }) {
       <p className="meta" style={{ marginTop: 0 }}>
         Choose how vendors can pay their invoices. You can still mark any invoice paid by hand.
       </p>
+      <label className="check-row">
+        <input
+          type="checkbox"
+          role="switch"
+          checked={f.pay_razorpay}
+          onChange={(e) => set({ pay_razorpay: e.target.checked })}
+        />
+        <span>
+          <b>Razorpay</b> (UPI, card, net banking, wallets). Paid invoices switch on automatically. Needs the
+          Razorpay keys in the Worker&apos;s secrets.
+        </span>
+      </label>
       <label className="check-row">
         <input
           type="checkbox"
@@ -106,9 +120,9 @@ function SettingsForm({ settings: s }: { settings: BillingSettings }) {
           ID or screenshot and you mark the invoice paid.
         </span>
       </label>
-      {!f.pay_instamojo && !f.pay_upi && (
+      {!f.pay_razorpay && !f.pay_instamojo && !f.pay_upi && (
         <div className="notice warn">
-          Both methods are off: vendors are asked to contact IWILLFLY support to pay.
+          All methods are off: vendors are asked to contact IWILLFLY support to pay.
         </div>
       )}
 
