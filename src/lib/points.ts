@@ -2,7 +2,15 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../auth/AuthProvider';
 import { db, must } from './queries';
 import { supabase } from './supabase';
-import type { MyBill, MyUpi, PointsEntry, PointsShop, PointsWallet, Redemption } from './types';
+import type {
+  MyBill,
+  MyUpi,
+  PointsEntry,
+  PointsShop,
+  PointsShopBranch,
+  PointsWallet,
+  Redemption,
+} from './types';
 import { checkPickedSize, photoWebp, sendWebp, type OnUploadProgress } from './upload';
 
 export const POINTS_KEYS = [['points_wallet'], ['my_bills'], ['my_points_history']];
@@ -76,6 +84,17 @@ export function usePointsShops(q: string) {
   });
 }
 
+/** Live branches of a shop, for the "Which branch?" list. */
+export function usePointsShopBranches(shopId: number | null) {
+  return useQuery({
+    queryKey: ['points_shop_branches', shopId],
+    queryFn: async () =>
+      must<PointsShopBranch[]>(await db().rpc('points_shop_branches', { p_shop_id: shopId! })),
+    enabled: Boolean(supabase && shopId),
+    staleTime: 5 * 60_000,
+  });
+}
+
 /** One live shop by id (when the add-bill page is opened from a shop page). */
 export function usePointsShop(id: number | null) {
   return useQuery({
@@ -90,6 +109,8 @@ export function usePointsShop(id: number | null) {
 
 export interface BillInput {
   shopId: number;
+  /** the branch picked; null lets the server fill it in for a shop with one branch */
+  branchId?: number | null;
   billNumber: string;
   billDate: string;
   amount: number;
@@ -124,6 +145,7 @@ export async function submitBill(b: BillInput): Promise<number> {
     p_bill_date: b.billDate,
     p_amount: b.amount,
     p_resubmit_of: b.resubmitOf ?? null,
+    p_branch_id: b.branchId ?? null,
   };
   must(await db().rpc('check_bill', args));
   if (!b.photo && b.keepPhotoKey)

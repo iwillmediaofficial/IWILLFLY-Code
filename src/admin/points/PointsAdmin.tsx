@@ -156,6 +156,7 @@ function Bills({ selected }: { selected?: string }) {
                 <h4>
                   {b.shop_name} · {rupees(b.approved_amount ?? b.amount)}
                 </h4>
+                {b.branch_name && <div className="meta">{branchText(b)}</div>}
                 <div className="meta">
                   #{b.id} · {b.customer_name || b.customer_email} · bill {b.bill_number} of{' '}
                   {formatDate(b.bill_date)}
@@ -215,6 +216,7 @@ function BillTable({
           </span>
           <span role="cell">
             <b>{b.shop_name}</b>
+            {b.branch_name && <div className="meta">{branchText(b)}</div>}
             <div className="meta">Added {formatDate(b.created_at)}</div>
           </span>
           <span role="cell" className="bill-col-customer">
@@ -317,6 +319,11 @@ function Photo({ bill: b }: { bill: AdminBill }) {
   );
 }
 
+/** "Edappally branch · Edappally" */
+function branchText(b: AdminBill) {
+  return [b.branch_name, b.branch_area].filter(Boolean).join(' · ');
+}
+
 function Facts({ bill: b, rate }: { bill: AdminBill; rate: number }) {
   const ageDays = Math.round(
     (new Date(b.created_at).getTime() - new Date(`${b.bill_date}T00:00:00+05:30`).getTime()) / 86_400_000,
@@ -326,6 +333,10 @@ function Facts({ bill: b, rate }: { bill: AdminBill; rate: number }) {
       <dl className="bill-facts">
         <dt>Shop</dt>
         <dd>{b.shop_name}</dd>
+        <dt>Branch</dt>
+        <dd>
+          {b.branch_name ? branchText(b) : <span className="meta">Not given (added before branches)</span>}
+        </dd>
         <dt>Bill number</dt>
         <dd>{b.bill_number}</dd>
         <dt>Bill date</dt>

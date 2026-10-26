@@ -337,7 +337,11 @@ export default function Shop() {
         </div>
       </section>
       <section className="section">
-        <Link className="shop-card" to={`/points/add?shop=${s.id}`}>
+        <Link
+          className="shop-card"
+          // a branch page fills in its branch on the bill too
+          to={`/points/add?shop=${s.id}${branch && branch.slug === branchSlug ? `&branch=${branch.id}` : ''}`}
+        >
           <div className="shop-thumb">💰</div>
           <div>
             <h4>Bought something here?</h4>

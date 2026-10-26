@@ -16,13 +16,16 @@ import {
   useMyBills,
   usePointsHistory,
   usePointsShop,
+  usePointsShopBranches,
   usePointsShops,
   usePointsWallet,
   useSubmitBill,
 } from '../../lib/points';
+import { formatKm, haversineKm } from '../../lib/hours';
+import { isApprox, usePlace } from '../../lib/location';
 import { db, must } from '../../lib/queries';
 import { supabase } from '../../lib/supabase';
-import type { MyBill, PointsEntry, PointsWallet } from '../../lib/types';
+import type { MyBill, PointsEntry, PointsShopBranch, PointsWallet } from '../../lib/types';
 import { MAX_PICKED_BYTES, type UploadProgress } from '../../lib/upload';
 import { formatDay } from '../scratch';
 import { PointsTerms, Redeem } from './PointsRedeem';
@@ -207,6 +210,7 @@ function WalletView({ w }: { w: PointsWallet }) {
 interface FixBill {
   id: number;
   shop_id: number;
+  branch_id: number | null;
   bill_number: string;
   bill_date: string;
   amount: number;
@@ -221,6 +225,7 @@ function AddBill() {
   const [params] = useSearchParams();
   const fixId = Number(params.get('fix')) || null;
   const shopParam = Number(params.get('shop')) || null;
+  const branchParam = Number(params.get('branch')) || null;
   const wallet = usePointsWallet();
   const fix = useQuery({
     queryKey: ['fix_bill', fixId],
@@ -229,7 +234,7 @@ function AddBill() {
         await db()
           .from('bill_submissions')
           .select(
-            'id, shop_id, bill_number, bill_date, amount, photo_key, reject_reason, admin_note, created_at, shops(name)',
+            'id, shop_id, branch_id, bill_number, bill_date, amount, photo_key, reject_reason, admin_note, created_at, shops(name)',
           )
           .eq('id', fixId!)
           .limit(1),
@@ -258,6 +263,10 @@ function AddBill() {
           wallet={wallet.data}
           fix={fix.data ?? null}
           shopId={fix.data?.shop_id ?? shopParam}
+          // a fixed bill keeps its branch unless it was rejected for the wrong shop
+          branchId={
+            fix.data ? (fix.data.reject_reason === 'wrong_shop' ? null : fix.data.branch_id) : branchParam
+          }
         />
       )}
     </>
@@ -268,10 +277,12 @@ function BillForm({
   wallet: w,
   fix,
   shopId,
+  branchId,
 }: {
   wallet: PointsWallet;
   fix: FixBill | null;
   shopId: number | null;
+  branchId: number | null;
 }) {
   const toast = useToast();
   const navigate = useNavigate();
@@ -292,6 +303,16 @@ function BillForm({
   const preset = usePointsShop(fix ? null : shopId);
   const shop =
     picked !== undefined ? picked : preset.data ? { id: preset.data.id, name: preset.data.name } : null;
+  // the branch picked (starts as the one from the link or the fixed bill); a shop with one branch needs no pick
+  const [branchPick, setBranchPick] = useState<number | null>(branchId);
+  const branches = usePointsShopBranches(shop?.id ?? null);
+  const branchList = branches.data ?? [];
+  const branch =
+    branchList.length === 1 ? branchList[0] : (branchList.find((b) => b.id === branchPick) ?? null);
+  const pickShop = (s: { id: number; name: string } | null) => {
+    setShop(s);
+    setBranchPick(null);
+  };
 
   const [billNumber, setBillNumber] = useState(fix?.bill_number ?? '');
   const [billDate, setBillDate] = useState(fix?.bill_date ?? today);
@@ -315,6 +336,8 @@ function BillForm({
     e.preventDefault();
     setError('');
     if (!shop) return setError('Pick the shop the bill is from.');
+    if (branches.isPending) return setError('Loading the branches of this shop. Try again in a moment.');
+    if (branchList.length > 1 && !branch) return setError('Pick the branch the bill is from.');
     if (!billNumber.trim()) return setError('Enter the bill number printed on the bill.');
     if (!billDate) return setError('Enter the bill date.');
     if (future) return setError('The bill date cannot be in the future.');
@@ -326,6 +349,7 @@ function BillForm({
     submit.mutate(
       {
         shopId: shop.id,
+        branchId: branch?.id ?? null,
         billNumber: billNumber.trim(),
         billDate,
         amount: amt,
@@ -354,7 +378,19 @@ function BillForm({
           only once.
         </div>
       )}
-      <ShopPicker shop={shop} onPick={setShop} locked={Boolean(fix && fix.reject_reason !== 'wrong_shop')} />
+      <ShopPicker
+        shop={shop}
+        onPick={pickShop}
+        locked={Boolean(fix && fix.reject_reason !== 'wrong_shop')}
+        branches={branchList}
+        branch={branch}
+        onPickBranch={setBranchPick}
+        // a fixed bill keeps its branch, unless it had none (added before branches were asked)
+        branchLocked={Boolean(
+          fix && fix.reject_reason !== 'wrong_shop' && fix.branch_id && branch?.id === fix.branch_id,
+        )}
+      />
+      {branches.error && <ErrorNotice error={branches.error} />}
       <div className="field">
         <label htmlFor="bill-number">Bill number</label>
         <input
@@ -466,10 +502,19 @@ function ShopPicker({
   shop,
   onPick,
   locked,
+  branches,
+  branch,
+  onPickBranch,
+  branchLocked,
 }: {
   shop: { id: number; name: string } | null;
   onPick: (s: { id: number; name: string } | null) => void;
   locked: boolean;
+  /** live branches of the picked shop */
+  branches: PointsShopBranch[];
+  branch: PointsShopBranch | null;
+  onPickBranch: (id: number | null) => void;
+  branchLocked: boolean;
 }) {
   const [q, setQ] = useState('');
   const [typed, setTyped] = useState('');
@@ -480,23 +525,35 @@ function ShopPicker({
   const shops = usePointsShops(q);
 
   if (shop) {
+    const several = branches.length > 1;
+    // with several branches, Change goes back to the branch list first
+    const change =
+      several && branch && !branchLocked ? () => onPickBranch(null) : locked ? null : () => onPick(null);
+    const meta = branch
+      ? several
+        ? branchPlace(branch)
+        : [branch.name, branchPlace(branch)].filter(Boolean).join(' · ')
+      : several
+        ? `${branches.length} branches`
+        : 'Bill from this shop';
     return (
       <div className="field">
         <label>Shop</label>
         <div className="shop-card" style={{ cursor: 'default' }}>
           <div className="shop-thumb">🏪</div>
           <div>
-            <h4>{shop.name}</h4>
-            <div className="meta">Bill from this shop</div>
+            <h4>{several && branch ? `${shop.name} · ${branch.name}` : shop.name}</h4>
+            {meta && <div className="meta">{meta}</div>}
           </div>
-          {!locked ? (
-            <button type="button" className="link-btn" onClick={() => onPick(null)}>
+          {change ? (
+            <button type="button" className="link-btn" onClick={change}>
               Change
             </button>
           ) : (
             <span />
           )}
         </div>
+        {several && !branch && <BranchPicker branches={branches} onPick={onPickBranch} />}
       </div>
     );
   }
@@ -525,7 +582,9 @@ function ShopPicker({
             <Thumb imageKey={s.logo_key} icon="🏪" />
             <div>
               <h4>{s.name}</h4>
-              {s.area && <div className="meta">{s.area}</div>}
+              {(s.branch_count > 1 || s.area) && (
+                <div className="meta">{s.branch_count > 1 ? `${s.branch_count} branches` : s.area}</div>
+              )}
             </div>
             <div className="chev">›</div>
           </button>
@@ -533,6 +592,52 @@ function ShopPicker({
         {shops.data?.length === 0 && (
           <div className="meta">No listed shop matches “{q}”. Bills from other shops cannot earn points.</div>
         )}
+      </div>
+    </div>
+  );
+}
+
+/** "Edappally · 12 MG Road" */
+function branchPlace(b: { area: string | null; address: string | null }) {
+  return [b.area, b.address].filter(Boolean).join(' · ');
+}
+
+/** "Which branch?": nearest first when the customer's location is known, otherwise by name. */
+function BranchPicker({ branches, onPick }: { branches: PointsShopBranch[]; onPick: (id: number) => void }) {
+  const { place } = usePlace();
+  const approx = isApprox(place);
+  const sorted = useMemo(
+    () =>
+      branches
+        .map((b) => ({
+          ...b,
+          km: place && b.lat != null && b.lng != null ? haversineKm(place, { lat: b.lat, lng: b.lng }) : null,
+        }))
+        .sort((a, b) => (a.km ?? Infinity) - (b.km ?? Infinity) || a.name.localeCompare(b.name)),
+    [branches, place],
+  );
+  return (
+    <div style={{ marginTop: 12 }}>
+      <label>Which branch?</label>
+      <div className="hint">Pick the branch printed on the bill.</div>
+      <div className="list" style={{ marginTop: 8 }}>
+        {sorted.map((b) => (
+          <button
+            type="button"
+            key={b.id}
+            className="shop-card"
+            style={{ width: '100%', textAlign: 'left', font: 'inherit', color: 'inherit' }}
+            onClick={() => onPick(b.id)}
+          >
+            <div className="shop-thumb">📍</div>
+            <div>
+              <h4>{b.name}</h4>
+              {branchPlace(b) && <div className="meta">{branchPlace(b)}</div>}
+              {b.km != null && <div className="meta">{formatKm(b.km, approx)} away</div>}
+            </div>
+            <div className="chev">›</div>
+          </button>
+        ))}
       </div>
     </div>
   );
@@ -581,6 +686,9 @@ function BillRow({ bill: b, rate }: { bill: MyBill; rate: number }) {
           <h4 style={{ margin: '6px 0 2px' }}>
             {b.shop_name} · {rupees(b.approved_amount ?? b.amount)}
           </h4>
+          {b.branch_name && (
+            <div className="meta">{[b.branch_name, b.branch_area].filter(Boolean).join(' · ')}</div>
+          )}
           <div className="meta">
             Bill {b.bill_number} · {formatDate(b.bill_date)}
             {b.resubmit_of ? ' · sent again' : ''}
