@@ -62,9 +62,9 @@ export function BirthDateField({
 }
 
 export const SIGNUP_CLOSED =
-  'New accounts are closed right now. If you already have an account, please sign in.';
+  'Create account is closed right now. New customers can continue with Google instead.';
 
-/** The database refuses new accounts while an admin has customer sign-up switched off. */
+/** The database refuses email and password sign-ups while an admin has the Create account form switched off. */
 // eslint-disable-next-line react-refresh/only-export-components
 export function isSignupClosed(message: string) {
   return /sign-up is closed|database error saving new user|signups not allowed/i.test(message);
@@ -162,7 +162,7 @@ export function EmailCodeForm({
       options: { emailRedirectTo: window.location.origin + returnPath },
     });
     setBusy(false);
-    if (error) setError(isSignupClosed(error.message) ? SIGNUP_CLOSED : error.message);
+    if (error) setError(error.message);
     else setSent(true);
   };
 

@@ -186,7 +186,7 @@ export default function Login() {
         ) : (
           <>
             <h3 style={{ marginTop: 0 }}>Sign in</h3>
-            <p className="meta">New accounts are closed right now. If you already have one, sign in below.</p>
+            <p className="meta">New here? Continue with Google below.</p>
           </>
         )}
 

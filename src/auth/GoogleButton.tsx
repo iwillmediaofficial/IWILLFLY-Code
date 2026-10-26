@@ -8,14 +8,12 @@ import {
   supabaseUrl,
 } from '../lib/supabase';
 import { useAuth } from './AuthProvider';
-import { isSignupClosed, SIGNUP_CLOSED } from './forms';
 
 const OFF = 'Google sign-in is not available right now. Please use your email and password instead.';
 
 /** Turns what Supabase or Google sends back into words a customer can act on. */
 function friendly(message: string) {
   const m = message.toLowerCase();
-  if (isSignupClosed(m)) return SIGNUP_CLOSED;
   if (m.includes('provider is not enabled') || m.includes('unsupported provider')) return OFF;
   if (m.includes('access_denied') || m.includes('cancel'))
     return 'Google sign-in was cancelled. Please try again.';

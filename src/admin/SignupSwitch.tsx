@@ -4,7 +4,7 @@ import { db, must } from '../lib/queries';
 import { ErrorNotice } from './ui';
 import { friendlyError, useInvalidate } from './util';
 
-/** Admin switch that opens or closes "Create account" for customers (site_settings.customer_signup). */
+/** Admin switch that shows or hides the "Create account" form on the login page (site_settings.customer_signup). */
 export function SignupSwitch() {
   const toast = useToast();
   const invalidate = useInvalidate();
@@ -22,7 +22,7 @@ export function SignupSwitch() {
       ),
     onSuccess: (_, open) => {
       invalidate(['site_settings']);
-      toast(open ? 'Customers can create accounts again' : 'Create account is switched off');
+      toast(open ? 'Create account form is back on the login page' : 'Create account form is switched off');
     },
     onError: (e) => toast(friendlyError(e)),
   });
@@ -31,7 +31,7 @@ export function SignupSwitch() {
   return (
     <section className="section">
       <div className="section-head">
-        <h2>Customer sign-up</h2>
+        <h2>Create account form</h2>
       </div>
       {settings.error && <ErrorNotice error={settings.error} />}
       <div className="form-card">
@@ -46,8 +46,8 @@ export function SignupSwitch() {
           <span>
             <b>{open ? 'On' : 'Off'}:</b>{' '}
             {open
-              ? 'new customers can create an account on the login page.'
-              : 'the login page hides Create account and no new customer accounts are made, by email or Google. Existing customers still sign in.'}
+              ? 'the login page shows the Create account form.'
+              : 'the login page hides the Create account form. Continue with Google still works, and existing customers still sign in.'}
           </span>
         </label>
         <p className="meta" style={{ margin: 0 }}>

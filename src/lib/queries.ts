@@ -141,7 +141,7 @@ export function useToggleSaved(kind: SaveKind) {
   });
 }
 
-/** Is customer sign-up open (Admin > Dashboard)? Treated as open until known, or if the check fails. */
+/** Is the Create account form switched on (Admin > Dashboard)? Treated as on until known, or if the check fails. */
 export function useSignupOpen() {
   const q = useQuery({
     queryKey: ['site_settings'],

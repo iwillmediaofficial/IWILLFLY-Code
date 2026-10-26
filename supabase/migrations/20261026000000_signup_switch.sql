@@ -1,10 +1,10 @@
--- Admins can close customer sign-up (Admin > Dashboard > Customer sign-up).
--- While it is closed:
---   * the login page hides "Create account";
---   * new accounts are refused here too, so an email code for a new address or a first Google sign-in
---     does not make one either. People who already have an account sign in as before.
--- Still allowed while closed: shop owners registering at /vendor/signup (their sign-up carries
--- signup = 'vendor'), and accounts the Worker makes for admins (vendor owners, branch logins).
+-- Admins can switch off the Create account form (Admin > Dashboard > Create account form).
+-- While it is off:
+--   * the login page hides the Create account form;
+--   * new email + password accounts are refused here too, so the form cannot be used around the page.
+-- Still allowed while off: Continue with Google, email login codes, shop owners registering at
+-- /vendor/signup (their sign-up carries signup = 'vendor'), and accounts the Worker makes for admins
+-- (vendor owners, branch logins). People who already have an account sign in as before.
 
 create table if not exists public.site_settings (
   id int primary key default 1 check (id = 1),
@@ -33,6 +33,8 @@ set search_path = ''
 as $$
 begin
   if coalesce((select customer_signup from public.site_settings where id = 1), true)
+     -- Google and email-code sign-ups have no password; only the Create account form sets one.
+     or coalesce(new.encrypted_password, '') = ''
      or new.raw_user_meta_data ->> 'signup' = 'vendor'
      or new.raw_app_meta_data ->> 'created_by' = 'admin'
      or new.raw_app_meta_data ? 'branch_login' then
