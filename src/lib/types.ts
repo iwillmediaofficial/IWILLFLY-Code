@@ -877,6 +877,10 @@ export interface MyBill {
   can_resubmit: boolean;
   created_at: string;
   decided_at: string | null;
+  /** null on bills added before branches were asked */
+  branch_id: number | null;
+  branch_name: string | null;
+  branch_area: string | null;
 }
 
 /** my_points_history() */
@@ -900,6 +904,18 @@ export interface PointsShop {
   name: string;
   logo_key: string | null;
   area: string | null;
+  /** live branches; more than one means the customer picks the branch */
+  branch_count: number;
+}
+
+/** points_shop_branches() */
+export interface PointsShopBranch {
+  id: number;
+  name: string;
+  area: string | null;
+  address: string | null;
+  lat: number | null;
+  lng: number | null;
 }
 
 /** admin_bills() */
@@ -930,6 +946,9 @@ export interface AdminBill {
   same_shop_week: number;
   customer_bills: number;
   customer_rejected: number;
+  branch_id: number | null;
+  branch_name: string | null;
+  branch_area: string | null;
 }
 
 export type RedemptionStatus = 'requested' | 'paid' | 'rejected';
