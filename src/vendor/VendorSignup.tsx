@@ -5,6 +5,7 @@ import { EmailField, normalisePhone, PasswordInput } from '../auth/forms';
 import { GoogleButton } from '../auth/GoogleButton';
 import { AppShell, LogoHeader } from '../components/AppShell';
 import { LegalLinks } from '../components/LegalLinks';
+import { useSignupOpen } from '../lib/queries';
 import { supabase } from '../lib/supabase';
 import { VendorOnboarding } from './onboarding/VendorOnboarding';
 
@@ -15,6 +16,7 @@ import { VendorOnboarding } from './onboarding/VendorOnboarding';
 export default function VendorSignup() {
   const { session, roles, loading, signOut } = useAuth();
   const navigate = useNavigate();
+  const signupOpen = useSignupOpen();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [mobile, setMobile] = useState('');
@@ -74,6 +76,8 @@ export default function VendorSignup() {
         data: {
           full_name: fullName,
           phone: ownerMobile,
+          // Lets shop owners register even while customer sign-up is closed.
+          signup: 'vendor',
         },
         emailRedirectTo: window.location.origin + '/vendor/login',
       },
@@ -115,12 +119,15 @@ export default function VendorSignup() {
         </p>
         <span className="hero-pill">For shop owners</span>
       </section>
-      <section className="section form-card">
-        <GoogleButton returnPath="/vendor/signup" label="Register with Google" />
-        <p className="meta" style={{ margin: '10px 0 0', textAlign: 'center' }}>
-          or fill in the form below
-        </p>
-      </section>
+      {/* A first Google sign-in makes a plain account, which is refused while customer sign-up is closed. */}
+      {signupOpen && (
+        <section className="section form-card">
+          <GoogleButton returnPath="/vendor/signup" label="Register with Google" />
+          <p className="meta" style={{ margin: '10px 0 0', textAlign: 'center' }}>
+            or fill in the form below
+          </p>
+        </section>
+      )}
       <form className="section form-card" onSubmit={submit} noValidate>
         <h3 style={{ marginTop: 0 }}>About you</h3>
         <div className="field">

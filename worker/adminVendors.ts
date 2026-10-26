@@ -70,6 +70,8 @@ export async function handleCreateVendor(request: Request, env: Env): Promise<Re
       password,
       email_confirm: true,
       user_metadata: { full_name: fullName, phone },
+      // Lets admins add vendors even while customer sign-up is closed.
+      app_metadata: { created_by: 'admin' },
     }),
   });
   if (!created.ok) {

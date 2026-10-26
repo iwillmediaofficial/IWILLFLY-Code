@@ -140,3 +140,17 @@ export function useToggleSaved(kind: SaveKind) {
     onSettled: () => qc.invalidateQueries({ queryKey: ['saved', kind] }),
   });
 }
+
+/** Is customer sign-up open (Admin > Dashboard)? Treated as open until known, or if the check fails. */
+export function useSignupOpen() {
+  const q = useQuery({
+    queryKey: ['site_settings'],
+    queryFn: async () =>
+      must<{ customer_signup: boolean } | null>(
+        await db().from('site_settings').select('customer_signup').eq('id', 1).maybeSingle(),
+      ),
+    staleTime: 60_000,
+    enabled: Boolean(supabase),
+  });
+  return q.data?.customer_signup !== false;
+}

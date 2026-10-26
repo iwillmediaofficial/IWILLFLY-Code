@@ -61,6 +61,15 @@ export function BirthDateField({
   );
 }
 
+export const SIGNUP_CLOSED =
+  'New accounts are closed right now. If you already have an account, please sign in.';
+
+/** The database refuses new accounts while an admin has customer sign-up switched off. */
+// eslint-disable-next-line react-refresh/only-export-components
+export function isSignupClosed(message: string) {
+  return /sign-up is closed|database error saving new user|signups not allowed/i.test(message);
+}
+
 /** Friendlier text for the errors signInWithPassword returns most often. */
 // eslint-disable-next-line react-refresh/only-export-components
 export function passwordSignInError(message: string) {
@@ -153,7 +162,7 @@ export function EmailCodeForm({
       options: { emailRedirectTo: window.location.origin + returnPath },
     });
     setBusy(false);
-    if (error) setError(error.message);
+    if (error) setError(isSignupClosed(error.message) ? SIGNUP_CLOSED : error.message);
     else setSent(true);
   };
 
