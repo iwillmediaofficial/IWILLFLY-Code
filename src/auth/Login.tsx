@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AppShell, LogoHeader } from '../components/AppShell';
 import { AreaPicker } from '../components/AreaPicker';
 import { LegalLinks } from '../components/LegalLinks';
+import { useSignupOpen } from '../lib/queries';
 import { supabase } from '../lib/supabase';
 import { homeFor, useAuth } from './AuthProvider';
 import { GoogleButton } from './GoogleButton';
@@ -11,9 +12,11 @@ import {
   birthDateError,
   EmailCodeForm,
   EmailField,
+  isSignupClosed,
   normalisePhone,
   PasswordInput,
   passwordSignInError,
+  SIGNUP_CLOSED,
 } from './forms';
 
 type Mode = 'signin' | 'signup' | 'code';
@@ -57,6 +60,7 @@ export default function Login() {
   const { session, roles, loading } = useAuth();
   const navigate = useNavigate();
   const from = useReturnPath();
+  const signupOpen = useSignupOpen();
   const [mode, setMode] = useState<Mode>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -75,6 +79,9 @@ export default function Login() {
       navigate(from ?? homeFor(roles), { replace: true });
     }
   }, [loading, session, roles, from, navigate]);
+
+  // Sign in instead if an admin closed sign-up while the form was open.
+  const view: Mode = mode === 'signup' && !signupOpen ? 'signin' : mode;
 
   if (!supabase) {
     return (
@@ -130,7 +137,11 @@ export default function Login() {
       },
     });
     setBusy(false);
-    if (error) return setError(error.message);
+    if (error) {
+      if (!isSignupClosed(error.message)) return setError(error.message);
+      setMode('signin');
+      return setError(SIGNUP_CLOSED);
+    }
     // With email confirmation on, an existing address comes back as a user with no identities.
     if (data.user && data.user.identities?.length === 0) {
       setMode('signin');
@@ -151,30 +162,37 @@ export default function Login() {
         <p>Sign in to save offers, play the daily Scratch & Win and claim your prizes.</p>
       </section>
       <section className="section form-card">
-        <div className="tabs" role="tablist">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mode !== 'signup'}
-            className={mode !== 'signup' ? 'active' : ''}
-            onClick={() => switchMode('signin')}
-          >
-            Sign in
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mode === 'signup'}
-            className={mode === 'signup' ? 'active' : ''}
-            onClick={() => switchMode('signup')}
-          >
-            Create account
-          </button>
-        </div>
+        {signupOpen ? (
+          <div className="tabs" role="tablist">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={view !== 'signup'}
+              className={view !== 'signup' ? 'active' : ''}
+              onClick={() => switchMode('signin')}
+            >
+              Sign in
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={view === 'signup'}
+              className={view === 'signup' ? 'active' : ''}
+              onClick={() => switchMode('signup')}
+            >
+              Create account
+            </button>
+          </div>
+        ) : (
+          <>
+            <h3 style={{ marginTop: 0 }}>Sign in</h3>
+            <p className="meta">New here? Continue with Google below.</p>
+          </>
+        )}
 
         {notice && <p className="notice">{notice}</p>}
 
-        {mode === 'signin' && (
+        {view === 'signin' && (
           <form onSubmit={signIn}>
             <EmailField value={email} onChange={setEmail} />
             <div className="field">
@@ -200,7 +218,7 @@ export default function Login() {
           </form>
         )}
 
-        {mode === 'signup' && (
+        {view === 'signup' && (
           <form onSubmit={signUp}>
             <div className="field">
               <label htmlFor="name">Your name</label>
@@ -258,7 +276,7 @@ export default function Login() {
           </form>
         )}
 
-        {mode === 'code' && (
+        {view === 'code' && (
           <EmailCodeForm
             email={email}
             onEmail={setEmail}

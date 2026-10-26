@@ -61,6 +61,15 @@ export function BirthDateField({
   );
 }
 
+export const SIGNUP_CLOSED =
+  'Create account is closed right now. New customers can continue with Google instead.';
+
+/** The database refuses email and password sign-ups while an admin has the Create account form switched off. */
+// eslint-disable-next-line react-refresh/only-export-components
+export function isSignupClosed(message: string) {
+  return /sign-up is closed|database error saving new user|signups not allowed/i.test(message);
+}
+
 /** Friendlier text for the errors signInWithPassword returns most often. */
 // eslint-disable-next-line react-refresh/only-export-components
 export function passwordSignInError(message: string) {

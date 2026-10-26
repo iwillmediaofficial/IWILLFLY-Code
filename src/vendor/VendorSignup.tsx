@@ -74,6 +74,8 @@ export default function VendorSignup() {
         data: {
           full_name: fullName,
           phone: ownerMobile,
+          // Lets shop owners register even while the customer Create account form is switched off.
+          signup: 'vendor',
         },
         emailRedirectTo: window.location.origin + '/vendor/login',
       },
