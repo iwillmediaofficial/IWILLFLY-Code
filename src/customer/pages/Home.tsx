@@ -14,6 +14,7 @@ import { formatTime, useScratchToday } from '../../lib/scratch';
 import { mediaUrl, supabase } from '../../lib/supabase';
 import { FestivalBanners } from '../FestivalBanner';
 import { OfferTile } from '../OfferTile';
+import { TopPicksSection } from '../TopPicks';
 import { ErrorNotice, Loading, NoBackend, Thumb } from '../ui';
 import {
   pickCampaign,
@@ -65,6 +66,7 @@ export default function Home() {
         </div>
         <CategoryGrid />
       </section>
+      <TopPicksSection />
       <section className="section">
         <div className="section-head">
           <h2>Offers near you</h2>

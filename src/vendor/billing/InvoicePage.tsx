@@ -25,7 +25,10 @@ const methodLabel: Record<string, string> = {
 
 export default function InvoicePage() {
   const id = Number(useParams().id);
-  const { isOwner } = useVendorRole();
+  const { isOwner, role } = useVendorRole();
+  // Branch managers see and pay the Top Picks invoices they made themselves (RLS shows them no others).
+  const back = isOwner ? '/vendor/billing' : '/vendor/top-picks';
+  const backLabel = isOwner ? 'Plan & billing' : 'Top Picks';
   const { data, isPending, error } = useInvoice(id);
   const settings = useBillingSettings();
   // "Sent the wrong details?" opens the ways to pay again while a payment is being checked. It is tied to
@@ -33,7 +36,7 @@ export default function InvoicePage() {
   const sentAt = data?.invoice?.submitted_at ?? '';
   const [changingAt, setChangingAt] = useState<string | null>(null);
   const changing = changingAt === sentAt;
-  if (!isOwner)
+  if (role === 'staff')
     return (
       <>
         <PageHead title="Invoice" action={<Link to="/vendor/billing">Plan & billing</Link>} />
@@ -42,14 +45,14 @@ export default function InvoicePage() {
     );
   if (isPending) return <Loading />;
   if (error) return <ErrorNote error={error} />;
-  if (!data.invoice) return <NotFound what="Invoice" back="/vendor/billing" />;
+  if (!data.invoice) return <NotFound what="Invoice" back={back} />;
   const inv = data.invoice;
   const open = inv.status === 'unpaid' || (inv.status === 'submitted' && changing);
 
   return (
     <>
       <div className="no-print">
-        <PageHead title="Invoice" action={<Link to="/vendor/billing">Plan & billing</Link>} />
+        <PageHead title="Invoice" action={<Link to={back}>{backLabel}</Link>} />
       </div>
       {inv.status === 'submitted' && (
         <PendingCard
