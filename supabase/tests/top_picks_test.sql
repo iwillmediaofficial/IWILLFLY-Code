@@ -349,6 +349,10 @@ select pg_temp.check((select status from public.top_picks where offer_id = (sele
 -- Free days from the admin --------------------------------------------------------------------------------
 select pg_temp.act_as('00000000-0000-0000-0000-0000000000a1');
 set local role authenticated;
+update public.offers set ends_on = private.today_ist() + 3 where id = (select v from ids where k = 'o3');
+select pg_temp.check(pg_temp.err($$select public.admin_give_top_pick((select v from ids where k = 'o3'), (select v from ids where k = 'ekm'), 5, null)$$)
+  like 'The offer ends on%', 'free days cannot run past the offer end date');
+update public.offers set ends_on = null where id = (select v from ids where k = 'o3');
 select public.admin_give_top_pick((select v from ids where k = 'o3'), (select v from ids where k = 'ekm'), 5, 'Sorry about that');
 reset role;
 select pg_temp.check((select status = 'waiting' and waiting_days = 5 from public.top_picks
