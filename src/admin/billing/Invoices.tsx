@@ -216,18 +216,26 @@ function PaymentPanel({ invoice: inv }: { invoice: InvoiceWithItems }) {
   const [ref, setRef] = useState(inv.payer_ref ?? '');
   const [paidOn, setPaidOn] = useState(todayIST());
   const [error, setError] = useState('');
+  // Asked on the page itself: some browsers block or auto-dismiss window.confirm, which left the button doing nothing.
+  const [confirming, setConfirming] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [reason, setReason] = useState('');
 
   const pay = useMutation({
     mutationFn: () => markPaid(inv.id, method, ref.trim().slice(0, 60) || null, paidOn || null),
     onSuccess: () => {
+      setConfirming(false);
       invalidate(...BILL_KEYS);
       toast('Marked paid. What they bought is now switched on.');
     },
-    onError: (e) => setError(billError(e)),
+    onError: (e) => {
+      setConfirming(false);
+      setError(billError(e));
+    },
   });
 
   const cancel = useMutation({
-    mutationFn: (reason: string) => voidInvoice(inv.id, reason),
+    mutationFn: (why: string) => voidInvoice(inv.id, why),
     onSuccess: () => {
       invalidate(...BILL_KEYS);
       toast('Invoice cancelled. The vendor has been told.');
@@ -240,24 +248,16 @@ function PaymentPanel({ invoice: inv }: { invoice: InvoiceWithItems }) {
     setError('');
     if (method === 'upi' && !ref.trim() && !inv.payer_proof_key)
       return setError('Enter the UPI transaction ID you checked in your UPI app.');
-    if (
-      window.confirm(
-        `Mark ${inv.number} as paid (${money(inv.total)})?\n\nOnly do this after you have seen the money in ` +
-          'your UPI or bank app. The plan and add-ons switch on straight away.',
-      )
-    )
-      pay.mutate();
+    setCancelling(false);
+    if (confirming) pay.mutate();
+    else setConfirming(true);
   };
 
   const voidIt = () => {
-    let reason = window.prompt(
-      `Cancel ${inv.number}? The vendor is told and cannot pay it any more.\n\nReason (the vendor sees this):`,
-      '',
-    );
-    while (reason !== null && !reason.trim()) {
-      reason = window.prompt('A reason is required so the vendor understands.', '');
-    }
-    if (reason === null) return;
+    setError('');
+    setConfirming(false);
+    if (!cancelling) return setCancelling(true);
+    if (!reason.trim()) return setError('Give a reason so the vendor understands.');
     cancel.mutate(reason.trim().slice(0, 300));
   };
 
@@ -318,10 +318,40 @@ function PaymentPanel({ invoice: inv }: { invoice: InvoiceWithItems }) {
         />
       </div>
       {error && <p className="error-text">{error}</p>}
+      {cancelling && (
+        <div className="field">
+          <label htmlFor="void-reason">
+            Why cancel {inv.number}? The vendor sees this and can't pay it any more.
+          </label>
+          <input
+            id="void-reason"
+            value={reason}
+            maxLength={300}
+            onChange={(e) => setReason(e.target.value)}
+          />
+          <button className="btn small secondary" type="button" onClick={() => setCancelling(false)}>
+            Keep invoice
+          </button>
+        </div>
+      )}
+      {confirming && (
+        <div className="notice warn">
+          <b>
+            Mark {inv.number} as paid ({money(inv.total)})?
+          </b>{' '}
+          Only do this after you have seen the money in your UPI or bank app. What they bought switches on
+          straight away.
+        </div>
+      )}
       <div className="btn-row">
         <button className="btn" type="submit" disabled={pay.isPending}>
-          {pay.isPending ? 'Saving…' : 'Mark paid'}
+          {pay.isPending ? 'Saving…' : confirming ? 'Yes, mark paid' : 'Mark paid'}
         </button>
+        {confirming && !pay.isPending && (
+          <button className="btn secondary" type="button" onClick={() => setConfirming(false)}>
+            Back
+          </button>
+        )}
         <button
           className="btn danger"
           type="button"
@@ -329,7 +359,7 @@ function PaymentPanel({ invoice: inv }: { invoice: InvoiceWithItems }) {
           disabled={cancel.isPending}
           onClick={voidIt}
         >
-          Cancel invoice
+          {cancel.isPending ? 'Cancelling…' : cancelling ? 'Yes, cancel invoice' : 'Cancel invoice'}
         </button>
       </div>
     </form>
