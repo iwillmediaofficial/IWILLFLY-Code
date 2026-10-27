@@ -61,7 +61,7 @@ export function TopPicksSection() {
         <h2>Top Picks</h2>
         <span className="meta">in {data[0].district_name}</span>
       </div>
-      <div className="offer-row">
+      <div className="offer-row three">
         {data.map((o, i) => (
           <OfferTile
             key={o.top_pick_id}

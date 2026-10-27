@@ -330,7 +330,7 @@ function NearOffers() {
     );
   }
   return (
-    <div className="offer-row">
+    <div className="offer-row three">
       {data.map((o, i) => (
         <OfferTile
           key={o.offer_id}
