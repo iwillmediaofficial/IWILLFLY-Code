@@ -15,6 +15,7 @@ import VendorFestivals from './engagement/Festivals';
 import VendorInsights from './engagement/Insights';
 import VendorPromote from './engagement/Promote';
 import VendorBilling from './billing/Billing';
+import VendorTopPicks from './topPicks/TopPicks';
 import VendorTeam from './team/Team';
 import VendorHelp from './support/VendorHelp';
 import type { MyVendor, VendorRole } from '../lib/types';
@@ -31,6 +32,8 @@ type Tab = {
   staffToo?: boolean;
   branch?: 'manager' | 'all';
   branchOnly?: boolean;
+  /** Outside a branch, only the owner gets it. */
+  ownerOnly?: boolean;
 };
 
 const tabs: Tab[] = [
@@ -41,6 +44,7 @@ const tabs: Tab[] = [
   { to: '/vendor/scratch', label: 'Scratch & Win', icon: '🎟️', staffToo: true, branch: 'all' },
   { to: '/vendor/insights', label: 'Insights', icon: '📈', staffToo: true },
   { to: '/vendor/festivals', label: 'Festivals', icon: '🪔' },
+  { to: '/vendor/top-picks', label: 'Top Picks', icon: '⭐', branch: 'manager', ownerOnly: true },
   { to: '/vendor/promote', label: 'Promote', icon: '📣' },
   { to: '/vendor/billing', label: 'Plan & billing', icon: '💳', staffToo: true },
   { to: '/vendor/team', label: 'Team', icon: '👥', staffToo: true, branch: 'all' },
@@ -56,13 +60,15 @@ function tabsFor(v: MyVendor): Tab[] {
       .map((t) => (t.branchOnly ? { ...t, to: `/vendor/branches/${v.my_branch_id}` } : t));
   }
   const canEdit = v.my_role !== 'staff';
-  return tabs.filter((t) => !t.branchOnly && (t.staffToo || canEdit));
+  return tabs.filter(
+    (t) => !t.branchOnly && (t.staffToo || canEdit) && (!t.ownerOnly || v.my_role === 'owner'),
+  );
 }
 
 /** How the side menu groups the tabs above. */
 const GROUPS: { label: string; items: string[] }[] = [
   { label: 'My shop', items: ['Dashboard', 'My branch', 'My shop', 'Offers'] },
-  { label: 'Grow sales', items: ['Scratch & Win', 'Insights', 'Festivals', 'Promote'] },
+  { label: 'Grow sales', items: ['Scratch & Win', 'Top Picks', 'Insights', 'Festivals', 'Promote'] },
   { label: 'Account', items: ['Plan & billing', 'Team', 'Help'] },
 ];
 
@@ -238,6 +244,7 @@ function VendorLayout({ vendor }: { vendor: MyVendor }) {
             <Route path="scratch/*" element={<VendorScratch />} />
             <Route path="insights" element={<VendorInsights />} />
             <Route path="festivals" element={<VendorFestivals />} />
+            <Route path="top-picks" element={<VendorTopPicks />} />
             <Route path="promote" element={<VendorPromote />} />
             <Route path="billing/*" element={<VendorBilling />} />
             <Route path="team" element={<VendorTeam />} />

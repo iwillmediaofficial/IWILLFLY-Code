@@ -157,7 +157,8 @@ function AddonForm({ addon, nextSort, onDone }: { addon?: Addon; nextSort: numbe
           disabled={addon != null}
           onChange={(e) => set({ kind: e.target.value as AddonKind })}
         >
-          {KINDS.map((k) => (
+          {/* Promoted offer was replaced by Top Picks: old ones can still be edited, no new ones. */}
+          {KINDS.filter((k) => k !== 'promoted_offer' || addon?.kind === k).map((k) => (
             <option key={k} value={k}>
               {ADDON_LABEL[k]}
             </option>

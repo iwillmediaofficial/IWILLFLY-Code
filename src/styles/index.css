@@ -1115,6 +1115,44 @@
   .offer-row::-webkit-scrollbar {
     display: none;
   }
+  /* Home rows show exactly three whole cards; the rest still swipe in. */
+  .offer-row.three {
+    gap: 10px;
+  }
+  .offer-row.three .offer-card {
+    min-width: 0;
+    flex: 0 0 calc((100% - 20px) / 3);
+    border-radius: 14px;
+    box-shadow: 0 6px 16px rgba(33, 61, 114, 0.07);
+  }
+  .offer-row.three .offer-body {
+    padding: 8px;
+  }
+  .offer-row.three .offer-body h4 {
+    font-size: 12.5px;
+    line-height: 1.25;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .offer-row.three .meta {
+    font-size: 10.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .offer-row.three .offer-cta {
+    margin-top: 6px;
+  }
+  .offer-row.three .offer-cta strong {
+    font-size: 11px;
+  }
+  .offer-row.three .badge {
+    font-size: 10px;
+    padding: 4px 6px;
+    border-radius: 8px;
+  }
   .offer-card {
     min-width: 190px;
     border: 1px solid var(--color-line);
@@ -3488,5 +3526,78 @@
   .district-open.closed {
     background: #fff0f1;
     color: var(--color-red);
+  }
+}
+
+/* Top Picks: the sponsored row on Home and the vendor's Top Picks page. */
+@layer components {
+  .top-picks-head h2 {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .offer-card .sponsored {
+    display: inline-block;
+    margin-bottom: 4px;
+    padding: 1px 6px;
+    border-radius: 6px;
+    background: #fff6d6;
+    color: #8a6100;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+  }
+  .offer-row.three .offer-card .sponsored {
+    font-size: 9px;
+    padding: 1px 5px;
+  }
+  .tp-thumb {
+    flex: none;
+    width: 52px;
+    height: 65px;
+    border-radius: 10px;
+    overflow: hidden;
+    display: grid;
+    place-items: center;
+    font-size: 24px;
+    background: #eff4ff;
+  }
+  .tp-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .tp-choices {
+    display: grid;
+    gap: 8px;
+  }
+  .tp-choice {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 10px 12px;
+    border: 1px solid var(--color-line);
+    border-radius: 12px;
+    background: #fff;
+    cursor: pointer;
+  }
+  .tp-choice.on {
+    border-color: var(--color-blue);
+    background: #f4f8ff;
+  }
+  .tp-choice input {
+    width: 18px;
+    height: 18px;
+    margin-top: 2px;
+    flex: none;
+    accent-color: var(--color-blue);
+  }
+  .tp-choice span {
+    display: grid;
+    gap: 2px;
+  }
+  .tp-choice small {
+    color: var(--color-muted);
+    font-size: 12px;
   }
 }

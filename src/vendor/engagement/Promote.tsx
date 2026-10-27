@@ -162,9 +162,9 @@ function RequestForm({
     <form className="form-card" onSubmit={submit} noValidate>
       <div className="notice">
         Requests are free and reviewed by the IWILLFLY team. You get an alert when we decide. For a guaranteed
-        spot, buy a featured shop or promoted offer add-on in{' '}
-        <Link to="/vendor/billing" style={{ color: 'var(--color-blue)', fontWeight: 800 }}>
-          Plan & billing
+        spot on Home, make your offer a{' '}
+        <Link to="/vendor/top-picks" style={{ color: 'var(--color-blue)', fontWeight: 800 }}>
+          Top Pick
         </Link>
         .
       </div>

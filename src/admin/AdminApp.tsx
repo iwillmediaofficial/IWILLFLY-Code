@@ -12,6 +12,7 @@ import { SignupSwitch } from './SignupSwitch';
 import ScratchAdmin from './scratch/ScratchAdmin';
 import PointsAdmin from './points/PointsAdmin';
 import AdminAds from './engagement/Ads';
+import AdminTopPicks from './TopPicks';
 import AdminAnalytics from './engagement/Analytics';
 import AdminFestivals from './engagement/Festivals';
 import AdminNotify from './engagement/Notify';
@@ -42,6 +43,7 @@ const tabs: Tab[] = [
   { to: '/admin/scratch', label: 'Scratch & Win', icon: '🎟️', roles: CAMPAIGN },
   { to: '/admin/festivals', label: 'Festivals', icon: '🪔', roles: CAMPAIGN },
   { to: '/admin/ads', label: 'Home ads', icon: '🖼️', roles: CAMPAIGN },
+  { to: '/admin/top-picks', label: 'Top Picks', icon: '🌟', roles: ADMIN },
   { to: '/admin/requests', label: 'Requests', icon: '📥', roles: CAMPAIGN },
   { to: '/admin/notify', label: 'Notify', icon: '🔔', roles: CAMPAIGN },
   { to: '/admin/analytics', label: 'Analytics', icon: '📈', roles: CAMPAIGN },
@@ -60,7 +62,10 @@ const tabs: Tab[] = [
 const GROUPS: { label: string; items: string[] }[] = [
   { label: 'Overview', items: ['Dashboard', 'Analytics', 'Reports'] },
   { label: 'Marketplace', items: ['Vendors', 'New branches', 'Offers', 'Categories', 'Malls', 'Locations'] },
-  { label: 'Engagement', items: ['Scratch & Win', 'Festivals', 'Home ads', 'Requests', 'Notify'] },
+  {
+    label: 'Engagement',
+    items: ['Scratch & Win', 'Festivals', 'Home ads', 'Top Picks', 'Requests', 'Notify'],
+  },
   { label: 'Money', items: ['Points', 'Billing'] },
   { label: 'Team', items: ['Support', 'Team', 'Audit log'] },
 ];
@@ -186,6 +191,7 @@ function AdminPage({ visible }: { visible: Tab[] }) {
         <Route path="scratch/*" element={<ScratchAdmin />} />
         <Route path="festivals/*" element={<AdminFestivals />} />
         <Route path="ads/*" element={<AdminAds />} />
+        <Route path="top-picks" element={<AdminTopPicks />} />
         <Route path="requests" element={<AdminRequests />} />
         <Route path="notify" element={<AdminNotify />} />
         <Route path="analytics" element={<AdminAnalytics />} />

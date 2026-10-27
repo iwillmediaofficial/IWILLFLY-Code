@@ -41,7 +41,7 @@ export const ADDON_LABEL: Record<AddonKind, string> = {
 
 export const ADDON_HELP: Record<AddonKind, string> = {
   featured_shop: 'The shop ranks with featured shops while it runs.',
-  promoted_offer: 'The offer is featured while it runs.',
+  promoted_offer: 'Replaced by Top Picks (Admin > Top Picks). Running ones stay until they end.',
   banner_ad: 'You create the banner by hand in Home ads after payment.',
 };
 

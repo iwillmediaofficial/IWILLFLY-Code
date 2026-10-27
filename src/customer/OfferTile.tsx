@@ -14,6 +14,8 @@ export function OfferTile({
   tone,
   title,
   meta,
+  sponsored,
+  onOpen,
 }: {
   shopId: number;
   offerId: number;
@@ -25,10 +27,14 @@ export function OfferTile({
   tone: string;
   title: string;
   meta: string;
+  /** Paid placement (Top Picks): shows a small "Sponsored" tag. */
+  sponsored?: boolean;
+  onOpen?: () => void;
 }) {
   const navigate = useNavigate();
   const open = () => {
     track('click', shopId, offerId);
+    onOpen?.();
     navigate(`${shopPath ?? `/shop/${shopId}`}?offer=${offerId}`);
   };
   return (
@@ -41,6 +47,7 @@ export function OfferTile({
     >
       <OfferImage imageKey={imageKey} icon={icon} badge={badge} tone={tone} />
       <div className="offer-body">
+        {sponsored && <span className="sponsored">Sponsored</span>}
         <h4>{title}</h4>
         <div className="meta">{meta}</div>
         <div className="offer-cta">
