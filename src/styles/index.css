@@ -1354,6 +1354,10 @@
     font-style: normal;
     font-size: 18px;
   }
+  .nav-item svg {
+    width: 22px;
+    height: 22px;
+  }
   .nav-item.active {
     color: var(--color-blue);
   }
