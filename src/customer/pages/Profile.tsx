@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { AppShell, LogoHeader } from '../../components/AppShell';
+import { ModeSwitch } from '../../components/ModeSwitch';
 import { ADMIN_ROLES, useAuth } from '../../auth/AuthProvider';
 import { usePlace } from '../../lib/location';
 import { useMyProfile } from '../../lib/profile';
@@ -32,7 +33,11 @@ export default function Profile() {
               ⚙
             </Link>
           }
-        />
+        >
+          <div className="mode-row">
+            <ModeSwitch mode="customer" />
+          </div>
+        </LogoHeader>
       }
     >
       <section className="hero">
@@ -84,9 +89,6 @@ export default function Profile() {
       </section>
       <section className="section">
         <div className="list">
-          {roles.includes('vendor') && (
-            <ProfileRow to="/vendor" icon="🏪" title="Vendor dashboard" meta="Manage your shops and offers" />
-          )}
           {roles.some((r) => ADMIN_ROLES.includes(r)) && (
             <ProfileRow to="/admin" icon="🛡️" title="Admin dashboard" meta="Vendors, offers and campaigns" />
           )}
