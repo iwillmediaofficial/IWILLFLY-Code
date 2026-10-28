@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, matchPath, Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom';
 import { BackHeader, NotificationBell } from '../components/AppShell';
+import { ModeSwitch } from '../components/ModeSwitch';
 import { useMyOffers, useMyVendorRow } from './api';
 import { VendorOnboarding } from './onboarding/VendorOnboarding';
 import { VendorContext } from './context';
@@ -169,10 +170,8 @@ function VendorLayout({ vendor }: { vendor: MyVendor }) {
             </div>
           </div>
         </div>
+        <ModeSwitch mode="vendor" />
         <SideNav visible={visible} showCounts={canEdit} />
-        <Link to="/" className="vendor-side-back">
-          ‹ Back to IWILLFLY
-        </Link>
       </aside>
       <div className="vendor-main">
         <header className="topbar vendor-topbar-mobile">
@@ -194,6 +193,9 @@ function VendorLayout({ vendor }: { vendor: MyVendor }) {
               <div style={{ fontSize: 12, opacity: 0.85 }}>{current.label}</div>
             </div>
             <NotificationBell />
+          </div>
+          <div className="mode-row">
+            <ModeSwitch mode="vendor" />
           </div>
         </header>
         <div className="vendor-topbar">
