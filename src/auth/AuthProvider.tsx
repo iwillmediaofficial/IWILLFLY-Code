@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
+import { savedMode } from '../lib/mode';
 import { supabase } from '../lib/supabase';
 
 export type AppRole = 'customer' | 'vendor' | 'admin' | 'super_admin' | 'support' | 'campaign_manager';
@@ -181,6 +182,7 @@ export const ADMIN_ROLES: AppRole[] = ['admin', 'super_admin', 'support', 'campa
 // eslint-disable-next-line react-refresh/only-export-components
 export function homeFor(roles: AppRole[]) {
   if (roles.some((r) => ADMIN_ROLES.includes(r))) return '/admin';
-  if (roles.includes('vendor')) return '/vendor';
+  // Vendors land where the Vendor | Customer switch last left them, the dashboard by default.
+  if (roles.includes('vendor')) return savedMode() === 'customer' ? '/' : '/vendor';
   return '/';
 }

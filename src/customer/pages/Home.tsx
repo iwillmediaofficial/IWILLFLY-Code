@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AppShell, LogoHeader, NotificationBell } from '../../components/AppShell';
+import { ModeSwitch } from '../../components/ModeSwitch';
+import { useAuth } from '../../auth/AuthProvider';
+import { savedMode } from '../../lib/mode';
 import { AdSlider } from '../../components/AdSlider';
 import { CategoryIcon } from '../../components/CategoryIcon';
 import { LegalLinks } from '../../components/LegalLinks';
@@ -29,6 +32,21 @@ export default function Home() {
   const today = useScratchToday();
   const card = useScratchCard(pickCampaign(today.data), today.isLoading);
   const navigate = useNavigate();
+  const { roles, loading } = useAuth();
+
+  // Opening the app: a vendor who last switched to Vendor goes straight back to their dashboard. Only once
+  // per visit, so tapping Home later still shows Home.
+  useEffect(() => {
+    if (loading) return;
+    try {
+      if (sessionStorage.getItem('iwillfly.opened')) return;
+      sessionStorage.setItem('iwillfly.opened', '1');
+    } catch {
+      return;
+    }
+    if (roles.includes('vendor') && savedMode() === 'vendor') navigate('/vendor', { replace: true });
+  }, [loading, roles, navigate]);
+
   return (
     <AppShell
       header={
@@ -40,6 +58,9 @@ export default function Home() {
             </>
           }
         >
+          <div className="mode-row">
+            <ModeSwitch mode="customer" />
+          </div>
           <form
             className="searchbar"
             onSubmit={(e) => {
