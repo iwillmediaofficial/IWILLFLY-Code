@@ -301,7 +301,9 @@ export function PointsTerms() {
         <ul style={{ paddingLeft: 18, margin: 0 }}>
           <li>
             You earn 1 point for every full {rate} on a bill from a shop listed on IWILLFLY, after the
-            IWILLFLY team checks the bill. Each point is worth {value}.
+            IWILLFLY team checks the bill
+            {w?.max_points_per_bill != null && `, up to ${pointsText(w.max_points_per_bill)} per bill`}. Each
+            point is worth {value}.
           </li>
           <li>
             Add a bill within {days} days of its date, with a clear photo. Bills under {rate} do not earn

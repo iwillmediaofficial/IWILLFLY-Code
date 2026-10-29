@@ -9,6 +9,7 @@ import { UploadProgressBar } from '../../components/UploadProgressBar';
 import {
   REJECT_REASONS,
   addDays,
+  billPoints,
   isPhoto,
   pointsText,
   rupees,
@@ -188,7 +189,9 @@ function WalletView({ w }: { w: PointsWallet }) {
           photo.
           <br />
           <b>3.</b> Once we check it, you get 1 point for every full {rupees(w.rupees_per_point)} (a{' '}
-          {rupees(w.rupees_per_point * 5 + 25)} bill = 5 points). Each point is worth {rupees(w.point_value)}.
+          {rupees(w.rupees_per_point * 5 + 25)} bill = 5 points)
+          {w.max_points_per_bill != null && `, up to ${pointsText(w.max_points_per_bill)} per bill`}. Each
+          point is worth {rupees(w.point_value)}.
           <br />
           <b>4.</b> At {pointsText(goal)} you can cash out to UPI in steps of{' '}
           {w.redeem_step_points.toLocaleString('en-IN')}. Points stay valid for {w.validity_months} months.
@@ -330,7 +333,8 @@ function BillForm({
   const tooSmall = amountOk && amt < w.rupees_per_point;
   const tooOld = billDate !== '' && billDate < oldest;
   const future = billDate > today;
-  const earns = amountOk && !tooSmall ? Math.floor(amt / w.rupees_per_point) : 0;
+  const earns = amountOk ? billPoints(amt, w) : 0;
+  const capped = earns > 0 && earns < Math.floor(amt / w.rupees_per_point);
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -444,6 +448,7 @@ function BillForm({
       {earns > 0 && !tooOld && !future && (
         <div className="notice">
           This bill earns <b>{pointsText(earns)}</b> ({rupees(earns * w.point_value)}) once it is checked.
+          {capped && ` That is the most one bill can earn.`}
         </div>
       )}
 

@@ -33,7 +33,18 @@ export type PointsRules = Pick<
   | 'redeem_step_points'
   | 'validity_months'
   | 'bill_age_days'
+  | 'max_points_per_bill'
 >;
+
+/** Points a bill of this amount earns: 1 for every full earn rate, up to the per-bill cap (if any). */
+export function billPoints(
+  amount: number,
+  rules: Pick<PointsRules, 'rupees_per_point' | 'max_points_per_bill'>,
+) {
+  if (!(amount >= rules.rupees_per_point)) return 0;
+  const pts = Math.floor(amount / rules.rupees_per_point);
+  return rules.max_points_per_bill ? Math.min(pts, rules.max_points_per_bill) : pts;
+}
 
 /** The earn and cash-out rules: from the wallet when signed in, otherwise from points_settings (open to guests). */
 export function usePointsRules(): PointsRules | undefined {
@@ -46,7 +57,7 @@ export function usePointsRules(): PointsRules | undefined {
         await db()
           .from('points_settings')
           .select(
-            'rupees_per_point, point_value, min_redeem_points, redeem_step_points, validity_months, bill_age_days',
+            'rupees_per_point, point_value, min_redeem_points, redeem_step_points, validity_months, bill_age_days, max_points_per_bill',
           )
           .eq('id', 1)
           .single(),
