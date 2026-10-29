@@ -3,6 +3,8 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { LocationNode } from '../lib/types';
 import { MapsLinkBox } from './MapsLinkBox';
+import { MapPinIcon } from 'lucide-react';
+import { Icon } from './Icon';
 
 const KOCHI = { lat: 9.9312, lng: 76.2673 };
 
@@ -93,7 +95,7 @@ export function MapPin({
           )
         }
       >
-        📍 Use my current location
+        <Icon icon={MapPinIcon} /> Use my current location
       </button>
       {lat != null && lng != null && (
         <span className="meta" style={{ marginLeft: 8 }}>

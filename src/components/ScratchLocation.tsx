@@ -7,6 +7,8 @@ import type { LocationNode } from '../lib/types';
 import { Sheet } from '../customer/ui';
 import { errorText } from '../customer/util';
 import { useToast } from './Toast';
+import { Check, MapPin } from 'lucide-react';
+import { Icon } from './Icon';
 
 type Found = { area: LocationNode; km: number } | 'denied' | 'far';
 
@@ -70,7 +72,9 @@ export function AreaLocationPicker({ onSaved }: { onSaved?: (area: LocationNode)
     <div>
       {current && (
         <div className="notice" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <span style={{ fontSize: 18 }}>📍</span>
+          <span style={{ fontSize: 18, color: 'var(--color-blue)' }}>
+            <Icon icon={MapPin} />
+          </span>
           <span>
             Your area: <b>{current.name}</b>
             <span className="meta"> · {locationPath(all, current.parent_id)}</span>
@@ -80,7 +84,9 @@ export function AreaLocationPicker({ onSaved }: { onSaved?: (area: LocationNode)
 
       {found && typeof found === 'object' ? (
         <div className="form-card" style={{ textAlign: 'center', marginBottom: 12 }}>
-          <div style={{ fontSize: 32 }}>📍</div>
+          <div style={{ fontSize: 32, color: 'var(--color-blue)' }}>
+            <Icon icon={MapPin} />
+          </div>
           <div className="meta">Is this your area?</div>
           <h3 style={{ margin: '4px 0 2px' }}>{found.area.name}</h3>
           <div className="meta" style={{ marginBottom: 12 }}>
@@ -90,7 +96,13 @@ export function AreaLocationPicker({ onSaved }: { onSaved?: (area: LocationNode)
               : ''}
           </div>
           <button className="btn block" disabled={save.isPending} onClick={() => commit(found.area, true)}>
-            {save.isPending ? 'Saving…' : `✓ Yes, use ${found.area.name}`}
+            {save.isPending ? (
+              'Saving…'
+            ) : (
+              <>
+                <Icon icon={Check} /> Yes, use {found.area.name}
+              </>
+            )}
           </button>
           <button className="btn secondary block" style={{ marginTop: 8 }} onClick={() => setFound(null)}>
             No, I’ll choose it myself
@@ -99,7 +111,13 @@ export function AreaLocationPicker({ onSaved }: { onSaved?: (area: LocationNode)
       ) : (
         <>
           <button className="btn yellow block" onClick={useGps} disabled={locating || isPending}>
-            {locating ? 'Finding your location…' : '📍 Use my current location'}
+            {locating ? (
+              'Finding your location…'
+            ) : (
+              <>
+                <Icon icon={MapPin} /> Use my current location
+              </>
+            )}
           </button>
           <div className="meta" style={{ textAlign: 'center', marginTop: 6 }}>
             Quickest way. We only use it to find your area.

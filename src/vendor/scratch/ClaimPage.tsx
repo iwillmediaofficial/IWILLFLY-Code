@@ -12,6 +12,8 @@ import { BlockedNote, Lockable, PageHead } from '../ui';
 import { useClaimPrize } from './api';
 import { formatDateTime, parseClaimCode } from './format';
 import QrScanner from './QrScanner';
+import { Camera, Check, Gift } from 'lucide-react';
+import { Icon } from '../../components/Icon';
 
 type Found = Exclude<ClaimLookup, { status: 'not_found' }>;
 
@@ -130,7 +132,7 @@ export default function ClaimPage() {
                   setScanning(true);
                 }}
               >
-                📷 Scan customer's QR code
+                <Icon icon={Camera} /> Scan customer's QR code
               </button>
             )}
             {cameraNote && <div className="notice warn">{cameraNote}</div>}
@@ -217,7 +219,10 @@ function ResultCard({
     <>
       {r.status === 'claimed_now' && (
         <div className="notice" style={{ background: '#e8f8ef' }}>
-          <b>✓ Prize handed over.</b> It is marked as claimed and can't be used again.
+          <b>
+            <Icon icon={Check} /> Prize handed over.
+          </b>{' '}
+          It is marked as claimed and can't be used again.
         </div>
       )}
       {r.status === 'claimed' && (
@@ -253,7 +258,7 @@ function ResultCard({
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
             ) : (
-              '🎁'
+              <Icon icon={Gift} />
             )}
           </div>
           <div style={{ minWidth: 0 }}>

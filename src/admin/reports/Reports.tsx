@@ -5,6 +5,8 @@ import { addDays, todayIST } from '../engagement/api';
 import type { SeriesDef } from '../engagement/Charts';
 import { Empty, ErrorNotice, Loading } from '../ui';
 import { formatDate } from '../util';
+import { Download, MapPin, RefreshCw } from 'lucide-react';
+import { Icon } from '../../components/Icon';
 
 const DailyBarChart = lazy(() => import('../engagement/Charts').then((m) => ({ default: m.DailyBarChart })));
 
@@ -133,7 +135,7 @@ function Table({
         <h2>{title}</h2>
         {rows.length > 0 && (
           <button className="link-btn" onClick={() => downloadCsv(file, head, rows)}>
-            ⤓ CSV
+            <Icon icon={Download} /> CSV
           </button>
         )}
       </div>
@@ -197,7 +199,13 @@ export default function AdminReports() {
       <div className="section-head">
         <h2>Reports</h2>
         <button className="link-btn" disabled={q.isFetching} onClick={() => q.refetch()}>
-          {q.isFetching ? 'Refreshing…' : '↻ Refresh'}
+          {q.isFetching ? (
+            'Refreshing…'
+          ) : (
+            <>
+              <Icon icon={RefreshCw} /> Refresh
+            </>
+          )}
         </button>
       </div>
       <div className="tabs" role="tablist" aria-label="Report">
@@ -325,7 +333,7 @@ function Offers({ data }: { data: Reports }) {
 function Locations({ data }: { data: Reports }) {
   if (data.locations.length === 0) {
     return (
-      <Empty emoji="📍" title="No activity by place yet">
+      <Empty icon={MapPin} title="No activity by place yet">
         Cities show up here once they have shops, customers or views.
       </Empty>
     );

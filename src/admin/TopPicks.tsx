@@ -6,6 +6,7 @@ import { db, must } from '../lib/queries';
 import { money } from './billing/api';
 import { Empty, ErrorNotice, Loading } from './ui';
 import { formatDate, friendlyError, useInvalidate } from './util';
+import { Star } from 'lucide-react';
 
 interface Settings {
   enabled: boolean;
@@ -318,7 +319,7 @@ function PicksList() {
       ) : q.error ? (
         <ErrorNotice error={q.error} />
       ) : districts.length === 0 ? (
-        <Empty emoji="⭐" title="No Top Picks yet">
+        <Empty icon={Star} title="No Top Picks yet">
           They show here as soon as a vendor starts one.
         </Empty>
       ) : (

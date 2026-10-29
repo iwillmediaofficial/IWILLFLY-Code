@@ -22,6 +22,8 @@ import {
   type SubmissionRow,
 } from './api';
 import { StatusPill } from './StatusPill';
+import { Sparkles, Tag } from 'lucide-react';
+import { Icon } from '../../components/Icon';
 
 export default function AdminFestivals() {
   return (
@@ -47,7 +49,7 @@ function FestivalList() {
       {festivals.isPending && <Loading />}
       {festivals.error && <ErrorNotice error={festivals.error} />}
       {festivals.data?.length === 0 && (
-        <Empty emoji="🪔" title="No festivals yet">
+        <Empty icon="🪔" title="No festivals yet">
           Create a festival like “Onam 2026”, switch it on, and vendors can submit their offers to it.
         </Empty>
       )}
@@ -61,7 +63,7 @@ function FestivalList() {
                 className="shop-thumb"
                 style={f.theme_color && !f.banner_key ? { background: f.theme_color } : undefined}
               >
-                {f.banner_key ? <img src={mediaUrl(f.banner_key)} alt="" /> : '🪔'}
+                {f.banner_key ? <img src={mediaUrl(f.banner_key)} alt="" /> : <Icon icon={Sparkles} />}
               </div>
               <div style={{ minWidth: 0 }}>
                 <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 4 }}>
@@ -399,7 +401,7 @@ function Submissions({ festival }: { festival: Festival }) {
       {rows.isPending && <Loading />}
       {rows.error && <ErrorNotice error={rows.error} />}
       {rows.data?.length === 0 && (
-        <Empty emoji="🏷️" title={status === 'pending' ? 'Nothing to review' : 'No offers here'}>
+        <Empty icon={Tag} title={status === 'pending' ? 'Nothing to review' : 'No offers here'}>
           {status === 'pending' ? 'Offers vendors submit to this festival show up here.' : undefined}
         </Empty>
       )}
@@ -439,7 +441,9 @@ function SubmissionCard({ row: r }: { row: SubmissionRow }) {
   return (
     <div className="manage-card">
       <div style={{ display: 'grid', gridTemplateColumns: '64px 1fr', gap: 12 }}>
-        <div className="shop-thumb poster">{cover ? <img src={mediaUrl(cover)} alt="" /> : '🏷️'}</div>
+        <div className="shop-thumb poster">
+          {cover ? <img src={mediaUrl(cover)} alt="" /> : <Icon icon={Tag} />}
+        </div>
         <div style={{ minWidth: 0 }}>
           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 4 }}>
             <span className={`pill-status ${r.status}`}>{r.status}</span>

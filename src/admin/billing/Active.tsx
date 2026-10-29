@@ -18,6 +18,7 @@ import {
   type PurchaseRow,
   type SubscriptionRow,
 } from './api';
+import { Package, Sparkles } from 'lucide-react';
 
 type Table = 'subscriptions' | 'addon_purchases';
 
@@ -63,7 +64,7 @@ export function Active() {
       {subs.isPending && <Loading />}
       {subs.error && <ErrorNotice error={subs.error} />}
       {subs.data?.length === 0 && (
-        <Empty emoji="📦" title={running ? 'No paid plans running' : 'Nothing here'}>
+        <Empty icon={Package} title={running ? 'No paid plans running' : 'Nothing here'}>
           {running ? 'Vendors without a paid plan are on the default plan.' : undefined}
         </Empty>
       )}
@@ -77,7 +78,7 @@ export function Active() {
       {purchases.isPending && <Loading />}
       {purchases.error && <ErrorNotice error={purchases.error} />}
       {purchases.data?.length === 0 && (
-        <Empty emoji="✨" title={running ? 'No add-ons running' : 'Nothing here'} />
+        <Empty icon={Sparkles} title={running ? 'No add-ons running' : 'Nothing here'} />
       )}
       {purchases.data?.map((p) => (
         <PurchaseCard key={p.id} row={p} today={today} canEdit={canEdit} />

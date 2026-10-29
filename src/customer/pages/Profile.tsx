@@ -7,6 +7,20 @@ import { useMyProfile } from '../../lib/profile';
 import { useSavedIds } from '../../lib/queries';
 import { usePointsWallet } from '../../lib/points';
 import { useMyPrizes } from '../../lib/scratch';
+import {
+  Bell,
+  Clock,
+  Gift,
+  Lock,
+  MapPin,
+  MessageCircle,
+  Settings,
+  Shield,
+  Store,
+  Trophy,
+  Wallet,
+} from 'lucide-react';
+import { Icon, type LucideIcon } from '../../components/Icon';
 
 const pad = (n: number | undefined) => (n == null ? '–' : String(n).padStart(2, '0'));
 
@@ -30,7 +44,7 @@ export default function Profile() {
         <LogoHeader
           actions={
             <Link className="icon-btn" to="/settings" aria-label="Settings">
-              ⚙
+              <Icon icon={Settings} size={20} />
             </Link>
           }
         >
@@ -90,25 +104,30 @@ export default function Profile() {
       <section className="section">
         <div className="list">
           {roles.some((r) => ADMIN_ROLES.includes(r)) && (
-            <ProfileRow to="/admin" icon="🛡️" title="Admin dashboard" meta="Vendors, offers and campaigns" />
+            <ProfileRow
+              to="/admin"
+              icon={Shield}
+              title="Admin dashboard"
+              meta="Vendors, offers and campaigns"
+            />
           )}
           {session && !roles.includes('vendor') && (
             <ProfileRow
               to="/vendor/apply"
-              icon="🏪"
+              icon={Store}
               title="Become a vendor"
               meta="List your shop and post offers for free"
             />
           )}
           <ProfileRow
             to="/settings"
-            icon="📍"
+            icon={MapPin}
             title="Location & nearby offers"
             meta={place ? `Showing offers near ${place.label}` : 'Set your area for nearby offers'}
           />
           <ProfileRow
             to="/points"
-            icon="💰"
+            icon={Wallet}
             title="My Points"
             meta={
               wallet.data
@@ -116,17 +135,27 @@ export default function Profile() {
                 : 'Earn 1 point for every ₹50 on your bills'
             }
           />
-          <ProfileRow to="/prizes" icon="🏆" title="My Prizes" meta="Your wins and claim codes" />
-          <ProfileRow to="/scratch" icon="🎁" title="My Scratch & Win history" meta="Daily prize activity" />
-          <ProfileRow to="/history" icon="🕘" title="Recently viewed" meta="Offers you looked at" />
+          <ProfileRow to="/prizes" icon={Trophy} title="My Prizes" meta="Your wins and claim codes" />
+          <ProfileRow
+            to="/scratch"
+            icon={Gift}
+            title="My Scratch & Win history"
+            meta="Daily prize activity"
+          />
+          <ProfileRow to="/history" icon={Clock} title="Recently viewed" meta="Offers you looked at" />
           <ProfileRow
             to="/notifications"
-            icon="🔔"
+            icon={Bell}
             title="Notifications"
             meta="Festival, nearby and saved offers"
           />
-          <ProfileRow to="/help" icon="💬" title="Help & support" meta="Ask the IWILLFLY team a question" />
-          <ProfileRow to="/settings" icon="🔒" title="Privacy & account" meta="Your data and sign out" />
+          <ProfileRow
+            to="/help"
+            icon={MessageCircle}
+            title="Help & support"
+            meta="Ask the IWILLFLY team a question"
+          />
+          <ProfileRow to="/settings" icon={Lock} title="Privacy & account" meta="Your data and sign out" />
           {session && (
             <button className="btn secondary" onClick={signOut}>
               Sign out
@@ -138,10 +167,22 @@ export default function Profile() {
   );
 }
 
-function ProfileRow({ to, icon, title, meta }: { to: string; icon: string; title: string; meta: string }) {
+function ProfileRow({
+  to,
+  icon,
+  title,
+  meta,
+}: {
+  to: string;
+  icon: LucideIcon;
+  title: string;
+  meta: string;
+}) {
   return (
     <Link className="shop-card" to={to}>
-      <div className="shop-thumb">{icon}</div>
+      <div className="shop-thumb">
+        <Icon icon={icon} />
+      </div>
       <div>
         <h4>{title}</h4>
         <div className="meta">{meta}</div>

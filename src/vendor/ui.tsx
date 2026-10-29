@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { Search } from 'lucide-react';
+import { IconBubble } from '../components/Icon';
 import { useVendor } from './context';
 import { errorMessage } from './format';
 
@@ -18,7 +20,7 @@ export function ErrorNote({ error }: { error: unknown }) {
 export function NotFound({ what, back }: { what: string; back: string }) {
   return (
     <div className="saved-empty">
-      <div className="emoji">🔎</div>
+      <IconBubble icon={Search} />
       <h3>{what} not found</h3>
       <p>It may have been deleted, or it belongs to another account.</p>
       <Link className="btn secondary" to={back} style={{ display: 'inline-block', marginTop: 8 }}>

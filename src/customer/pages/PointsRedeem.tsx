@@ -19,6 +19,8 @@ import { formatDay } from '../scratch';
 import { ErrorNotice, Loading, Sheet } from '../ui';
 import { errorText } from '../util';
 import { SubNav } from './Points';
+import { CircleCheck, Landmark } from 'lucide-react';
+import { Icon, IconBubble } from '../../components/Icon';
 
 /** The last day a payout is due (due_at is the end of that day). */
 const dueDay = (iso: string) => formatDay(new Date(new Date(iso).getTime() - 1000).toISOString());
@@ -57,7 +59,11 @@ export function Redeem() {
               <h2>My cash-outs</h2>
             </div>
             {list.data.length === 0 ? (
-              <EmptyState emoji="🏦" title="No cash-outs yet" text="Cash-outs you request will show here." />
+              <EmptyState
+                icon={Landmark}
+                title="No cash-outs yet"
+                text="Cash-outs you request will show here."
+              />
             ) : (
               <div className="list">
                 {list.data.map((r) => (
@@ -71,7 +77,7 @@ export function Redeem() {
       <Sheet open={done != null} onClose={() => setDone(null)} title="Request successful">
         {done && (
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 48, lineHeight: 1 }}>✅</div>
+            <IconBubble icon={CircleCheck} />
             <h3 style={{ margin: '10px 0 6px' }}>{rupees(done.amount)} cash-out requested</h3>
             <p className="meta" style={{ fontSize: 14, lineHeight: 1.6, margin: '0 0 14px' }}>
               It takes up to 2 business days to reflect in your account ({done.upi}). Your{' '}
@@ -204,7 +210,9 @@ function RedeemForm({
           </>
         ) : (
           <div className="shop-card" style={{ cursor: 'default' }}>
-            <div className="shop-thumb">🏦</div>
+            <div className="shop-thumb">
+              <Icon icon={Landmark} />
+            </div>
             <div style={{ minWidth: 0 }}>
               <h4 style={{ overflowWrap: 'anywhere' }}>{upi?.upi_id}</h4>
               <div className="meta">

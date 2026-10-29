@@ -10,6 +10,8 @@ import { useBranches, useMyShops, VENDOR_KEY } from './api';
 import { useReadOnly, useVendor } from './context';
 import { errorMessage, orNull, phoneError } from './format';
 import { BlockedNote, ErrorNote, FormError, Loading, Lockable, NotFound, PageHead } from './ui';
+import { MapPin } from 'lucide-react';
+import { Icon } from '../components/Icon';
 
 export default function ShopEditor() {
   const { id } = useParams();
@@ -239,7 +241,9 @@ function BranchList({ shopId }: { shopId: number }) {
             const state = openState(b);
             return (
               <Link key={b.id} className="shop-card" to={`/vendor/branches/${b.id}`}>
-                <div className="shop-thumb">📍</div>
+                <div className="shop-thumb">
+                  <Icon icon={MapPin} />
+                </div>
                 <div>
                   <h4>{b.name}</h4>
                   <div className="meta">{b.address || 'No address yet'}</div>

@@ -8,6 +8,8 @@ import { supabase } from '../../lib/supabase';
 import type { HistoryOffer } from '../../lib/types';
 import { useOfferHistory } from '../engagement';
 import { ErrorNotice, Loading, NoBackend, Thumb } from '../ui';
+import { Clock, Gift } from 'lucide-react';
+import { Icon } from '../../components/Icon';
 
 function viewedAt(iso: string) {
   const d = new Date(iso);
@@ -27,7 +29,7 @@ export default function History() {
         <Loading />
       ) : !session ? (
         <EmptyState
-          emoji="🕘"
+          icon={Clock}
           title="Sign in to see recently viewed offers"
           text="Offers you open will be kept here so you can find them again."
         >
@@ -48,7 +50,7 @@ function HistoryList() {
   if (error) return <ErrorNotice error={error} onRetry={() => refetch()} />;
   if (!data?.length) {
     return (
-      <EmptyState emoji="🕘" title="Nothing here yet" text="Offers you open will show up here.">
+      <EmptyState icon={Clock} title="Nothing here yet" text="Offers you open will show up here.">
         <Link className="btn" to="/explore" style={{ display: 'inline-block', marginTop: 12 }}>
           Explore offers
         </Link>
@@ -71,7 +73,7 @@ function HistoryRow({ offer: o }: { offer: HistoryOffer }) {
       to={`/shop/${o.shop_id}?offer=${o.offer_id}`}
       onClick={() => track('click', o.shop_id, o.offer_id)}
     >
-      <Thumb imageKey={o.image_key ?? o.shop_logo_key} icon="🎁" />
+      <Thumb imageKey={o.image_key ?? o.shop_logo_key} icon={<Icon icon={Gift} />} />
       <div>
         <h4>{o.title}</h4>
         <div className="meta">{[o.shop_name, viewedAt(o.viewed_at)].join(' · ')}</div>

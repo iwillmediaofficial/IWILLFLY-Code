@@ -11,6 +11,8 @@ import { mediaUrl, supabase } from '../../lib/supabase';
 import type { Mall as MallRow } from '../../lib/types';
 import { ErrorNotice, Loading, NoBackend } from '../ui';
 import { directionsLink } from '../util';
+import { Building2, MapPin, ShoppingBag } from 'lucide-react';
+import { Icon } from '../../components/Icon';
 
 export default function Mall() {
   // The link is /mall/<slug>; old links use the mall's number (/mall/2).
@@ -69,7 +71,7 @@ export default function Mall() {
     return (
       <AppShell header={header}>
         <EmptyState
-          emoji="🏬"
+          icon={Building2}
           title="Mall not found"
           text="It may have been removed. Browse other malls instead."
         />
@@ -112,7 +114,7 @@ export default function Mall() {
             target="_blank"
             rel="noreferrer"
           >
-            📍 Get directions
+            <Icon icon={MapPin} /> Get directions
           </a>
         </section>
       )}
@@ -133,7 +135,7 @@ export default function Mall() {
           </div>
         ) : (
           <EmptyState
-            emoji="🛍️"
+            icon={ShoppingBag}
             title="No shops listed yet"
             text="Shops in this mall will appear here soon."
           />

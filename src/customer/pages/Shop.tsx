@@ -17,6 +17,8 @@ import type { Branch, Category, Offer, Shop as ShopRow } from '../../lib/types';
 import { BranchesByDistrict } from '../BranchesByDistrict';
 import { ErrorNotice, Loading, NoBackend, OfferImage, Sheet } from '../ui';
 import { directionsLink, formatDate, toneFor, useSaveToggle, validity, whatsappLink } from '../util';
+import { Building2, Gift, MapPin, MessageCircle, Phone, Share2, Store, Wallet } from 'lucide-react';
+import { Icon, SaveHeart } from '../../components/Icon';
 
 type ShopWithCategory = ShopRow & { category: Pick<Category, 'name' | 'icon' | 'slug'> | null };
 type MallLink = { branch_id: number; floor: string | null; mall: { id: number; name: string } | null };
@@ -211,7 +213,7 @@ export default function Shop() {
             disabled={saveShop.pending}
             onClick={() => saveShop.run(s.id, shopSaved)}
           >
-            {shopSaved ? '♥' : '♡'}
+            <SaveHeart saved={shopSaved} />
           </button>
         )
       }
@@ -242,7 +244,7 @@ export default function Shop() {
   if (!s) {
     return (
       <AppShell header={header}>
-        <EmptyState emoji="🏪" title="Shop not found" text="This shop may no longer be listed on IWILLFLY.">
+        <EmptyState icon={Store} title="Shop not found" text="This shop may no longer be listed on IWILLFLY.">
           <Link className="btn" to="/explore" style={{ display: 'inline-block', marginTop: 12 }}>
             Explore shops
           </Link>
@@ -263,7 +265,7 @@ export default function Shop() {
     s.cover_key || s.logo_key ? (
       <img src={mediaUrl((s.cover_key ?? s.logo_key)!)} alt="" loading="lazy" decoding="async" />
     ) : (
-      <CategoryIcon category={s.category} fallback="🏪" size={40} />
+      <CategoryIcon category={s.category} fallback={Store} size={40} />
     );
   const homeArea = typeof place?.source === 'number' ? place.source : null;
 
@@ -291,13 +293,27 @@ export default function Shop() {
             style={{ width: 64, height: 64, borderRadius: 16, objectFit: 'cover', background: '#fff' }}
           />
         ) : (
-          <div style={{ fontSize: 52 }}>
-            <CategoryIcon category={s.category} fallback="🏪" size={64} style={{ background: '#fff' }} />
+          <div
+            style={{
+              width: 64,
+              height: 64,
+              borderRadius: 16,
+              background: '#fff',
+              color: 'var(--color-blue)',
+              display: 'grid',
+              placeItems: 'center',
+              fontSize: 36,
+              overflow: 'hidden',
+            }}
+          >
+            <CategoryIcon category={s.category} fallback={Store} size={64} style={{ background: '#fff' }} />
           </div>
         )}
         <h1>{s.name}</h1>
         {withKm.length > 1 && branch && (
-          <p style={{ margin: '2px 0 0', fontWeight: 800 }}>📍 {branch.name}</p>
+          <p style={{ margin: '2px 0 0', fontWeight: 800 }}>
+            <Icon icon={MapPin} /> {branch.name}
+          </p>
         )}
         <p>
           {[s.category?.name, mall?.mall?.name, formatKm(branch?.km, approx)].filter(Boolean).join(' · ')}
@@ -330,7 +346,7 @@ export default function Shop() {
             <div className="info-card">
               <span>Parking</span>
               <strong style={{ fontSize: 16 }}>
-                {parking.icon} {parking.short}
+                <Icon icon={parking.icon} /> {parking.short}
               </strong>
             </div>
           )}
@@ -342,7 +358,9 @@ export default function Shop() {
           // a branch page fills in its branch on the bill too
           to={`/points/add?shop=${s.id}${branch && branch.slug === branchSlug ? `&branch=${branch.id}` : ''}`}
         >
-          <div className="shop-thumb">💰</div>
+          <div className="shop-thumb">
+            <Icon icon={Wallet} />
+          </div>
           <div>
             <h4>Bought something here?</h4>
             <div className="meta">Add your bill and earn 1 point for every ₹50 (1 point = ₹1)</div>
@@ -374,7 +392,7 @@ export default function Shop() {
                 <article key={o.id} className="offer-card" onClick={() => showOffer(o.id)}>
                   <OfferImage
                     imageKey={o.image_keys[0]}
-                    icon={<CategoryIcon category={s.category} fallback="🎁" size={56} />}
+                    icon={<CategoryIcon category={s.category} fallback={Gift} size={56} />}
                     badge={o.discount_label ?? (o.is_featured ? 'FEATURED' : 'OFFER')}
                     tone={toneFor(i)}
                   />
@@ -391,7 +409,7 @@ export default function Shop() {
                           saveOffer.run(o.id, saved);
                         }}
                       >
-                        {saved ? '♥ Saved' : '♡ Save'}
+                        <SaveHeart saved={saved} /> {saved ? 'Saved' : 'Save'}
                       </strong>
                       <span>→</span>
                     </div>
@@ -402,7 +420,7 @@ export default function Shop() {
           </div>
         ) : (
           <EmptyState
-            emoji="🎁"
+            icon={Gift}
             title="No live offers right now"
             text="Save this shop to find its next offer fast."
           />
@@ -419,7 +437,11 @@ export default function Shop() {
             activeId={branch?.id}
             extra={(b) => {
               const m = mallOf(b.id)?.mall?.name;
-              return m ? <div className="meta">🏬 {m}</div> : null;
+              return m ? (
+                <div className="meta">
+                  <Icon icon={Building2} /> {m}
+                </div>
+              ) : null;
             }}
             onView={goToBranch}
           />
@@ -450,7 +472,7 @@ export default function Shop() {
               {parking ? (
                 <>
                   <br />
-                  {parking.icon} {parking.label}
+                  <Icon icon={parking.icon} /> {parking.label}
                   {branch.parking_note ? ` · ${branch.parking_note}` : ''}
                 </>
               ) : null}
@@ -492,7 +514,7 @@ export default function Shop() {
               target="_blank"
               rel="noreferrer"
             >
-              📍 Get directions
+              <Icon icon={MapPin} /> Get directions
             </a>
           )}
           {phone && (
@@ -501,7 +523,7 @@ export default function Shop() {
               href={`tel:${phone.replace(/\s/g, '')}`}
               onClick={() => track('call', s.id)}
             >
-              📞 Call
+              <Icon icon={Phone} /> Call
             </a>
           )}
           {s.whatsapp && (
@@ -512,7 +534,7 @@ export default function Shop() {
               target="_blank"
               rel="noreferrer"
             >
-              💬 WhatsApp
+              <Icon icon={MessageCircle} /> WhatsApp
             </a>
           )}
         </div>
@@ -527,7 +549,7 @@ export default function Shop() {
           <>
             <OfferDetails
               offer={openOffer}
-              icon={<CategoryIcon category={s.category} fallback="🎁" size={56} />}
+              icon={<CategoryIcon category={s.category} fallback={Gift} size={56} />}
               saved={Boolean(savedOffers.data?.has(openOffer.id))}
               saving={saveOffer.pending}
               onSave={(saved) => saveOffer.run(openOffer.id, saved)}
@@ -610,7 +632,7 @@ function OfferDetails({
       )}
       {where && (
         <div className="meta">
-          📍 At {where}
+          <Icon icon={MapPin} /> At {where}
           {o.all_branches ? ' and all other branches' : ''}
         </div>
       )}
@@ -628,10 +650,10 @@ function OfferDetails({
           disabled={saving}
           onClick={() => onSave(saved)}
         >
-          {saved ? '♥ Saved — tap to remove' : '♡ Save offer'}
+          <SaveHeart saved={saved} /> {saved ? 'Saved — tap to remove' : 'Save offer'}
         </button>
         <button className="btn secondary" onClick={() => onShare()} aria-label="Share offer">
-          ↗ Share
+          <Icon icon={Share2} /> Share
         </button>
       </div>
       <p className="meta" style={{ textAlign: 'center' }}>

@@ -6,6 +6,7 @@ import { db, must } from '../lib/queries';
 import { supabase } from '../lib/supabase';
 import { OfferTile } from './OfferTile';
 import { toneFor } from './util';
+import { Gift } from 'lucide-react';
 
 interface TopPick {
   top_pick_id: number;
@@ -72,7 +73,7 @@ export function TopPicksSection() {
             icon={
               <CategoryIcon
                 category={{ slug: o.category_slug, icon: o.category_icon }}
-                fallback="🎁"
+                fallback={Gift}
                 size={56}
               />
             }

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { createPortal } from 'react-dom';
+import { X } from 'lucide-react';
+import { Icon } from './Icon';
 
 const MAX_ZOOM = 4;
 const DOUBLE_TAP_ZOOM = 2.5;
@@ -219,7 +221,7 @@ export function ImageViewer({
       <div className="viewer-top" style={{ opacity: drop ? 0 : 1 }}>
         <span className="viewer-count">{count > 1 ? `${index + 1} / ${count}` : ''}</span>
         <button className="viewer-btn" onClick={onClose} aria-label="Close">
-          ✕
+          <Icon icon={X} />
         </button>
       </div>
       <div

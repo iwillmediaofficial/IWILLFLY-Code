@@ -8,6 +8,8 @@ import { formatDate } from '../util';
 import { campaignStatus, useCampaigns } from './api';
 import { CampaignEdit } from './CampaignEdit';
 import { StatusPill } from './StatusPill';
+import { Ticket } from 'lucide-react';
+import { Icon } from '../../components/Icon';
 
 export default function ScratchAdmin() {
   return (
@@ -35,7 +37,7 @@ function CampaignList() {
       {campaigns.isPending && <Loading />}
       {campaigns.error && <ErrorNotice error={campaigns.error} />}
       {campaigns.data?.length === 0 && (
-        <Empty emoji="🎟️" title="No campaigns yet">
+        <Empty icon={Ticket} title="No campaigns yet">
           Create a campaign, add its prizes, then switch it on.
         </Empty>
       )}
@@ -43,7 +45,7 @@ function CampaignList() {
         {campaigns.data?.map((c) => (
           <Link key={c.id} className="shop-card" to={`/admin/scratch/${c.id}`}>
             <div className="shop-thumb">
-              {c.banner_key ? <img src={mediaUrl(c.banner_key)} alt="" /> : '🎟️'}
+              {c.banner_key ? <img src={mediaUrl(c.banner_key)} alt="" /> : <Icon icon={Ticket} />}
             </div>
             <div style={{ minWidth: 0 }}>
               <div style={{ marginBottom: 4 }}>

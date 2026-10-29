@@ -6,6 +6,8 @@ import { isApprox, usePlace } from '../lib/location';
 import type { ShopResult } from '../lib/types';
 import { CategoryIcon } from './CategoryIcon';
 import { Thumb } from '../customer/ui';
+import { Store } from 'lucide-react';
+import { EmptyArt, type LucideIcon } from './Icon';
 
 export function ShopCard({ shop, showStatus = true }: { shop: ShopResult; showStatus?: boolean }) {
   const state = shop.branch_id != null ? openState(shop) : null;
@@ -25,7 +27,7 @@ export function ShopCard({ shop, showStatus = true }: { shop: ShopResult; showSt
         icon={
           <CategoryIcon
             category={{ slug: shop.category_slug, icon: shop.category_icon }}
-            fallback="🏪"
+            fallback={Store}
             fill
           />
         }
@@ -61,19 +63,19 @@ export function ShopCard({ shop, showStatus = true }: { shop: ShopResult; showSt
 }
 
 export function EmptyState({
-  emoji,
+  icon,
   title,
   text,
   children,
 }: {
-  emoji: string;
+  icon: LucideIcon | string;
   title: string;
   text: string;
   children?: ReactNode;
 }) {
   return (
     <div className="saved-empty">
-      <div className="emoji">{emoji}</div>
+      <EmptyArt icon={icon} />
       <h3>{title}</h3>
       <p>{text}</p>
       {children}

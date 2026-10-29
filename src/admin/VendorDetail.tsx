@@ -14,6 +14,21 @@ import { formatDate as formatDay, offerPhase, phaseClass, phaseLabel, phoneError
 import { ErrorNotice, Loading } from './ui';
 import { PUBLIC_KEYS, formatDate, friendlyError, one, slugify, useInvalidate } from './util';
 import { DIRECTORY_KEY, adminApi, useVendorDirectory, type VendorOwnerRow } from './vendorApi';
+import {
+  Check,
+  ClipboardList,
+  Clock,
+  CreditCard,
+  KeyRound,
+  Link2,
+  MapPin,
+  Phone,
+  Store,
+  Tag,
+  User,
+  Users,
+} from 'lucide-react';
+import { Icon } from '../components/Icon';
 
 type ShopRow = {
   id: number;
@@ -152,7 +167,9 @@ function ApplicationCard({ vendorId }: { vendorId: number }) {
   const payment = planPayment(app.data.plan, app.data.invoices);
   return (
     <section className="form-card section">
-      <h3 style={{ marginTop: 0 }}>📋 Shop details and branches</h3>
+      <h3 style={{ marginTop: 0 }}>
+        <Icon icon={ClipboardList} /> Shop details and branches
+      </h3>
       {payment ? (
         <p style={{ marginTop: 0 }}>
           Plan: <span className={`pill-status ${payment.tone}`}>{payment.label}</span>
@@ -224,18 +241,31 @@ function ApplicationCard({ vendorId }: { vendorId: number }) {
                       target="_blank"
                       rel="noreferrer"
                     >
-                      📍 Open the pin in Google Maps
+                      <Icon icon={MapPin} /> Open the pin in Google Maps
                     </a>
                   ) : (
                     'No map pin'
                   )}
-                  {b.phone && ` · 📞 ${b.phone}`}
+                  {b.phone && (
+                    <>
+                      {' '}
+                      · <Icon icon={Phone} /> {b.phone}
+                    </>
+                  )}
                 </div>
                 <div className="meta">
-                  {parking ? `${parking.icon} ${parking.label}` : 'Parking not set'}
+                  {parking ? (
+                    <>
+                      <Icon icon={parking.icon} /> {parking.label}
+                    </>
+                  ) : (
+                    'Parking not set'
+                  )}
                   {b.parking_note && ` (${b.parking_note})`}
                 </div>
-                <div className="meta">🕘 {hoursText(b.hours)}</div>
+                <div className="meta">
+                  <Icon icon={Clock} /> {hoursText(b.hours)}
+                </div>
                 {b.review_status !== 'approved' && <BranchReview vendorId={vendorId} branch={b} />}
               </div>
             );
@@ -340,7 +370,9 @@ function BusinessCard({ vendor: v }: { vendor: Vendor }) {
 
   return (
     <form className="form-card section" onSubmit={submit} noValidate>
-      <h3 style={{ marginTop: 0 }}>🏪 Business</h3>
+      <h3 style={{ marginTop: 0 }}>
+        <Icon icon={Store} /> Business
+      </h3>
       <div className="field">
         <label htmlFor="v-name">Business name *</label>
         <input id="v-name" value={name} maxLength={120} onChange={(e) => setName(e.target.value)} />
@@ -379,7 +411,8 @@ function BusinessCard({ vendor: v }: { vendor: Vendor }) {
         <div className="field">
           <label>Badge</label>
           <label className="check-row" style={{ padding: '12px 0' }}>
-            <input type="checkbox" checked={verified} onChange={(e) => setVerified(e.target.checked)} />✓
+            <input type="checkbox" checked={verified} onChange={(e) => setVerified(e.target.checked)} />
+            <Icon icon={Check} />
             Verified business
           </label>
         </div>
@@ -433,7 +466,9 @@ function OwnerCard({ owner }: { owner: VendorOwnerRow }) {
 
   return (
     <form className="form-card section" onSubmit={submit} noValidate>
-      <h3 style={{ marginTop: 0 }}>👤 Owner</h3>
+      <h3 style={{ marginTop: 0 }}>
+        <Icon icon={User} /> Owner
+      </h3>
       <p className="meta" style={{ marginTop: 0 }}>
         <b>{owner.owner_email}</b> · signed up {formatDate(owner.owner_since)}
       </p>
@@ -469,7 +504,9 @@ function TeamCard({ vendorId }: { vendorId: number }) {
   });
   return (
     <section className="form-card section">
-      <h3 style={{ marginTop: 0 }}>👥 Team</h3>
+      <h3 style={{ marginTop: 0 }}>
+        <Icon icon={Users} /> Team
+      </h3>
       {team.isPending && <Loading />}
       {team.error && <ErrorNotice error={team.error} />}
       {team.data?.length === 0 && (
@@ -492,7 +529,9 @@ function ShopsCard({ vendorId }: { vendorId: number }) {
   const shops = useVendorShops(vendorId);
   return (
     <section className="form-card section">
-      <h3 style={{ marginTop: 0 }}>🏬 Shops</h3>
+      <h3 style={{ marginTop: 0 }}>
+        <Icon icon={Store} /> Shops
+      </h3>
       {shops.isPending && <Loading />}
       {shops.error && <ErrorNotice error={shops.error} />}
       {shops.data?.length === 0 && <p className="meta">No shops yet.</p>}
@@ -540,7 +579,7 @@ function useShopLinkCheck(slug: string, shop: { id: number; slug: string }) {
       ok: true,
       checking: false,
       problem: null,
-      message: '✓ This link is free. The old link will keep working and lead here.',
+      message: 'This link is free. The old link will keep working and lead here.',
     };
   }
   const problem = status.startsWith('taken: ')
@@ -632,7 +671,9 @@ function ShopRowCard({ vendorId, shop: s }: { vendorId: number; shop: ShopRow })
             · {live} live offer{live === 1 ? '' : 's'}
             {pending ? ` · ${pending} waiting for review` : ''}
           </div>
-          <div className="meta">🔗 /shop/{s.slug}</div>
+          <div className="meta">
+            <Icon icon={Link2} /> /shop/{s.slug}
+          </div>
         </div>
         <span className={`pill-status ${s.is_active ? 'live' : 'blocked'}`}>
           {s.is_active ? 'active' : 'hidden'}
@@ -671,7 +712,7 @@ function ShopRowCard({ vendorId, shop: s }: { vendorId: number; shop: ShopRow })
                   color: link.ok ? 'var(--color-green)' : link.problem ? 'var(--color-red)' : undefined,
                 }}
               >
-                {link.message}
+                {link.ok && <Icon icon={Check} />} {link.message}
               </div>
             )}
           </div>
@@ -794,7 +835,9 @@ function PasswordCard({ vendorId }: { vendorId: number }) {
 
   return (
     <form className="form-card section" onSubmit={submit} noValidate>
-      <h3 style={{ marginTop: 0 }}>🔑 Owner password</h3>
+      <h3 style={{ marginTop: 0 }}>
+        <Icon icon={KeyRound} /> Owner password
+      </h3>
       <p className="meta" style={{ marginTop: 0 }}>
         Passwords are stored encrypted, so nobody (including admins) can see the current one. You can set a
         new password here; the owner's old password stops working straight away.
@@ -843,7 +886,9 @@ function OffersCard({ vendorId }: { vendorId: number }) {
 
   return (
     <section className="form-card section">
-      <h3 style={{ marginTop: 0 }}>🏷️ Offers</h3>
+      <h3 style={{ marginTop: 0 }}>
+        <Icon icon={Tag} /> Offers
+      </h3>
       <div className="tabs" role="tablist">
         <button
           role="tab"
@@ -873,7 +918,7 @@ function OffersCard({ vendorId }: { vendorId: number }) {
             <div className="grow">
               <h4>{o.title}</h4>
               <div className="meta">
-                🏬 {shop}
+                <Icon icon={Store} /> {shop}
                 {o.discount_label ? ` · ${o.discount_label}` : ''}
                 {o.offer_price != null ? ` · ${money(o.offer_price)}` : ''}
                 {o.original_price != null && o.offer_price != null ? (
@@ -915,7 +960,9 @@ function PlanCard({ vendorId, invoices }: { vendorId: number; invoices: number }
   const sub = plan.data?.[0];
   return (
     <section className="form-card section">
-      <h3 style={{ marginTop: 0 }}>💳 Plan & billing</h3>
+      <h3 style={{ marginTop: 0 }}>
+        <Icon icon={CreditCard} /> Plan & billing
+      </h3>
       {plan.error && <ErrorNotice error={plan.error} />}
       <p className="meta" style={{ margin: 0 }}>
         {sub

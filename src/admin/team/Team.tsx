@@ -6,6 +6,8 @@ import { db, must } from '../../lib/queries';
 import type { StaffMember } from '../../lib/types';
 import { Empty, ErrorNotice, Loading } from '../ui';
 import { formatDate, useInvalidate } from '../util';
+import { Users, X } from 'lucide-react';
+import { Icon } from '../../components/Icon';
 
 type StaffRole = Extract<AppRole, 'super_admin' | 'admin' | 'support' | 'campaign_manager'>;
 
@@ -49,7 +51,7 @@ export default function Team() {
       </div>
       {team.isPending && <Loading />}
       {team.error && <ErrorNotice error={team.error} />}
-      {team.data?.length === 0 && <Empty emoji="👥" title="No staff yet" />}
+      {team.data?.length === 0 && <Empty icon={Users} title="No staff yet" />}
       {team.data?.map((m) => (
         <MemberCard key={m.user_id} member={m} isSuper={isSuper} />
       ))}
@@ -196,7 +198,7 @@ function MemberCard({ member: m, isSuper }: { member: StaffMember; isSuper: bool
                     lineHeight: 1,
                   }}
                 >
-                  ✕
+                  <Icon icon={X} />
                 </button>
               )}
             </span>

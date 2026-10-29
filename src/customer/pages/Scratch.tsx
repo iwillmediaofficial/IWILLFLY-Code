@@ -4,6 +4,8 @@ import { useScratchToday } from '../../lib/scratch';
 import type { TodayCampaign } from '../../lib/types';
 import { useScratchCard } from '../scratch';
 import { ErrorNotice } from '../ui';
+import { Gift } from 'lucide-react';
+import { Icon } from '../../components/Icon';
 
 export default function Scratch() {
   const today = useScratchToday();
@@ -22,7 +24,9 @@ export default function Scratch() {
       }
     >
       <section className="hero">
-        <h1>Daily Scratch & Win 🎁</h1>
+        <h1>
+          Daily Scratch & Win <Icon icon={Gift} />
+        </h1>
         <p>
           Play once each day during active shop hours. Once the result is revealed, the daily button changes
           to red until the next day.

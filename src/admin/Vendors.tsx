@@ -9,6 +9,8 @@ import { Empty, ErrorNotice, Loading } from './ui';
 import { PUBLIC_KEYS, formatDate, friendlyError, one, useInvalidate, waLink } from './util';
 import { DIRECTORY_KEY, useVendorDirectory, type VendorOwnerRow } from './vendorApi';
 import { PLAN_SELECT, planPayment, type InvoiceRef, type PlanRef } from './application';
+import { Check, MapPin, MessageCircle, Phone, Search, Store, User } from 'lucide-react';
+import { Icon } from '../components/Icon';
 
 type Tab = VendorStatus | 'all';
 const TABS: { key: Tab; label: string }[] = [
@@ -104,9 +106,9 @@ export function Vendors() {
       </div>
       {vendors.isPending && <Loading />}
       {vendors.error && <ErrorNotice error={vendors.error} />}
-      {shown?.length === 0 && q && <Empty emoji="🔍" title="No vendors match your search" />}
+      {shown?.length === 0 && q && <Empty icon={Search} title="No vendors match your search" />}
       {vendors.data?.length === 0 && !q && (
-        <Empty emoji="🏪" title={tab === 'pending' ? 'No vendors waiting' : 'No vendors here'}>
+        <Empty icon={Store} title={tab === 'pending' ? 'No vendors waiting' : 'No vendors here'}>
           {tab === 'pending' ? 'New applications will show up here.' : undefined}
         </Empty>
       )}
@@ -161,7 +163,7 @@ function VendorCard({ vendor: v, owner }: { vendor: VendorRow; owner?: VendorOwn
           <div className="meta">Applied {formatDate(v.created_at)}</div>
           {owner && (
             <div className="meta">
-              👤 {owner.owner_name ? `${owner.owner_name} · ` : ''}
+              <Icon icon={User} /> {owner.owner_name ? `${owner.owner_name} · ` : ''}
               {owner.owner_email}
               {owner.owner_phone ? ` · ${owner.owner_phone}` : ''}
             </div>
@@ -169,7 +171,11 @@ function VendorCard({ vendor: v, owner }: { vendor: VendorRow; owner?: VendorOwn
         </div>
         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           <span className={`pill-status ${v.status}`}>{v.status}</span>
-          {v.is_verified && <span className="pill-status live">✓ Verified</span>}
+          {v.is_verified && (
+            <span className="pill-status live">
+              <Icon icon={Check} /> Verified
+            </span>
+          )}
         </div>
       </div>
       {payment && (
@@ -190,7 +196,7 @@ function VendorCard({ vendor: v, owner }: { vendor: VendorRow; owner?: VendorOwn
       <div className="meta" style={{ marginTop: 6, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
         {v.contact_phone && (
           <a href={`tel:${v.contact_phone}`} style={{ color: 'var(--color-blue)', fontWeight: 700 }}>
-            📞 {v.contact_phone}
+            <Icon icon={Phone} /> {v.contact_phone}
           </a>
         )}
         {v.whatsapp && (
@@ -200,7 +206,7 @@ function VendorCard({ vendor: v, owner }: { vendor: VendorRow; owner?: VendorOwn
             rel="noreferrer"
             style={{ color: 'var(--color-green)', fontWeight: 700 }}
           >
-            💬 WhatsApp {v.whatsapp}
+            <Icon icon={MessageCircle} /> WhatsApp {v.whatsapp}
           </a>
         )}
         {!v.contact_phone && !v.whatsapp && <span>No phone given</span>}
@@ -214,11 +220,11 @@ function VendorCard({ vendor: v, owner }: { vendor: VendorRow; owner?: VendorOwn
             const c = one(s.category);
             return (
               <div key={s.id}>
-                🏬 <b>{s.name}</b>{' '}
+                <Icon icon={Store} /> <b>{s.name}</b>{' '}
                 <span className="meta">{c ? `· ${c.icon ?? ''} ${c.name}` : '· No category'}</span>
                 {s.branches.map((b) => (
                   <div key={b.id} className="meta" style={{ paddingLeft: 22 }}>
-                    📍 {s.branches.length > 1 ? `${b.name}: ` : ''}
+                    <Icon icon={MapPin} /> {s.branches.length > 1 ? `${b.name}: ` : ''}
                     {b.address || 'No address'}
                     {b.location ? ` · ${b.location.name}` : ''}
                   </div>

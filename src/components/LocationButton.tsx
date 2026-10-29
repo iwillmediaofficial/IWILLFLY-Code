@@ -7,6 +7,8 @@ import { AreaPicker } from './AreaPicker';
 import { AreaLocationPicker } from './ScratchLocation';
 import { useToast } from './Toast';
 import { NeedsBackend, Sheet } from '../customer/ui';
+import { MapPin } from 'lucide-react';
+import { Icon } from './Icon';
 
 /**
  * Header button showing the current place; opens a sheet to use GPS or pick an area. Signed in, it shows
@@ -40,7 +42,7 @@ export function LocationButton() {
           fontWeight: 800,
         }}
       >
-        📍 {label ?? 'Set location'}
+        <Icon icon={MapPin} /> {label ?? 'Set location'}
       </button>
       <Sheet open={open} onClose={close} title="Your location" subtitle="Offers are sorted nearest first">
         {session ? open && <AreaLocationPicker onSaved={close} /> : <LocationChooser onDone={close} />}
@@ -95,7 +97,13 @@ export function LocationChooser({
         </div>
       )}
       <button className="btn yellow block" onClick={useGps} disabled={locating}>
-        {locating ? 'Locating…' : '📍 Use my current location'}
+        {locating ? (
+          'Locating…'
+        ) : (
+          <>
+            <Icon icon={MapPin} /> Use my current location
+          </>
+        )}
       </button>
       <div className="meta" style={{ textAlign: 'center', margin: '12px 0' }}>
         or choose your area

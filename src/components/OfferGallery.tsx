@@ -2,6 +2,8 @@ import { useRef, useState } from 'react';
 import { mediaUrl } from '../lib/supabase';
 import { ImageViewer } from './ImageViewer';
 import { useImageViewer } from './useImageViewer';
+import { Maximize2 } from 'lucide-react';
+import { Icon } from './Icon';
 
 /** An offer's pictures shown whole, one at a time: swipe between them, tap one to see it full screen. */
 export function OfferGallery({ imageKeys }: { imageKeys: string[] }) {
@@ -40,7 +42,9 @@ export function OfferGallery({ imageKeys }: { imageKeys: string[] }) {
           ))}
         </div>
         {count > 1 && <span className="gallery-count">{`${current + 1} / ${count}`}</span>}
-        <span className="gallery-hint">⤢ Tap to enlarge</span>
+        <span className="gallery-hint">
+          <Icon icon={Maximize2} /> Tap to enlarge
+        </span>
         {count > 1 && current > 0 && (
           <button
             type="button"

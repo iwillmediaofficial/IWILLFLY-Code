@@ -22,13 +22,29 @@ import VendorHelp from './support/VendorHelp';
 import type { MyVendor, VendorRole } from '../lib/types';
 import { ErrorNote, Loading } from './ui';
 import { offerPhase } from './format';
+import {
+  CreditCard,
+  House,
+  MapPin,
+  Megaphone,
+  MessageCircle,
+  Sparkles,
+  Star,
+  Store,
+  Tag,
+  Ticket,
+  TrendingUp,
+  Users,
+  X,
+} from 'lucide-react';
+import { Icon, type LucideIcon } from '../components/Icon';
 
 // staffToo: shown to Staff, who only check prize codes and see insights.
 // branch: shown to branch managers ('manager') or to all branch members ('all'); others are brand-level.
 type Tab = {
   to: string;
   label: string;
-  icon: string;
+  icon: LucideIcon;
   end?: boolean;
   staffToo?: boolean;
   branch?: 'manager' | 'all';
@@ -38,18 +54,18 @@ type Tab = {
 };
 
 const tabs: Tab[] = [
-  { to: '/vendor', label: 'Dashboard', icon: '🏠', end: true, staffToo: true, branch: 'all' },
-  { to: '/vendor/branches/mine', label: 'My branch', icon: '📍', branch: 'all', branchOnly: true },
-  { to: '/vendor/shops', label: 'My shop', icon: '🏬' },
-  { to: '/vendor/offers', label: 'Offers', icon: '🏷️', branch: 'manager' },
-  { to: '/vendor/scratch', label: 'Scratch & Win', icon: '🎟️', staffToo: true, branch: 'all' },
-  { to: '/vendor/insights', label: 'Insights', icon: '📈', staffToo: true },
-  { to: '/vendor/festivals', label: 'Festivals', icon: '🪔' },
-  { to: '/vendor/top-picks', label: 'Top Picks', icon: '⭐', branch: 'manager', ownerOnly: true },
-  { to: '/vendor/promote', label: 'Promote', icon: '📣' },
-  { to: '/vendor/billing', label: 'Plan & billing', icon: '💳', staffToo: true },
-  { to: '/vendor/team', label: 'Team', icon: '👥', staffToo: true, branch: 'all' },
-  { to: '/vendor/help', label: 'Help', icon: '💬', staffToo: true, branch: 'all' },
+  { to: '/vendor', label: 'Dashboard', icon: House, end: true, staffToo: true, branch: 'all' },
+  { to: '/vendor/branches/mine', label: 'My branch', icon: MapPin, branch: 'all', branchOnly: true },
+  { to: '/vendor/shops', label: 'My shop', icon: Store },
+  { to: '/vendor/offers', label: 'Offers', icon: Tag, branch: 'manager' },
+  { to: '/vendor/scratch', label: 'Scratch & Win', icon: Ticket, staffToo: true, branch: 'all' },
+  { to: '/vendor/insights', label: 'Insights', icon: TrendingUp, staffToo: true },
+  { to: '/vendor/festivals', label: 'Festivals', icon: Sparkles },
+  { to: '/vendor/top-picks', label: 'Top Picks', icon: Star, branch: 'manager', ownerOnly: true },
+  { to: '/vendor/promote', label: 'Promote', icon: Megaphone },
+  { to: '/vendor/billing', label: 'Plan & billing', icon: CreditCard, staffToo: true },
+  { to: '/vendor/team', label: 'Team', icon: Users, staffToo: true, branch: 'all' },
+  { to: '/vendor/help', label: 'Help', icon: MessageCircle, staffToo: true, branch: 'all' },
 ];
 
 /** The menu for this member: branch members get their branch's pages only. */
@@ -156,7 +172,7 @@ function VendorLayout({ vendor }: { vendor: MyVendor }) {
             aria-label="Close menu"
             onClick={() => setMenuOpen(false)}
           >
-            ✕
+            <Icon icon={X} size={18} />
           </button>
         </div>
         <div className="vendor-side-shop">
@@ -225,7 +241,7 @@ function VendorLayout({ vendor }: { vendor: MyVendor }) {
                     style={{ display: 'inline-block', marginTop: 10 }}
                     to="/vendor/billing"
                   >
-                    💳 Renew now
+                    <Icon icon={CreditCard} /> Renew now
                   </Link>
                 </div>
               ) : (
@@ -272,7 +288,9 @@ function SideNav({ visible, showCounts }: { visible: Tab[]; showCounts: boolean 
             <div className="vendor-side-label">{g.label}</div>
             {items.map((t) => (
               <NavLink key={t.label} to={t.to} end={t.end}>
-                <i aria-hidden="true">{t.icon}</i>
+                <i aria-hidden="true">
+                  <Icon icon={t.icon} size={20} />
+                </i>
                 <span>{t.label}</span>
                 {showCounts && t.label === 'Offers' && <OffersInReview />}
               </NavLink>

@@ -27,6 +27,8 @@ import {
   type ScratchCard,
 } from '../scratch';
 import { toneFor } from '../util';
+import { Building2, Gift, ShoppingBag } from 'lucide-react';
+import { Icon } from '../../components/Icon';
 
 export default function Home() {
   const today = useScratchToday();
@@ -224,7 +226,9 @@ function PrizeSlider({ prizes, empty }: { prizes: PublicPrize[]; empty: string }
       <div className="p-head">Today’s Prize</div>
       {count === 0 ? (
         <div className="p-body">
-          <div className="p-img">🎁</div>
+          <div className="p-img">
+            <Icon icon={Gift} />
+          </div>
           <div className="p-name">{empty}</div>
         </div>
       ) : (
@@ -253,7 +257,7 @@ function PrizeSlider({ prizes, empty }: { prizes: PublicPrize[]; empty: string }
                   {p.image_key ? (
                     <img src={mediaUrl(p.image_key)} alt="" decoding="async" width={64} height={64} />
                   ) : (
-                    '🎁'
+                    <Icon icon={Gift} />
                   )}
                 </div>
                 <div className="p-name">{p.name}</div>
@@ -311,7 +315,7 @@ function CategoryGrid() {
       label: c.name,
       to: `/explore?cat=${encodeURIComponent(c.slug)}`,
     })),
-    { key: 'malls', icon: '🏬' as ReactNode, label: 'Malls', to: '/malls' },
+    { key: 'malls', icon: (<Icon icon={Building2} />) as ReactNode, label: 'Malls', to: '/malls' },
   ];
   return (
     <div className="cat-row">
@@ -347,7 +351,11 @@ function NearOffers() {
   if (error) return <ErrorNotice error={error} onRetry={() => refetch()} />;
   if (!data?.length) {
     return (
-      <EmptyState emoji="🛍️" title="No offers yet" text="Offers from local shops will appear here soon." />
+      <EmptyState
+        icon={ShoppingBag}
+        title="No offers yet"
+        text="Offers from local shops will appear here soon."
+      />
     );
   }
   return (
@@ -362,7 +370,7 @@ function NearOffers() {
           icon={
             <CategoryIcon
               category={{ slug: o.category_slug, icon: o.category_icon }}
-              fallback="🎁"
+              fallback={Gift}
               size={56}
             />
           }
@@ -389,7 +397,7 @@ function TopMalls() {
   if (!data?.length) {
     return (
       <EmptyState
-        emoji="🏬"
+        icon={Building2}
         title="No malls yet"
         text="Shopping destinations near you will appear here soon."
       />
@@ -399,7 +407,7 @@ function TopMalls() {
     <div className="list">
       {data.slice(0, 2).map((m) => (
         <Link key={m.mall_id} className="shop-card" to={`/mall/${m.mall_id}`}>
-          <Thumb imageKey={m.cover_key} icon="🏬" />
+          <Thumb imageKey={m.cover_key} icon={<Icon icon={Building2} />} />
           <div>
             <h4>{m.name}</h4>
             <div className="meta">

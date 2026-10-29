@@ -6,6 +6,8 @@ import { useMyBranches, useMyOffers } from './api';
 import { useApproved, useBranchScope, useCanEditOffers, useReadOnly } from './context';
 import { formatDate, offerPhase, phaseClass, phaseLabel } from './format';
 import { ErrorNote, Loading, PageHead } from './ui';
+import { MapPin, Store, Tag } from 'lucide-react';
+import { Icon, IconBubble } from '../components/Icon';
 
 const filters: { key: OfferStatus | 'all'; label: string }[] = [
   { key: 'all', label: 'All' },
@@ -72,7 +74,7 @@ export default function OffersList() {
         <ErrorNote error={error} />
       ) : shops?.length === 0 ? (
         <div className="saved-empty">
-          <div className="emoji">🏪</div>
+          <IconBubble icon={Store} />
           <h3>Add a shop first</h3>
           <p>Offers belong to a shop. Create your shop, then post offers for it.</p>
           {!readOnly && (
@@ -83,7 +85,7 @@ export default function OffersList() {
         </div>
       ) : shown.length === 0 ? (
         <div className="saved-empty">
-          <div className="emoji">🏷️</div>
+          <IconBubble icon={Tag} />
           <h3>No offers here</h3>
           <p>
             {status === 'all'
@@ -108,13 +110,18 @@ function OfferRow({ offer: o, shopName, scope }: { offer: Offer; shopName: strin
   return (
     <Link className="shop-card" to={`/vendor/offers/${o.id}`} style={{ alignItems: 'start' }}>
       <div className="shop-thumb poster">
-        {cover ? <img src={mediaUrl(cover)} alt="" loading="lazy" decoding="async" /> : '🏷️'}
+        {cover ? <img src={mediaUrl(cover)} alt="" loading="lazy" decoding="async" /> : <Icon icon={Tag} />}
       </div>
       <div style={{ minWidth: 0 }}>
         <h4>{o.title}</h4>
         <div className="meta">
           {shopName}
-          {scope && ` · 📍 ${scope}`}
+          {scope && (
+            <>
+              {' · '}
+              <Icon icon={MapPin} /> {scope}
+            </>
+          )}
           {o.offer_price != null && ` · ${formatPrice(o.offer_price)}`}
           {o.discount_label && ` · ${o.discount_label}`}
         </div>

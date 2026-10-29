@@ -9,6 +9,8 @@ import {
 } from '../lib/upload';
 import { usePosterCrop } from './usePosterCrop';
 import { UploadProgressBar } from './UploadProgressBar';
+import { X } from 'lucide-react';
+import { Icon } from './Icon';
 
 /** One image: shows the current picture and uploads a replacement to R2 (WebP). */
 export function ImageField({
@@ -117,7 +119,7 @@ export function ImageListField({
               aria-label="Remove image"
               onClick={() => onChange(value.filter((x) => x !== k))}
             >
-              ×
+              <Icon icon={X} />
             </button>
           </div>
         ))}

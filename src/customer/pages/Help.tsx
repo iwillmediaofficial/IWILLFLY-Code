@@ -8,6 +8,7 @@ import { TicketList } from '../../components/support/TicketList';
 import { TicketThread } from '../../components/support/TicketThread';
 import { supabase } from '../../lib/supabase';
 import { Loading, NoBackend } from '../ui';
+import { MessageCircle } from 'lucide-react';
 
 /** /help, /help/new and /help/:id for any signed-in person. */
 export default function Help() {
@@ -22,7 +23,7 @@ export default function Help() {
         <Loading />
       ) : !session ? (
         <EmptyState
-          emoji="💬"
+          icon={MessageCircle}
           title="Sign in to contact support"
           text="Your questions and our replies are kept here."
         >

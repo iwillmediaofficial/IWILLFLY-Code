@@ -17,6 +17,8 @@ import {
   type TopPickOffer,
   type TopPicksInfo,
 } from './api';
+import { Tag } from 'lucide-react';
+import { Icon } from '../../components/Icon';
 
 const linkStyle = { color: 'var(--color-blue)', fontWeight: 800 } as const;
 
@@ -139,7 +141,11 @@ function PickCard({ pick: p, info }: { pick: MyTopPick; info: TopPicksInfo }) {
     <div className="manage-card" style={{ marginTop: 0 }}>
       <div style={{ display: 'flex', gap: 10, alignItems: 'start' }}>
         <div className="tp-thumb">
-          {p.offer_image_key ? <img src={mediaUrl(p.offer_image_key)} alt="" loading="lazy" /> : '🏷️'}
+          {p.offer_image_key ? (
+            <img src={mediaUrl(p.offer_image_key)} alt="" loading="lazy" />
+          ) : (
+            <Icon icon={Tag} />
+          )}
         </div>
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'start' }}>

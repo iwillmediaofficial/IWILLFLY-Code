@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
 import { formatPhone, telHref, waHref } from '../lib/contact';
+import { MessageCircle, Phone } from 'lucide-react';
+import { Icon } from './Icon';
 
 /**
  * Call and WhatsApp buttons for a phone number, with an optional ready-made WhatsApp message.
@@ -23,16 +25,20 @@ export function ContactButtons({
   if (!phone && !wa && !extra) return null;
   return (
     <div className="contact-row">
-      {showNumber && phone && <span className="contact-number">📞 {formatPhone(phone)}</span>}
+      {showNumber && phone && (
+        <span className="contact-number">
+          <Icon icon={Phone} /> {formatPhone(phone)}
+        </span>
+      )}
       <div className="contact-btns">
         {phone && (
           <a className="contact-btn call" href={telHref(phone)}>
-            📞 Call
+            <Icon icon={Phone} /> Call
           </a>
         )}
         {wa && (
           <a className="contact-btn wa" href={waHref(wa, message)} target="_blank" rel="noreferrer">
-            💬 WhatsApp
+            <Icon icon={MessageCircle} /> WhatsApp
           </a>
         )}
         {extra}

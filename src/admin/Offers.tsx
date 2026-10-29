@@ -8,6 +8,8 @@ import { mediaUrl } from '../lib/supabase';
 import type { Offer } from '../lib/types';
 import { Empty, ErrorNotice, Loading } from './ui';
 import { PUBLIC_KEYS, formatDate, friendlyError, one, useInvalidate } from './util';
+import { MapPin, Star, Tag } from 'lucide-react';
+import { Icon } from '../components/Icon';
 
 type Tab = 'pending' | 'approved' | 'rejected' | 'featured';
 const TABS: { key: Tab; label: string }[] = [
@@ -66,7 +68,7 @@ export function Offers() {
       {offers.isPending && <Loading />}
       {offers.error && <ErrorNotice error={offers.error} />}
       {offers.data?.length === 0 && (
-        <Empty emoji="🏷️" title={tab === 'pending' ? 'Nothing to review' : 'No offers here'}>
+        <Empty icon={Tag} title={tab === 'pending' ? 'Nothing to review' : 'No offers here'}>
           {tab === 'pending' ? 'New and edited offers will show up here.' : undefined}
         </Empty>
       )}
@@ -134,11 +136,17 @@ function OfferCard({ offer: o }: { offer: OfferRow }) {
         }}
         style={{ display: 'grid', gridTemplateColumns: '82px 1fr', gap: 12, cursor: 'pointer' }}
       >
-        <div className="shop-thumb poster">{cover ? <img src={mediaUrl(cover)} alt="" /> : '🏷️'}</div>
+        <div className="shop-thumb poster">
+          {cover ? <img src={mediaUrl(cover)} alt="" /> : <Icon icon={Tag} />}
+        </div>
         <div style={{ minWidth: 0 }}>
           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 4 }}>
             <span className={`pill-status ${o.status}`}>{o.status}</span>
-            {o.is_featured && <span className="pill-status featured">★ Featured</span>}
+            {o.is_featured && (
+              <span className="pill-status featured">
+                <Icon icon={Star} /> Featured
+              </span>
+            )}
             {o.is_paused && <span className="pill-status">Paused</span>}
           </div>
           <h4>{o.title}</h4>
@@ -148,7 +156,11 @@ function OfferCard({ offer: o }: { offer: OfferRow }) {
           </div>
           {(where || byTeam) && (
             <div className="meta">
-              {where && `📍 ${where}`}
+              {where && (
+                <>
+                  <Icon icon={MapPin} /> {where}
+                </>
+              )}
               {where && byTeam && ' · '}
               {byTeam && (o.all_branches ? 'Made by a manager' : 'Made by a branch manager')}
             </div>
@@ -219,7 +231,13 @@ function OfferCard({ offer: o }: { offer: OfferRow }) {
               run({ is_featured: !o.is_featured }, o.is_featured ? 'Removed from featured' : 'Offer featured')
             }
           >
-            {o.is_featured ? 'Unfeature' : '★ Feature'}
+            {o.is_featured ? (
+              'Unfeature'
+            ) : (
+              <>
+                <Icon icon={Star} /> Feature
+              </>
+            )}
           </button>
         )}
         <button className="link-btn" onClick={() => setOpen(!open)}>

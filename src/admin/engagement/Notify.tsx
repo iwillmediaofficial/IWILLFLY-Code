@@ -18,6 +18,7 @@ import {
   useFestivals,
   type BroadcastInput,
 } from './api';
+import { Bell } from 'lucide-react';
 
 const AUDIENCES: { key: BroadcastAudience; label: string }[] = [
   { key: 'everyone', label: 'Everyone' },
@@ -286,7 +287,7 @@ function History() {
       {broadcasts.isPending && <Loading />}
       {broadcasts.error && <ErrorNotice error={broadcasts.error} />}
       {broadcasts.data?.length === 0 && (
-        <Empty emoji="🔔" title="Nothing sent yet">
+        <Empty icon={Bell} title="Nothing sent yet">
           Notifications you send show up here.
         </Empty>
       )}

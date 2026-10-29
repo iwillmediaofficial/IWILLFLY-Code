@@ -10,6 +10,8 @@ import { db, must } from '../../lib/queries';
 import { supabase } from '../../lib/supabase';
 import { ErrorNotice, Loading, NoBackend, Thumb } from '../ui';
 import { useSaveToggle, validity } from '../util';
+import { Gift, Heart, Store, X } from 'lucide-react';
+import { Icon } from '../../components/Icon';
 
 interface SavedOfferRow {
   offer_id: number;
@@ -84,7 +86,7 @@ export default function Saved() {
         <LogoHeader
           actions={
             <Link className="icon-btn" to="/explore" aria-label="Explore">
-              ♡
+              <Icon icon={Heart} size={20} />
             </Link>
           }
         />
@@ -96,7 +98,7 @@ export default function Saved() {
         <Loading />
       ) : !session ? (
         <EmptyState
-          emoji="♡"
+          icon={Heart}
           title="Sign in to see your saves"
           text="Save offers and shops to find them here later."
         >
@@ -134,7 +136,7 @@ function SavedLists({ userId }: { userId: string }) {
   if (!offerRows.length && !shopRows.length) {
     return (
       <EmptyState
-        emoji="♡"
+        icon={Heart}
         title="No saved offers yet"
         text="Tap the save button on an offer or shop to keep it here."
       >
@@ -159,7 +161,7 @@ function SavedLists({ userId }: { userId: string }) {
               <>
                 <Thumb
                   imageKey={o?.image_keys[0]}
-                  icon={<CategoryIcon category={o?.shop?.category} fallback="🎁" fill />}
+                  icon={<CategoryIcon category={o?.shop?.category} fallback={Gift} fill />}
                 />
                 <div>
                   <h4>{o?.title ?? 'Offer no longer available'}</h4>
@@ -197,7 +199,7 @@ function SavedLists({ userId }: { userId: string }) {
                   disabled={removeOffer.pending}
                   onClick={() => removeOffer.run(r.offer_id, true)}
                 >
-                  ×
+                  <Icon icon={X} />
                 </button>
               </div>
             );
@@ -218,7 +220,7 @@ function SavedLists({ userId }: { userId: string }) {
                   <Link to={`/shop/${r.shop.id}`} style={{ display: 'contents' }}>
                     <Thumb
                       imageKey={r.shop.logo_key}
-                      icon={<CategoryIcon category={r.shop.category} fallback="🏪" fill />}
+                      icon={<CategoryIcon category={r.shop.category} fallback={Store} fill />}
                     />
                     <div>
                       <h4>{r.shop.name}</h4>
@@ -227,7 +229,7 @@ function SavedLists({ userId }: { userId: string }) {
                   </Link>
                 ) : (
                   <>
-                    <Thumb icon="🏪" />
+                    <Thumb icon={<Icon icon={Store} />} />
                     <div>
                       <h4>Shop no longer listed</h4>
                       <span className="pill-status">Unavailable</span>
@@ -240,12 +242,14 @@ function SavedLists({ userId }: { userId: string }) {
                   disabled={removeShop.pending}
                   onClick={() => removeShop.run(r.shop_id, true)}
                 >
-                  ×
+                  <Icon icon={X} />
                 </button>
               </div>
             ))
           ) : (
-            <p className="meta">No saved shops yet. Tap ♡ on a shop page to save it.</p>
+            <p className="meta">
+              No saved shops yet. Tap <Icon icon={Heart} /> on a shop page to save it.
+            </p>
           )}
         </div>
       </section>

@@ -1,5 +1,7 @@
 import { Empty, ErrorNotice, Loading } from '../ui';
 import { useStats } from './api';
+import { ChartColumn, Check, RefreshCw, X } from 'lucide-react';
+import { Icon } from '../../components/Icon';
 
 const COLS = [
   { key: 'quantity', label: 'Quantity' },
@@ -25,13 +27,19 @@ export function Stats({ campaignId }: { campaignId: number }) {
       <div className="section-head">
         <h2>Stats</h2>
         <button className="link-btn" disabled={stats.isFetching} onClick={() => stats.refetch()}>
-          {stats.isFetching ? 'Refreshing…' : '↻ Refresh'}
+          {stats.isFetching ? (
+            'Refreshing…'
+          ) : (
+            <>
+              <Icon icon={RefreshCw} /> Refresh
+            </>
+          )}
         </button>
       </div>
       {stats.isPending && <Loading />}
       {stats.error && <ErrorNotice error={stats.error} />}
       {stats.data && rows.length === 0 && (
-        <Empty emoji="📊" title="No prizes yet">
+        <Empty icon={ChartColumn} title="No prizes yet">
           Add prizes to see stock and claims here.
         </Empty>
       )}
@@ -55,9 +63,16 @@ export function Stats({ campaignId }: { campaignId: number }) {
                 : { background: '#fff0f1', color: 'var(--color-red)', fontWeight: 800 }
             }
           >
-            {allMatch
-              ? '✓ Stock matches wins: every prize given out was won by a customer.'
-              : '✕ Stock does not match wins for the rows marked below. Check for hand-edited stock.'}
+            {allMatch ? (
+              <>
+                <Icon icon={Check} /> Stock matches wins: every prize given out was won by a customer.
+              </>
+            ) : (
+              <>
+                <Icon icon={X} /> Stock does not match wins for the rows marked below. Check for hand-edited
+                stock.
+              </>
+            )}
           </div>
           <div className="manage-card" style={{ overflowX: 'auto', padding: 0 }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
@@ -80,7 +95,11 @@ export function Stats({ campaignId }: { campaignId: number }) {
                       style={{ borderBottom: line, background: ok ? undefined : '#fff0f1' }}
                     >
                       <td style={{ ...cell, textAlign: 'left', whiteSpace: 'normal', fontWeight: 700 }}>
-                        {ok ? '' : '✕ '}
+                        {!ok && (
+                          <>
+                            <Icon icon={X} />{' '}
+                          </>
+                        )}
                         {r.prize_name}
                         <div className="meta" style={{ fontWeight: 400 }}>
                           {r.remaining} left

@@ -6,6 +6,8 @@ import type { CampaignWinner } from '../../lib/types';
 import { Empty, ErrorNotice, Loading } from '../ui';
 import { useInvalidate } from '../util';
 import { SCRATCH_KEYS, confirmClaim, scratchError, setFraudFlag, useWinners } from './api';
+import { Flag, Trophy } from 'lucide-react';
+import { Icon } from '../../components/Icon';
 
 type Filter = 'all' | 'unclaimed' | 'claimed' | 'expired' | 'flagged';
 const FILTERS: { key: Filter; label: string }[] = [
@@ -73,7 +75,7 @@ export function Winners({ campaignId }: { campaignId: number }) {
       {winners.isPending && <Loading />}
       {winners.error && <ErrorNotice error={winners.error} />}
       {winners.data && shown.length === 0 && (
-        <Empty emoji="🏆" title={filter === 'all' ? 'No winners yet' : 'Nobody here'}>
+        <Empty icon={Trophy} title={filter === 'all' ? 'No winners yet' : 'Nobody here'}>
           {filter === 'all' ? 'Prizes won in this campaign will show up here.' : undefined}
         </Empty>
       )}
@@ -139,7 +141,11 @@ function WinnerCard({ winner: w }: { winner: CampaignWinner }) {
         </div>
         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           <span className={`pill-status ${STATUS_CLASS[w.claim_status]}`}>{w.claim_status}</span>
-          {w.fraud_flag && <span className="pill-status blocked">⚑ Flagged</span>}
+          {w.fraud_flag && (
+            <span className="pill-status blocked">
+              <Icon icon={Flag} /> Flagged
+            </span>
+          )}
           {repeat && <span className="pill-status pending">{w.customer_wins} wins</span>}
         </div>
       </div>
@@ -178,7 +184,7 @@ function WinnerCard({ winner: w }: { winner: CampaignWinner }) {
           </>
         ) : (
           <button className="btn small danger" disabled={flag.isPending} onClick={() => askNote()}>
-            ⚑ Flag as fraud
+            <Icon icon={Flag} /> Flag as fraud
           </button>
         )}
         {w.sponsor_name == null && w.claim_status === 'unclaimed' && !w.fraud_flag && (

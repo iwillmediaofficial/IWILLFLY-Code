@@ -15,6 +15,7 @@ import {
   useAddons,
   type AddonInput,
 } from './api';
+import { Sparkles } from 'lucide-react';
 
 const KINDS = Object.keys(ADDON_LABEL) as AddonKind[];
 
@@ -42,7 +43,7 @@ export function Addons() {
       {addons.isPending && <Loading />}
       {addons.error && <ErrorNotice error={addons.error} />}
       {addons.data?.length === 0 && (
-        <Empty emoji="✨" title="No add-ons yet">
+        <Empty icon={Sparkles} title="No add-ons yet">
           For example “Featured shop · 7 days · ₹199”.
         </Empty>
       )}

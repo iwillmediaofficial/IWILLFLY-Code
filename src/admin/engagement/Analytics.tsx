@@ -4,6 +4,8 @@ import { Empty, ErrorNotice, Loading } from '../ui';
 import { formatDate } from '../util';
 import { addDays, todayIST, useAdminAnalytics } from './api';
 import type { SeriesDef } from './Charts';
+import { ChartColumn, RefreshCw } from 'lucide-react';
+import { Icon } from '../../components/Icon';
 
 const DailyLineChart = lazy(() => import('./Charts').then((m) => ({ default: m.DailyLineChart })));
 const DailyBarChart = lazy(() => import('./Charts').then((m) => ({ default: m.DailyBarChart })));
@@ -95,7 +97,13 @@ export default function AdminAnalytics() {
       <div className="section-head">
         <h2>Analytics</h2>
         <button className="link-btn" disabled={q.isFetching} onClick={() => q.refetch()}>
-          {q.isFetching ? 'Refreshing…' : '↻ Refresh'}
+          {q.isFetching ? (
+            'Refreshing…'
+          ) : (
+            <>
+              <Icon icon={RefreshCw} /> Refresh
+            </>
+          )}
         </button>
       </div>
       <div className="tabs" role="tablist">
@@ -155,7 +163,7 @@ function Report({ data }: { data: Data }) {
 
   if (!hasTraffic && scratchTotal.plays === 0 && usersTotal === 0) {
     return (
-      <Empty emoji="📊" title="No activity in these dates">
+      <Empty icon={ChartColumn} title="No activity in these dates">
         Views, taps, leads, Scratch &amp; Win plays and sign-ups show up here as people use the app.
       </Empty>
     );

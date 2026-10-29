@@ -19,6 +19,8 @@ import {
   useTicket,
   type SupportScope,
 } from './api';
+import { LifeBuoy, Search } from 'lucide-react';
+import { Icon } from '../Icon';
 
 const errorText = (e: unknown) =>
   e instanceof Error ? e.message : 'Something went wrong. Please try again.';
@@ -45,7 +47,7 @@ export function TicketThread({ scope }: { scope: SupportScope }) {
     return (
       <>
         {back}
-        <EmptyState emoji="🔎" title="Ticket not found" text="It may belong to another account." />
+        <EmptyState icon={Search} title="Ticket not found" text="It may belong to another account." />
       </>
     );
   return (
@@ -136,7 +138,11 @@ function Message({ message: m, mine }: { message: TicketMessage; mine: boolean }
     >
       <div className="meta" style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
         <b style={{ color: m.is_staff ? 'var(--color-blue)' : 'var(--color-ink)' }}>
-          {m.is_staff ? '🛟 ' : ''}
+          {m.is_staff && (
+            <>
+              <Icon icon={LifeBuoy} />{' '}
+            </>
+          )}
           {who}
         </b>
         <span>{formatWhen(m.created_at)}</span>

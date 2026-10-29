@@ -19,6 +19,8 @@ import {
   type AdminPrize,
   type PrizeInput,
 } from './api';
+import { Gift, MapPin } from 'lucide-react';
+import { Icon } from '../../components/Icon';
 
 /** 0.05 -> "5"; up to 3 decimals (the database keeps 5 decimals of probability). */
 function toPercent(p: number) {
@@ -103,7 +105,7 @@ export function Prizes({ campaignId }: { campaignId: number }) {
       {prizes.error && <ErrorNotice error={prizes.error} />}
       {vendors.error && <ErrorNotice error={vendors.error} />}
       {prizes.data?.list.length === 0 && editing !== 'new' && (
-        <Empty emoji="🎁" title="No prizes yet">
+        <Empty icon={Gift} title="No prizes yet">
           Add the prizes customers can win, with stock and a chance for each.
         </Empty>
       )}
@@ -165,7 +167,7 @@ function PrizeCard({
     >
       <div style={{ display: 'grid', gridTemplateColumns: '72px 1fr', gap: 12 }}>
         <div className="shop-thumb" style={{ width: 72, height: 72 }}>
-          {p.image_key ? <img src={mediaUrl(p.image_key)} alt="" /> : '🎁'}
+          {p.image_key ? <img src={mediaUrl(p.image_key)} alt="" /> : <Icon icon={Gift} />}
         </div>
         <div style={{ minWidth: 0 }}>
           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 4 }}>
@@ -195,7 +197,7 @@ function PrizeCard({
             )}
           </div>
           <div className="meta">
-            📍 {p.location_ids.length ? `Won only in: ${areas}` : 'Can be won everywhere'}
+            <Icon icon={MapPin} /> {p.location_ids.length ? `Won only in: ${areas}` : 'Can be won everywhere'}
           </div>
           {p.description && (
             <p style={{ fontSize: 13, margin: '6px 0 0', whiteSpace: 'pre-wrap' }}>{p.description}</p>

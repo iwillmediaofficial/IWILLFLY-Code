@@ -1,6 +1,29 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link, matchPath, Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom';
+import {
+  Bell,
+  Building2,
+  CreditCard,
+  FileText,
+  Folders,
+  ImageIcon,
+  Inbox,
+  LayoutDashboard,
+  LogOut,
+  MapPin,
+  MessageCircle,
+  Receipt,
+  Sparkles,
+  Star,
+  Store,
+  Tag,
+  Ticket,
+  TrendingUp,
+  Users,
+  Wallet,
+} from 'lucide-react';
 import { LogoHeader } from '../components/AppShell';
+import { Icon, type LucideIcon } from '../components/Icon';
 import { useAuth, type AppRole } from '../auth/AuthProvider';
 import { db, must } from '../lib/queries';
 import { Categories } from './Categories';
@@ -33,29 +56,29 @@ const EVERYONE: AppRole[] = [...ADMIN, 'support', 'campaign_manager'];
 
 /** Tabs by role. Hiding a tab is only a convenience: RLS decides what each role can read and change. */
 type CountKey = 'vendors' | 'branches' | 'offers' | 'points' | 'billing' | 'support';
-type Tab = { to: string; label: string; icon: string; end?: boolean; roles: AppRole[]; count?: CountKey };
+type Tab = { to: string; label: string; icon: LucideIcon; end?: boolean; roles: AppRole[]; count?: CountKey };
 
 const tabs: Tab[] = [
-  { to: '/admin', label: 'Dashboard', icon: '◧', end: true, roles: EVERYONE },
-  { to: '/admin/vendors', label: 'Vendors', icon: '🏬', roles: ADMIN, count: 'vendors' },
-  { to: '/admin/branches', label: 'New branches', icon: '📍', roles: ADMIN, count: 'branches' },
-  { to: '/admin/offers', label: 'Offers', icon: '🏷️', roles: ADMIN, count: 'offers' },
-  { to: '/admin/scratch', label: 'Scratch & Win', icon: '🎟️', roles: CAMPAIGN },
-  { to: '/admin/festivals', label: 'Festivals', icon: '🪔', roles: CAMPAIGN },
-  { to: '/admin/ads', label: 'Home ads', icon: '🖼️', roles: CAMPAIGN },
-  { to: '/admin/top-picks', label: 'Top Picks', icon: '🌟', roles: ADMIN },
-  { to: '/admin/requests', label: 'Requests', icon: '📥', roles: CAMPAIGN },
-  { to: '/admin/notify', label: 'Notify', icon: '🔔', roles: CAMPAIGN },
-  { to: '/admin/analytics', label: 'Analytics', icon: '📈', roles: CAMPAIGN },
-  { to: '/admin/reports', label: 'Reports', icon: '📄', roles: ADMIN },
-  { to: '/admin/points', label: 'Points', icon: '⭐', roles: ADMIN, count: 'points' },
-  { to: '/admin/billing', label: 'Billing', icon: '💳', roles: ADMIN, count: 'billing' },
-  { to: '/admin/support', label: 'Support', icon: '💬', roles: SUPPORT, count: 'support' },
-  { to: '/admin/team', label: 'Team', icon: '👥', roles: ADMIN },
-  { to: '/admin/audit', label: 'Audit log', icon: '🧾', roles: ADMIN },
-  { to: '/admin/categories', label: 'Categories', icon: '🗂️', roles: ADMIN },
-  { to: '/admin/malls', label: 'Malls', icon: '🏢', roles: ADMIN },
-  { to: '/admin/locations', label: 'Locations', icon: '📍', roles: ADMIN },
+  { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true, roles: EVERYONE },
+  { to: '/admin/vendors', label: 'Vendors', icon: Store, roles: ADMIN, count: 'vendors' },
+  { to: '/admin/branches', label: 'New branches', icon: MapPin, roles: ADMIN, count: 'branches' },
+  { to: '/admin/offers', label: 'Offers', icon: Tag, roles: ADMIN, count: 'offers' },
+  { to: '/admin/scratch', label: 'Scratch & Win', icon: Ticket, roles: CAMPAIGN },
+  { to: '/admin/festivals', label: 'Festivals', icon: Sparkles, roles: CAMPAIGN },
+  { to: '/admin/ads', label: 'Home ads', icon: ImageIcon, roles: CAMPAIGN },
+  { to: '/admin/top-picks', label: 'Top Picks', icon: Star, roles: ADMIN },
+  { to: '/admin/requests', label: 'Requests', icon: Inbox, roles: CAMPAIGN },
+  { to: '/admin/notify', label: 'Notify', icon: Bell, roles: CAMPAIGN },
+  { to: '/admin/analytics', label: 'Analytics', icon: TrendingUp, roles: CAMPAIGN },
+  { to: '/admin/reports', label: 'Reports', icon: FileText, roles: ADMIN },
+  { to: '/admin/points', label: 'Points', icon: Star, roles: ADMIN, count: 'points' },
+  { to: '/admin/billing', label: 'Billing', icon: CreditCard, roles: ADMIN, count: 'billing' },
+  { to: '/admin/support', label: 'Support', icon: MessageCircle, roles: SUPPORT, count: 'support' },
+  { to: '/admin/team', label: 'Team', icon: Users, roles: ADMIN },
+  { to: '/admin/audit', label: 'Audit log', icon: Receipt, roles: ADMIN },
+  { to: '/admin/categories', label: 'Categories', icon: Folders, roles: ADMIN },
+  { to: '/admin/malls', label: 'Malls', icon: Building2, roles: ADMIN },
+  { to: '/admin/locations', label: 'Locations', icon: MapPin, roles: ADMIN },
 ];
 
 /** How the desktop sidebar groups the tabs above. */
@@ -108,7 +131,9 @@ export default function AdminApp() {
                   const n = t.count ? counts[t.count] : 0;
                   return (
                     <NavLink key={t.label} to={t.to} end={t.end}>
-                      <i aria-hidden="true">{t.icon}</i>
+                      <i aria-hidden="true">
+                        <Icon icon={t.icon} size={20} />
+                      </i>
                       <span>{t.label}</span>
                       {n > 0 && <b className="admin-side-count">{n}</b>}
                     </NavLink>
@@ -127,7 +152,7 @@ export default function AdminApp() {
             <div className="admin-side-email">{email}</div>
           </div>
           <button className="icon-btn" aria-label="Sign out" title="Sign out" onClick={() => signOut()}>
-            ⎋
+            <Icon icon={LogOut} size={18} />
           </button>
         </div>
       </aside>
@@ -140,7 +165,7 @@ export default function AdminApp() {
                 <div style={{ opacity: 0.8 }}>{email}</div>
               </div>
               <button className="icon-btn" aria-label="Sign out" title="Sign out" onClick={() => signOut()}>
-                ⎋
+                <Icon icon={LogOut} size={18} />
               </button>
             </>
           }
@@ -329,37 +354,43 @@ function Dashboard() {
     { label: 'Malls', value: s?.malls, to: '/admin/malls' },
     { label: 'Customers', value: s?.customers },
   ];
-  const attentionTiles: { label: string; icon: string; value: number | null | undefined; to: string }[] = [
-    ...(isAdmin
-      ? [
-          {
-            label: 'New branches to check',
-            icon: '📍',
-            value: a?.branches,
-            to: '/admin/branches',
-          },
-          {
-            label: 'Payments to check',
-            icon: '💳',
-            value: a?.invoices,
-            to: '/admin/billing/invoices?status=submitted',
-          },
-          {
-            label: 'Customer bills to check',
-            icon: '🧾',
-            value: a?.bills,
-            to: '/admin/points/bills?status=pending',
-          },
-          {
-            label: 'Cash-outs to pay',
-            icon: '💸',
-            value: a?.payouts,
-            to: '/admin/points/payouts?status=requested',
-          },
-        ]
-      : []),
-    { label: 'Open help tickets', icon: '💬', value: a?.tickets, to: '/admin/support?status=open' },
-  ];
+  const attentionTiles: { label: string; icon: LucideIcon; value: number | null | undefined; to: string }[] =
+    [
+      ...(isAdmin
+        ? [
+            {
+              label: 'New branches to check',
+              icon: MapPin,
+              value: a?.branches,
+              to: '/admin/branches',
+            },
+            {
+              label: 'Payments to check',
+              icon: CreditCard,
+              value: a?.invoices,
+              to: '/admin/billing/invoices?status=submitted',
+            },
+            {
+              label: 'Customer bills to check',
+              icon: Receipt,
+              value: a?.bills,
+              to: '/admin/points/bills?status=pending',
+            },
+            {
+              label: 'Cash-outs to pay',
+              icon: Wallet,
+              value: a?.payouts,
+              to: '/admin/points/payouts?status=requested',
+            },
+          ]
+        : []),
+      {
+        label: 'Open help tickets',
+        icon: MessageCircle,
+        value: a?.tickets,
+        to: '/admin/support?status=open',
+      },
+    ];
   return (
     <>
       <section className="hero admin-hero">
@@ -390,7 +421,7 @@ function Dashboard() {
             {attentionTiles.map((t) => (
               <Link key={t.label} className="info-card attention-card" to={t.to}>
                 <i className="attention-icon desktop-only" aria-hidden="true">
-                  {t.icon}
+                  <Icon icon={t.icon} size={22} />
                 </i>
                 <em className="attention-open desktop-only">Open ›</em>
                 <strong style={t.value ? { color: 'var(--color-orange)' } : undefined}>

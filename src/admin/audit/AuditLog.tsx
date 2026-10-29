@@ -3,6 +3,7 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { db, must } from '../../lib/queries';
 import type { AuditEntry } from '../../lib/types';
 import { Empty, ErrorNotice, Loading } from '../ui';
+import { ScrollText } from 'lucide-react';
 
 const PAGE = 50;
 
@@ -86,7 +87,7 @@ export default function AuditLog() {
       </div>
       {log.isPending && <Loading />}
       {log.error && <ErrorNotice error={log.error} />}
-      {log.data && rows.length === 0 && <Empty emoji="📜" title="No changes recorded yet" />}
+      {log.data && rows.length === 0 && <Empty icon={ScrollText} title="No changes recorded yet" />}
       {rows.map((e) => (
         <Entry key={e.id} entry={e} />
       ))}

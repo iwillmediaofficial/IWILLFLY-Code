@@ -1679,6 +1679,44 @@
   .saved-empty .emoji {
     font-size: 56px;
   }
+  /* Line icons (components/Icon.tsx): 1em square, sitting on the text baseline like a letter. */
+  .lic {
+    display: inline-block;
+    flex: none;
+    vertical-align: -0.14em;
+  }
+  .ico-bubble {
+    width: 84px;
+    height: 84px;
+    margin: 0 auto;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--color-blue-soft);
+    color: var(--color-blue);
+  }
+  .save-heart.on {
+    color: var(--color-red);
+  }
+  .ico-bubble .lic,
+  .emoji > .lic {
+    display: block;
+  }
+  /* Placeholder pictures (no photo uploaded): a blue line icon on the soft background, a bit smaller than the box. */
+  .shop-thumb > .lic,
+  .cat .ico > .lic,
+  .offer-icon > .lic,
+  .cat-tile-ico > .lic,
+  .cat-thumb > .lic,
+  .contact-icon > .lic,
+  .tp-thumb > .lic,
+  .win-icon > .lic,
+  .p-img > .lic {
+    display: block;
+    width: 0.8em;
+    height: 0.8em;
+    color: var(--color-blue);
+  }
   .saved-empty h3 {
     margin: 10px 0 5px;
   }
@@ -3291,6 +3329,16 @@
     text-align: center;
     font-style: normal;
     font-size: 15px;
+  }
+  .vendor-side-nav i .lic,
+  .admin-side-nav i .lic,
+  .attention-icon .lic,
+  .icon-btn .lic {
+    display: block;
+    margin: 0 auto;
+  }
+  .attention-icon .lic {
+    color: var(--color-blue);
   }
   .vendor-side-nav span {
     flex: 1;

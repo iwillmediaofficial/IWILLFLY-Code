@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { ErrorNotice, Loading } from '../../customer/ui';
 import { EmptyState } from '../ShopCard';
 import { categoryLabel, formatWhen, statusClass, statusLabel, useTickets, type SupportScope } from './api';
+import { MessageCircle } from 'lucide-react';
 
 /** The signed-in person's (or business's) support tickets, newest activity first. */
 export function TicketList({ scope }: { scope: SupportScope }) {
@@ -28,7 +29,7 @@ export function TicketList({ scope }: { scope: SupportScope }) {
         <ErrorNotice error={error} onRetry={() => refetch()} />
       ) : data.length === 0 ? (
         <EmptyState
-          emoji="💬"
+          icon={MessageCircle}
           title="No tickets yet"
           text="Questions you send to IWILLFLY support show up here."
         >

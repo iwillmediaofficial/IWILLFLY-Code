@@ -4,6 +4,8 @@ import { useToast } from '../components/Toast';
 import { db, must } from '../lib/queries';
 import { Empty, ErrorNotice, Loading } from './ui';
 import { PUBLIC_KEYS, formatDate, friendlyError, useInvalidate } from './util';
+import { MapPin, Phone, Receipt } from 'lucide-react';
+import { Icon } from '../components/Icon';
 
 /** Row from admin_pending_branches() */
 type PendingBranch = {
@@ -53,7 +55,7 @@ export function PendingBranches() {
       {list.isPending && <Loading />}
       {list.error && <ErrorNotice error={list.error} />}
       {list.data?.length === 0 && (
-        <Empty emoji="📍" title="No branches to check">
+        <Empty icon={MapPin} title="No branches to check">
           New branches from vendors will show up here.
         </Empty>
       )}
@@ -99,7 +101,12 @@ function BranchCard({ branch: b }: { branch: PendingBranch }) {
       </div>
       <div className="meta" style={{ marginTop: 4 }}>
         {[b.address, b.area].filter(Boolean).join(' · ') || 'No address given'}
-        {b.phone && ` · 📞 ${b.phone}`}
+        {b.phone && (
+          <>
+            {' '}
+            · <Icon icon={Phone} /> {b.phone}
+          </>
+        )}
       </div>
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '6px 0' }}>
         {b.review_status === 'pending' ? (
@@ -120,7 +127,7 @@ function BranchCard({ branch: b }: { branch: PendingBranch }) {
           to={`/admin/billing/invoices/${b.invoice_id}`}
           style={{ display: 'block', color: 'var(--color-blue)', fontWeight: 700 }}
         >
-          🧾 Invoice {b.invoice_number}
+          <Icon icon={Receipt} /> Invoice {b.invoice_number}
           {b.invoice_total != null && ` · ₹${Number(b.invoice_total).toFixed(2)}`}
         </Link>
       )}
@@ -132,7 +139,7 @@ function BranchCard({ branch: b }: { branch: PendingBranch }) {
           rel="noreferrer"
           style={{ color: 'var(--color-blue)', fontWeight: 700 }}
         >
-          📍 Open the map pin
+          <Icon icon={MapPin} /> Open the map pin
         </a>
       ) : (
         <div className="meta">No map pin yet</div>

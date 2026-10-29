@@ -2,6 +2,8 @@ import type { ReactNode } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { useUnreadCount } from '../lib/engagement';
+import { Bell } from 'lucide-react';
+import { Icon } from './Icon';
 
 export function AppShell({ children, header }: { children: ReactNode; header: ReactNode }) {
   return (
@@ -47,7 +49,7 @@ export function NotificationBell() {
       to="/notifications"
       aria-label={count ? `Notifications, ${count} unread` : 'Notifications'}
     >
-      🔔
+      <Icon icon={Bell} size={20} />
       {count > 0 && <span className="bell-badge">{count > 9 ? '9+' : count}</span>}
     </Link>
   );

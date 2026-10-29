@@ -9,6 +9,8 @@ import { usePlace } from '../../lib/location';
 import { useCategories, useShopSearch } from '../../lib/queries';
 import { supabase } from '../../lib/supabase';
 import { ErrorNotice, Loading, NoBackend } from '../ui';
+import { MapPin, Search } from 'lucide-react';
+import { Icon } from '../../components/Icon';
 
 export default function Explore() {
   const [params, setParams] = useSearchParams();
@@ -74,7 +76,13 @@ export default function Explore() {
       <div className="section-head">
         <h2>Explore offers</h2>
         <button onClick={nearMe} disabled={locating}>
-          {locating ? 'Locating…' : '📍 Near you'}
+          {locating ? (
+            'Locating…'
+          ) : (
+            <>
+              <Icon icon={MapPin} /> Near you
+            </>
+          )}
         </button>
       </div>
       <div className="filter-bar">
@@ -101,7 +109,15 @@ export default function Explore() {
             ? 'Shops are sorted by distance so you can quickly discover nearby live deals.'
             : 'Set your location to see the nearest shops and live deals first.'}
         </p>
-        <span className="hero-pill">{place ? `📍 ${place.label}` : 'Location not set'}</span>
+        <span className="hero-pill">
+          {place ? (
+            <>
+              <Icon icon={MapPin} /> {place.label}
+            </>
+          ) : (
+            'Location not set'
+          )}
+        </span>
       </section>
       <section className="section">
         <div className="section-head">
@@ -120,7 +136,7 @@ export default function Explore() {
               shops.data.map((s) => <ShopCard key={s.shop_id} shop={s} />)
             ) : (
               <EmptyState
-                emoji="🔎"
+                icon={Search}
                 title={q || cat ? 'No matching shops' : 'No shops yet'}
                 text={
                   q || cat

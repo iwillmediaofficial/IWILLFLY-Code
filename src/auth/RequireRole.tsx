@@ -2,6 +2,8 @@ import type { ReactNode } from 'react';
 import { Link, Navigate, useLocation } from 'react-router-dom';
 import { PageLoader } from '../components/PageLoader';
 import { useAuth, type AppRole } from './AuthProvider';
+import { Lock } from 'lucide-react';
+import { IconBubble } from '../components/Icon';
 
 /** Shows children only to signed-in users holding one of the roles. RLS still enforces this on the server. */
 export function RequireRole({
@@ -22,7 +24,7 @@ export function RequireRole({
     return (
       <div className="center-screen">
         <div>
-          <div style={{ fontSize: 48 }}>🔒</div>
+          <IconBubble icon={Lock} />
           <h3 style={{ margin: '10px 0 5px' }}>No access</h3>
           <p className="meta">Your account does not have access to this area.</p>
           <Link className="btn" to="/" style={{ display: 'inline-block', marginTop: 12 }}>

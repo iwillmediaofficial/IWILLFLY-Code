@@ -3,6 +3,8 @@ import type { Branch } from '../../lib/types';
 import { useCanEditPrizes } from '../context';
 import { ErrorNote, Loading } from '../ui';
 import { useCampaignLists, useMyPrizes } from './api';
+import { Gift } from 'lucide-react';
+import { Icon } from '../../components/Icon';
 
 /** On a branch page: the Scratch & Win prizes collected at this branch, and where to add one. */
 export function BranchPrizes({ branch }: { branch: Branch }) {
@@ -35,7 +37,9 @@ export function BranchPrizes({ branch }: { branch: Branch }) {
               className="shop-card"
               style={{ alignItems: 'start' }}
             >
-              <div className="shop-thumb">🎁</div>
+              <div className="shop-thumb">
+                <Icon icon={Gift} />
+              </div>
               <div style={{ minWidth: 0 }}>
                 <h4>{p.name}</h4>
                 <div className="meta">
