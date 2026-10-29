@@ -11,7 +11,7 @@ import { handleSeo } from './seo';
 import { cleanupUploadLog, handleUpload } from './upload';
 
 // The app itself is static files served by Workers Static Assets (see wrangler.jsonc).
-// Only /api/*, /assets/*, the SEO paths (/shop/*, /mall/*, /sitemap.xml, /robots.txt) and the cron trigger reach this code.
+// Only /api/*, the SEO paths (/shop/*, /mall/*, /sitemap.xml, /robots.txt) and the cron trigger reach this code.
 async function route(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const { pathname } = new URL(request.url);
   if (request.method === 'POST' && pathname === '/api/upload') return handleUpload(request, env);
@@ -41,20 +41,9 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
   if (request.method === 'POST' && pathname === '/api/pay/razorpay/webhook')
     return handleRazorpayWebhook(request, env);
   if (pathname.startsWith('/api/')) return new Response('Not found', { status: 404 });
-  if (pathname.startsWith('/assets/')) return handleAsset(request, env);
   const seo = await handleSeo(request, env, ctx);
   if (seo) return seo;
   return env.ASSETS.fetch(request);
-}
-
-// Built files have hashed names and are deleted by the next deploy. Without this, a request for an old one gets
-// index.html (the single-page fallback), which the browser cannot run as a script, so a page left open goes blank.
-// A real 404 makes the app reload onto the new version instead (src/lib/chunkReload.ts).
-async function handleAsset(request: Request, env: Env): Promise<Response> {
-  const res = await env.ASSETS.fetch(request);
-  if (res.headers.get('content-type')?.includes('text/html'))
-    return new Response('Not found', { status: 404 });
-  return res;
 }
 
 export default {
