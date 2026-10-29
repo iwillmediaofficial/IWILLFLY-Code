@@ -30,8 +30,9 @@ export function LocationButton() {
         title="Change location"
         onClick={() => setOpen(true)}
         style={{
-          display: 'block',
-          lineHeight: '40px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 5,
           width: 'auto',
           maxWidth: 150,
           padding: '0 10px',
@@ -42,7 +43,8 @@ export function LocationButton() {
           fontWeight: 800,
         }}
       >
-        <Icon icon={MapPin} /> {label ?? 'Set location'}
+        <Icon icon={MapPin} size={15} style={{ margin: 0 }} />
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{label ?? 'Set location'}</span>
       </button>
       <Sheet open={open} onClose={close} title="Your location" subtitle="Offers are sorted nearest first">
         {session ? open && <AreaLocationPicker onSaved={close} /> : <LocationChooser onDone={close} />}
