@@ -3,15 +3,24 @@ import { createRoot } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { registerSW } from 'virtual:pwa-register';
 import App from './App';
+import { AppErrorBoundary } from './components/AppErrorBoundary';
+import { reloadForNewVersion } from './lib/chunkReload';
 import './styles/index.css';
+
+// Vite reports a page file it could not preload here; reload onto the new version instead of throwing.
+window.addEventListener('vite:preloadError', (event) => {
+  if (reloadForNewVersion()) event.preventDefault();
+});
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 60_000 } } });
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <App />
-    </QueryClientProvider>
+    <AppErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <App />
+      </QueryClientProvider>
+    </AppErrorBoundary>
   </StrictMode>,
 );
 
