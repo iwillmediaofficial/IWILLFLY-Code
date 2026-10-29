@@ -430,7 +430,7 @@ export type AdLinkKind = 'none' | 'url' | 'shop' | 'offer' | 'festival' | 'mall'
 export interface Ad {
   id: number;
   pill: string | null;
-  title: string;
+  title: string | null;
   subtitle: string | null;
   image_key: string | null;
   /** prototype colour themes */

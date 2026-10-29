@@ -45,9 +45,13 @@ const isLinked = (ad: Ad | undefined) => Boolean(ad && ad.link_kind !== 'none' &
 
 function slideStyle(s: Slide): CSSProperties | undefined {
   if (!s.imageKey && !isLinked(s.ad)) return undefined;
+  // The dark shade only keeps words readable; a picture-only ad shows the picture as it is.
+  const hasText = Boolean(s.pill || s.lines.length || s.text);
   return {
     ...(s.imageKey && {
-      backgroundImage: `linear-gradient(180deg, rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.68)), url(${mediaUrl(s.imageKey)})`,
+      backgroundImage: hasText
+        ? `linear-gradient(180deg, rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.68)), url(${mediaUrl(s.imageKey)})`
+        : `url(${mediaUrl(s.imageKey)})`,
       backgroundSize: 'cover',
       backgroundPosition: 'center',
     }),
@@ -63,7 +67,7 @@ export function AdSlider() {
         key: `ad${a.id}`,
         cls: STYLES.includes(a.style) ? a.style : 'ad1',
         pill: a.pill,
-        lines: a.title.split('\n'),
+        lines: a.title?.trim() ? a.title.split('\n') : [],
         text: a.subtitle,
         imageKey: a.image_key,
         ad: a,
@@ -108,14 +112,16 @@ export function AdSlider() {
               onKeyDown={ad ? (e) => e.key === 'Enter' && open(ad) : undefined}
             >
               {s.pill && <span className="pill">{s.pill}</span>}
-              <h3>
-                {s.lines.map((line, n) => (
-                  <span key={n}>
-                    {n > 0 && <br />}
-                    {line}
-                  </span>
-                ))}
-              </h3>
+              {s.lines.length > 0 && (
+                <h3>
+                  {s.lines.map((line, n) => (
+                    <span key={n}>
+                      {n > 0 && <br />}
+                      {line}
+                    </span>
+                  ))}
+                </h3>
+              )}
               {s.text && <p>{s.text}</p>}
             </div>
           );
