@@ -116,6 +116,12 @@ set local role authenticated;
 insert into public.ads (title, style, link_kind, link_target) values ('Onam deals', 'ad1', 'festival', 'onam-2026');
 insert into public.ads (title, is_active) values ('Hidden', false);
 insert into public.ads (title, starts_on) values ('Next week', private.today_ist() + 7);
+insert into public.ads (title, pill, image_key, is_active) values (null, null, 'ads/picture-only.webp', false);
+do $$ begin
+  insert into public.ads (title) values ('x');
+  raise exception 'ENGAGEMENT TEST FAILED: a 1-letter ad title was accepted';
+exception when check_violation then raise notice 'ok - ad titles still need 2 letters when given';
+end $$;
 reset role;
 select pg_temp.act_as(null);
 set local role anon;

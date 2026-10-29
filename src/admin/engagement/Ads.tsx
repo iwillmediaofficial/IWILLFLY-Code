@@ -69,9 +69,13 @@ export function AdPreview({
   style,
   image_key,
 }: Pick<Ad, 'pill' | 'title' | 'subtitle' | 'style' | 'image_key'>) {
+  const hasText = Boolean(pill || title?.trim() || subtitle);
   const bg: CSSProperties | undefined = image_key
     ? {
-        backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.15), rgba(0,0,0,0.6)), url("${mediaUrl(image_key)}")`,
+        // The dark shade only keeps words readable; a picture-only ad shows the picture as it is.
+        backgroundImage: hasText
+          ? `linear-gradient(180deg, rgba(0,0,0,0.15), rgba(0,0,0,0.6)), url("${mediaUrl(image_key)}")`
+          : `url("${mediaUrl(image_key)}")`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
       }
@@ -81,7 +85,7 @@ export function AdPreview({
       <div className="ad-track">
         <div className={`ad ${style}`} style={bg}>
           {pill && <span className="pill">{pill}</span>}
-          <h3 style={{ whiteSpace: 'pre-line' }}>{title || 'Your title here'}</h3>
+          {title?.trim() && <h3 style={{ whiteSpace: 'pre-line' }}>{title}</h3>}
           {subtitle && <p>{subtitle}</p>}
         </div>
       </div>
@@ -271,8 +275,10 @@ function AdForm({ ad, prefill }: { ad?: Ad; prefill?: Partial<AdInput> }) {
       .map((l) => l.trim())
       .filter(Boolean)
       .join('\n');
-    if (title.length < 2) return setError('Enter the title.');
+    if (title.length === 1) return setError('The title needs at least 2 letters, or leave it empty.');
     if (title.split('\n').length > 2) return setError('The title can have at most two lines.');
+    if (!title && !f.subtitle.trim() && !f.image_key)
+      return setError('Add a title, a subtitle or a picture, so the ad shows something.');
     if (!f.starts_on) return setError('Choose a start date.');
     if (f.ends_on && f.ends_on < f.starts_on)
       return setError('The end date cannot be before the start date.');
@@ -284,7 +290,7 @@ function AdForm({ ad, prefill }: { ad?: Ad; prefill?: Partial<AdInput> }) {
       return setError('Enter the offer number (the digits at the end of the offer link).');
     save.mutate({
       pill: f.pill.trim() || null,
-      title,
+      title: title || null,
       subtitle: f.subtitle.trim() || null,
       image_key: f.image_key,
       style: f.style,
@@ -365,7 +371,7 @@ function AdForm({ ad, prefill }: { ad?: Ad; prefill?: Partial<AdInput> }) {
         />
       </div>
       <div className="field">
-        <label htmlFor="ad-pill">Pill text</label>
+        <label htmlFor="ad-pill">Pill text (optional)</label>
         <input
           id="ad-pill"
           value={f.pill}
@@ -375,12 +381,11 @@ function AdForm({ ad, prefill }: { ad?: Ad; prefill?: Partial<AdInput> }) {
         />
       </div>
       <div className="field">
-        <label htmlFor="ad-title">Title</label>
+        <label htmlFor="ad-title">Title (optional)</label>
         <textarea
           id="ad-title"
           rows={2}
           maxLength={80}
-          required
           placeholder={'Celebrate Local.\nSave More.'}
           value={f.title}
           onChange={(e) => set({ title: e.target.value })}
