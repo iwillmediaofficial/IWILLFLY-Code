@@ -15,6 +15,8 @@ import { errorMessage, hoursError, orNull, phoneError } from './format';
 import { HolidaysEditor, HoursEditor } from './HoursEditor';
 import { BranchPrizes } from './scratch/BranchPrizes';
 import { BlockedNote, ErrorNote, Loading, Lockable, NotFound, PageHead } from './ui';
+import { CreditCard, Link2 } from 'lucide-react';
+import { Icon } from '../components/Icon';
 
 // Leaflet is only downloaded when a branch editor opens.
 const MapPin = lazy(() => import('../components/MapPin').then((m) => ({ default: m.MapPin })));
@@ -277,7 +279,13 @@ function BranchForm({ shop, branch }: { shop: Shop; branch: Branch | null }) {
                       : '/vendor/billing'
                   }
                 >
-                  {branch.payment_invoice_id != null ? '💳 Pay the invoice' : 'Go to billing'}
+                  {branch.payment_invoice_id != null ? (
+                    <>
+                      <Icon icon={CreditCard} /> Pay the invoice
+                    </>
+                  ) : (
+                    'Go to billing'
+                  )}
                 </Link>
               </div>
             )
@@ -299,7 +307,7 @@ function BranchForm({ shop, branch }: { shop: Shop; branch: Branch | null }) {
       )}
       {branch?.review_status === 'approved' && (
         <p className="meta" style={{ marginTop: 0 }}>
-          🔗 {window.location.host}/shop/{shop.slug}/{branch.slug}
+          <Icon icon={Link2} /> {window.location.host}/shop/{shop.slug}/{branch.slug}
         </p>
       )}
       <form className="form-card" onSubmit={submit} noValidate>
@@ -342,7 +350,7 @@ function BranchForm({ shop, branch }: { shop: Shop; branch: Branch | null }) {
               <option value="">Not set</option>
               {PARKING.map((p) => (
                 <option key={p.value} value={p.value}>
-                  {p.icon} {p.label}
+                  {p.label}
                 </option>
               ))}
             </select>

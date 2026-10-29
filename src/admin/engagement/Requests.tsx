@@ -6,6 +6,8 @@ import { Empty, ErrorNotice, Loading } from '../ui';
 import { formatDate, one, useInvalidate } from '../util';
 import type { AdPrefill } from './Ads';
 import { ENG_KEYS, PLACEMENT_LABEL, decideRequest, engError, useRequests, type RequestRow } from './api';
+import { Inbox, Star } from 'lucide-react';
+import { Icon } from '../../components/Icon';
 
 const TABS: { key: RequestStatus; label: string }[] = [
   { key: 'pending', label: 'Pending' },
@@ -53,7 +55,7 @@ export default function AdminRequests() {
       {requests.isPending && <Loading />}
       {requests.error && <ErrorNotice error={requests.error} />}
       {requests.data?.length === 0 && (
-        <Empty emoji="📬" title={tab === 'pending' ? 'No requests waiting' : 'Nothing here'}>
+        <Empty icon={Inbox} title={tab === 'pending' ? 'No requests waiting' : 'Nothing here'}>
           {tab === 'pending' ? 'When a vendor asks to be featured, it shows up here.' : undefined}
         </Empty>
       )}
@@ -152,7 +154,11 @@ function RequestCard({ request: r }: { request: RequestRow }) {
           <span className={`pill-status ${STATUS_CLASS[r.status]}`}>
             {r.status === 'rejected' ? 'declined' : r.status}
           </span>
-          {offer?.is_featured && <span className="pill-status featured">★ Featured</span>}
+          {offer?.is_featured && (
+            <span className="pill-status featured">
+              <Icon icon={Star} /> Featured
+            </span>
+          )}
         </div>
       </div>
       <div style={{ fontSize: 13, marginTop: 6, display: 'grid', gap: 2 }}>

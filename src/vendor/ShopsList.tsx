@@ -4,6 +4,8 @@ import { mediaUrl } from '../lib/supabase';
 import { useMyShops } from './api';
 import { useReadOnly } from './context';
 import { ErrorNote, Loading, PageHead } from './ui';
+import { Store } from 'lucide-react';
+import { Icon, IconBubble } from '../components/Icon';
 
 /** A business has one shop (with many branches): this opens it, or lets the owner add it. */
 export default function ShopsList() {
@@ -21,7 +23,7 @@ export default function ShopsList() {
         <ErrorNote error={error} />
       ) : shops.length === 0 ? (
         <div className="saved-empty">
-          <div className="emoji">🏪</div>
+          <IconBubble icon={Store} />
           <h3>No shop yet</h3>
           <p>Add your shop, then its branches and offers.</p>
           {!readOnly && (
@@ -40,7 +42,7 @@ export default function ShopsList() {
                   {s.logo_key ? (
                     <img src={mediaUrl(s.logo_key)} alt="" loading="lazy" decoding="async" />
                   ) : (
-                    '🏪'
+                    <Icon icon={Store} />
                   )}
                 </div>
                 <div>

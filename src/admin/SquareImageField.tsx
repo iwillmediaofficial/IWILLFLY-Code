@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { UploadProgressBar } from '../components/UploadProgressBar';
 import { mediaUrl } from '../lib/supabase';
 import { uploadImage, type UploadFolder, type UploadProgress } from '../lib/upload';
@@ -10,14 +10,14 @@ import { uploadImage, type UploadFolder, type UploadProgress } from '../lib/uplo
 export function SquareImageField({
   value,
   onChange,
-  emoji,
+  icon,
   folder,
   alt,
 }: {
   value: string | null;
   onChange: (key: string | null) => void;
   /** Shown when there is no picture */
-  emoji: string;
+  icon: ReactNode;
   folder: UploadFolder;
   alt: string;
 }) {
@@ -45,7 +45,7 @@ export function SquareImageField({
       <label>Picture (square)</label>
       <div className="cat-image-field">
         <div className="cat-image-preview">
-          {value ? <img src={mediaUrl(value)} alt={alt} width={96} height={96} /> : <span>{emoji}</span>}
+          {value ? <img src={mediaUrl(value)} alt={alt} width={96} height={96} /> : <span>{icon}</span>}
           {busy && <div className="cat-image-busy">Uploading…</div>}
         </div>
         <div>
@@ -70,7 +70,7 @@ export function SquareImageField({
             )}
           </div>
           <div className="hint">
-            Any photo works: we crop the centre to a square (512 × 512). Without a picture, the emoji is
+            Any photo works: we crop the centre to a square (512 × 512). Without a picture, a line icon is
             shown.
           </div>
           {progress && <UploadProgressBar progress={progress} />}

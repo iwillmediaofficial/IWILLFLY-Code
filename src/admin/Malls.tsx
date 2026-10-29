@@ -10,6 +10,8 @@ import { mediaUrl } from '../lib/supabase';
 import type { Mall } from '../lib/types';
 import { Empty, ErrorNotice, Loading } from './ui';
 import { PUBLIC_KEYS, friendlyError, one, slugify, toNumber, useInvalidate } from './util';
+import { Building2, Store, TriangleAlert } from 'lucide-react';
+import { Icon } from '../components/Icon';
 
 const MapPin = lazy(() => import('../components/MapPin').then((m) => ({ default: m.MapPin })));
 
@@ -36,7 +38,7 @@ export function Malls() {
       {malls.isPending && <Loading />}
       {malls.error && <ErrorNotice error={malls.error} />}
       {malls.data?.length === 0 && (
-        <Empty emoji="🏢" title="No malls yet">
+        <Empty icon={Building2} title="No malls yet">
           Add a mall, then add the shops inside it.
         </Empty>
       )}
@@ -44,7 +46,7 @@ export function Malls() {
         {malls.data?.map((m) => (
           <Link key={m.id} className="shop-card" to={`/admin/malls/${m.id}`}>
             <div className="shop-thumb">
-              {m.cover_key ? <img src={mediaUrl(m.cover_key)} alt="" /> : '🏢'}
+              {m.cover_key ? <img src={mediaUrl(m.cover_key)} alt="" /> : <Icon icon={Building2} />}
             </div>
             <div style={{ minWidth: 0 }}>
               <h4>
@@ -53,7 +55,12 @@ export function Malls() {
               <div className="meta">{locationPath(locations, m.location_id) || 'No area set'}</div>
               <div className="meta">
                 {m.mall_shops[0]?.count ?? 0} shops · order {m.sort_order}
-                {m.lat == null && ' · ⚠ no map pin'}
+                {m.lat == null && (
+                  <>
+                    {' '}
+                    · <Icon icon={TriangleAlert} /> no map pin
+                  </>
+                )}
               </div>
             </div>
             <div className="chev">›</div>
@@ -541,8 +548,13 @@ function AddShop({ mallId, onAdded }: { mallId: number; onAdded: () => void }) {
                     <div className="grow" style={{ minWidth: 0 }}>
                       <b style={{ fontSize: 13 }}>{shop?.name}</b>
                       <div className="meta">
-                        {vendor &&
-                          `🏪 ${vendor.business_name}${vendor.status !== 'approved' ? ` (${vendor.status})` : ''} · `}
+                        {vendor && (
+                          <>
+                            <Icon icon={Store} /> {vendor.business_name}
+                            {vendor.status !== 'approved' ? ` (${vendor.status})` : ''}
+                            {' · '}
+                          </>
+                        )}
                         {b.name}
                         {b.address ? ` · ${b.address}` : ''}
                         {here && ' · already in this mall'}

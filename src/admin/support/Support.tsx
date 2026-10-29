@@ -22,6 +22,8 @@ import {
   useStaff,
   useTicket,
 } from './api';
+import { MessageCircle, Store, User } from 'lucide-react';
+import { Icon } from '../../components/Icon';
 
 export default function SupportAdmin() {
   return (
@@ -81,7 +83,10 @@ function Queue() {
       {queue.isPending && <Loading />}
       {queue.error && <ErrorNotice error={queue.error} />}
       {queue.data && rows.length === 0 && (
-        <Empty emoji="💬" title={filter === 'open' || filter === 'all' ? 'No tickets here' : 'Nothing here'}>
+        <Empty
+          icon={MessageCircle}
+          title={filter === 'open' || filter === 'all' ? 'No tickets here' : 'Nothing here'}
+        >
           {filter === 'open' ? 'New help requests from customers and vendors show up here.' : undefined}
         </Empty>
       )}
@@ -98,7 +103,9 @@ function QueueRow({ ticket: t, me }: { ticket: QueueTicket; me: string | undefin
   const who = t.business_name ?? t.opener_name ?? t.opener_email ?? 'Someone';
   return (
     <Link className="shop-card" to={`/admin/support/${t.id}`}>
-      <div className="shop-thumb">{t.vendor_id != null ? '🏪' : '🙂'}</div>
+      <div className="shop-thumb">
+        <Icon icon={t.vendor_id != null ? Store : User} />
+      </div>
       <div style={{ minWidth: 0 }}>
         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 4 }}>
           <StatusPill status={t.status} />

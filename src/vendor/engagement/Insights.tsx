@@ -6,6 +6,8 @@ import { ErrorNote, Loading, PageHead } from '../ui';
 import { addDays, useVendorAnalytics } from './api';
 import { num, shortDay, tapRate } from './format';
 import type { ChartDay } from './InsightsChart';
+import { TrendingUp } from 'lucide-react';
+import { IconBubble } from '../../components/Icon';
 
 // recharts is big: load the chart only when this page needs it.
 const InsightsChart = lazy(() => import('./InsightsChart'));
@@ -83,7 +85,7 @@ function Report({ data: a }: { data: VendorAnalytics }) {
   if (isEmpty(a)) {
     return (
       <div className="saved-empty">
-        <div className="emoji">📈</div>
+        <IconBubble icon={TrendingUp} />
         <h3>No activity yet</h3>
         <p>
           Your numbers appear here as customers find your shop: each time someone opens your shop or an offer,

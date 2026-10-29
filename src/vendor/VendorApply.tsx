@@ -2,10 +2,12 @@ import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { AppShell, LogoHeader } from '../components/AppShell';
 import { VendorOnboarding } from './onboarding/VendorOnboarding';
+import { Store, Tag } from 'lucide-react';
+import { Icon, type LucideIcon } from '../components/Icon';
 
-const perks = [
-  ['🏪', 'Your shops on the map', 'Branches, hours and directions for nearby customers'],
-  ['🏷️', 'Post offers any time', 'Each offer goes live once our team has checked it'],
+const perks: [LucideIcon, string, string][] = [
+  [Store, 'Your shops on the map', 'Branches, hours and directions for nearby customers'],
+  [Tag, 'Post offers any time', 'Each offer goes live once our team has checked it'],
 ];
 
 export default function VendorApply() {
@@ -27,7 +29,9 @@ export default function VendorApply() {
       <section className="section list">
         {perks.map(([icon, title, meta]) => (
           <div key={title} className="shop-card" style={{ cursor: 'default' }}>
-            <div className="shop-thumb">{icon}</div>
+            <div className="shop-thumb">
+              <Icon icon={icon} />
+            </div>
             <div>
               <h4>{title}</h4>
               <div className="meta">{meta}</div>

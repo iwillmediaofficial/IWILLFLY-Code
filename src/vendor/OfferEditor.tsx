@@ -18,6 +18,8 @@ import {
   todayIST,
 } from './format';
 import { BlockedNote, ErrorNote, FormError, Loading, Lockable, NotFound, PageHead } from './ui';
+import { Hourglass, Pause, Play, Store } from 'lucide-react';
+import { Icon, IconBubble } from '../components/Icon';
 
 export default function OfferEditor() {
   const { id } = useParams();
@@ -33,7 +35,7 @@ export default function OfferEditor() {
   if (shops.length === 0) {
     return (
       <div className="saved-empty">
-        <div className="emoji">🏪</div>
+        <IconBubble icon={Store} />
         <h3>Add a shop first</h3>
         <p>Every offer belongs to one of your shops.</p>
         <Link className="btn" to="/vendor/shops/new" style={{ display: 'inline-block', marginTop: 8 }}>
@@ -45,7 +47,7 @@ export default function OfferEditor() {
   if (!id && !approved) {
     return (
       <div className="saved-empty">
-        <div className="emoji">⏳</div>
+        <IconBubble icon={Hourglass} />
         <h3>Offers open after approval</h3>
         <p>You can add offers once the IWILLFLY team approves your business.</p>
         <Link className="btn" to="/vendor" style={{ display: 'inline-block', marginTop: 8 }}>
@@ -432,7 +434,15 @@ function OfferForm({
                 disabled={pause.isPending}
                 onClick={() => pause.mutate(!offer.is_paused)}
               >
-                {offer.is_paused ? '▶ Resume offer' : '⏸ Pause offer'}
+                {offer.is_paused ? (
+                  <>
+                    <Icon icon={Play} /> Resume offer
+                  </>
+                ) : (
+                  <>
+                    <Icon icon={Pause} /> Pause offer
+                  </>
+                )}
               </button>
               <button
                 className="btn danger"

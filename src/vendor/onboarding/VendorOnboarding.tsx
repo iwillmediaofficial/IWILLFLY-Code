@@ -27,6 +27,8 @@ import {
   type BranchDraft,
   type Draft,
 } from './draft';
+import { Clock, MapPinIcon, MessageCircle, Phone } from 'lucide-react';
+import { Icon } from '../../components/Icon';
 
 // Leaflet is only downloaded when the location step opens.
 const MapPin = lazy(() => import('../../components/MapPin').then((m) => ({ default: m.MapPin })));
@@ -492,7 +494,7 @@ function PlaceFields({
           <option value="">Choose one</option>
           {PARKING.map((p) => (
             <option key={p.value} value={p.value}>
-              {p.icon} {p.label}
+              {p.label}
             </option>
           ))}
         </select>
@@ -691,7 +693,7 @@ function ReviewStep({
           {d.description}
         </div>
         <div className="meta">
-          📞 {d.phone} · 💬 {d.waSame ? d.phone : d.whatsapp}
+          <Icon icon={Phone} /> {d.phone} · <Icon icon={MessageCircle} /> {d.waSame ? d.phone : d.whatsapp}
         </div>
         <div className="meta">
           Logo: {logo ? 'added' : 'not added'} · Cover photo: {cover ? 'added' : 'not added'}
@@ -706,11 +708,20 @@ function ReviewStep({
           <div>{b.address}</div>
           <div className="meta">
             {locations.find((l) => l.id === b.location_id)?.name ?? 'No Area'} ·{' '}
-            {b.lat != null ? '📍 Pin set' : 'No pin'} · {parkingInfo(b.parking)?.icon}{' '}
+            {b.lat != null ? (
+              <>
+                <Icon icon={MapPinIcon} /> Pin set
+              </>
+            ) : (
+              'No pin'
+            )}{' '}
+            · {parkingInfo(b.parking) && <Icon icon={parkingInfo(b.parking)!.icon} />}{' '}
             {parkingInfo(b.parking)?.label ?? 'Parking not set'}
             {b.parking_note.trim() && ` (${b.parking_note.trim()})`}
           </div>
-          <div className="meta">🕘 {hoursSummary(b.hours)}</div>
+          <div className="meta">
+            <Icon icon={Clock} /> {hoursSummary(b.hours)}
+          </div>
         </div>
       ))}
       <label className="check-row">

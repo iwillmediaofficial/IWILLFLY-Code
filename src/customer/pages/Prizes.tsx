@@ -9,6 +9,8 @@ import { supabase } from '../../lib/supabase';
 import type { ClaimStatus, PlayResult } from '../../lib/types';
 import { formatDay } from '../scratch';
 import { ErrorNotice, Loading, NoBackend, Sheet, Thumb } from '../ui';
+import { CircleCheck, Gift, Hourglass, Trophy } from 'lucide-react';
+import { Icon } from '../../components/Icon';
 
 const TABS: { key: ClaimStatus; label: string }[] = [
   { key: 'unclaimed', label: 'Unclaimed' },
@@ -30,14 +32,16 @@ export default function Prizes() {
         <LogoHeader
           actions={
             <Link className="icon-btn" to="/scratch" aria-label="Scratch & Win">
-              🎁
+              <Icon icon={Gift} size={20} />
             </Link>
           }
         />
       }
     >
       <section className="hero">
-        <h1>My Prizes 🏆</h1>
+        <h1>
+          My Prizes <Icon icon={Trophy} />
+        </h1>
         <p>Your Scratch & Win prizes. Show the claim code at the sponsor shop before it expires.</p>
       </section>
       <section className="section">
@@ -47,7 +51,7 @@ export default function Prizes() {
           <Loading />
         ) : !session ? (
           <EmptyState
-            emoji="🎁"
+            icon={Gift}
             title="Sign in to see your prizes"
             text="Play Scratch & Win every day and your prizes will appear here."
           >
@@ -101,7 +105,7 @@ function PrizeList() {
         </div>
       ) : (
         <EmptyState
-          emoji={tab === 'unclaimed' ? '🎁' : tab === 'claimed' ? '✅' : '⌛'}
+          icon={tab === 'unclaimed' ? Gift : tab === 'claimed' ? CircleCheck : Hourglass}
           title={
             tab === 'unclaimed'
               ? 'No prizes to claim'
@@ -146,7 +150,7 @@ function PrizeCard({ prize: p, onOpen }: { prize: PlayResult; onOpen?: () => voi
         : `Won ${formatDay(p.played_at)} · Valid till ${formatDay(p.expires_at)}`;
   const body = (
     <>
-      <Thumb imageKey={p.prize?.image_key} icon="🎁" />
+      <Thumb imageKey={p.prize?.image_key} icon={<Icon icon={Gift} />} />
       <div>
         <h4>{p.prize?.name ?? 'Prize'}</h4>
         <div className="meta">{[p.campaign_name, p.sponsor?.name].filter(Boolean).join(' · ')}</div>

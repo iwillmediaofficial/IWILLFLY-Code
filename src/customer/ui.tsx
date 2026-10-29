@@ -1,5 +1,7 @@
 import { useEffect, type CSSProperties, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { Gift, Store, X } from 'lucide-react';
+import { Icon } from '../components/Icon';
 import { mediaUrl, supabase } from '../lib/supabase';
 import { errorText } from './util';
 
@@ -37,14 +39,14 @@ export function ErrorNotice({ error, onRetry }: { error: unknown; onRetry?: () =
   );
 }
 
-/** Square thumbnail: an uploaded image when there is one, otherwise an icon (emoji or category picture). */
+/** Square thumbnail: an uploaded image when there is one, otherwise an icon (line icon or category picture). */
 export function Thumb({ imageKey, icon }: { imageKey?: string | null; icon?: ReactNode }) {
   return (
     <div className="shop-thumb">
       {imageKey ? (
         <img src={mediaUrl(imageKey)} alt="" loading="lazy" decoding="async" width={74} height={74} />
       ) : (
-        (icon ?? '🏪')
+        (icon ?? <Icon icon={Store} />)
       )}
     </div>
   );
@@ -80,7 +82,7 @@ export function OfferImage({
       ) : (
         <span />
       )}
-      {!imageKey && <b className="offer-icon">{icon ?? '🎁'}</b>}
+      {!imageKey && <b className="offer-icon">{icon ?? <Icon icon={Gift} />}</b>}
     </div>
   );
 }
@@ -126,7 +128,7 @@ export function Sheet({
             {subtitle && <div className="meta">{subtitle}</div>}
           </div>
           <button className="close" onClick={onClose} aria-label="Close">
-            ×
+            <Icon icon={X} />
           </button>
         </div>
         {open && children}

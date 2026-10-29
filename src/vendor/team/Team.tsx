@@ -13,6 +13,8 @@ import { useBranchScope, useVendor, useVendorRole } from '../context';
 import { errorMessage } from '../format';
 import { formatDateTime } from '../scratch/format';
 import { BlockedNote, ErrorNote, Loading, PageHead } from '../ui';
+import { MapPin, MessageCircle } from 'lucide-react';
+import { Icon } from '../../components/Icon';
 
 const roleClass: Record<VendorRole, string> = { owner: 'live', manager: 'approved', staff: '' };
 
@@ -355,7 +357,7 @@ function ShareButtons({ text, copyText }: { text: string; copyText?: string }) {
         target="_blank"
         rel="noreferrer"
       >
-        💬 Send on WhatsApp
+        <Icon icon={MessageCircle} /> Send on WhatsApp
       </a>
       <button
         type="button"
@@ -563,7 +565,11 @@ function MemberRow({
           ) : (
             m.full_name && m.email && <div className="meta">{m.email}</div>
           )}
-          {m.branch_name && <div className="meta">📍 {m.branch_name}</div>}
+          {m.branch_name && (
+            <div className="meta">
+              <Icon icon={MapPin} /> {m.branch_name}
+            </div>
+          )}
           <div className="meta">
             {m.role === 'owner' ? 'Owner since' : 'Added'} {formatDateTime(m.added_at)}
           </div>

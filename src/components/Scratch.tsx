@@ -11,6 +11,8 @@ import type { PlayResult, TodayCampaign } from '../lib/types';
 import { ScratchLocationSheet } from './ScratchLocation';
 import { SponsorContact } from './SponsorContact';
 import { useToast } from './Toast';
+import { Check, Gift, Hourglass, MapPin, Star, X } from 'lucide-react';
+import { Icon } from './Icon';
 
 /**
  * The daily button: green = play now, red = played today, gray = nothing to play right now.
@@ -95,7 +97,11 @@ function ScratchButtonFace({
   } else if (play) {
     face = {
       tone: 'red',
-      top: play.won ? '✓ WON TODAY' : '✓ PLAYED TODAY',
+      top: (
+        <>
+          <Icon icon={Check} /> {play.won ? 'WON TODAY' : 'PLAYED TODAY'}
+        </>
+      ),
       title: play.won ? 'CLAIM' : 'PLAYED',
       sub: (
         <>
@@ -109,7 +115,11 @@ function ScratchButtonFace({
   } else if (needsArea) {
     face = {
       tone: c.is_open_now ? 'green' : 'gray',
-      top: '📍 SET YOUR LOCATION',
+      top: (
+        <>
+          <Icon icon={MapPin} /> SET YOUR LOCATION
+        </>
+      ),
       sub: (
         <>
           Tap to set your area
@@ -218,7 +228,7 @@ function ScratchStage({
         <span className="sw-face">
           {live && (
             <span className="sw-star" aria-hidden>
-              ★
+              <Icon icon={Star} fill="currentColor" />
             </span>
           )}
           <span className="sw-live">
@@ -346,7 +356,7 @@ export function ScratchModal({
             <div className="meta">{revealed ? (card.campaign?.name ?? subtitle) : subtitle}</div>
           </div>
           <button className="close" onClick={() => setOpen(false)} aria-label="Close">
-            ×
+            <Icon icon={X} />
           </button>
         </div>
         {revealed ? (
@@ -372,7 +382,9 @@ function ResultFace({ result }: { result: PlayResult | null }) {
   if (!result) {
     return (
       <>
-        <div style={{ fontSize: 42 }}>⏳</div>
+        <div style={{ fontSize: 42, color: 'var(--color-blue)' }}>
+          <Icon icon={Hourglass} />
+        </div>
         <h2 style={{ margin: '7px 0' }}>Checking…</h2>
         <p style={{ margin: 0, color: 'var(--color-muted)', fontSize: 12 }}>Getting today’s result</p>
       </>
@@ -427,7 +439,9 @@ function ResultScreen({ result, onClose }: { result: PlayResult; onClose: () => 
           height={96}
         />
       ) : (
-        <div className="win-icon">🎁</div>
+        <div className="win-icon">
+          <Icon icon={Gift} />
+        </div>
       )}
       <h3 style={{ margin: '0 0 4px' }}>{result.prize?.name}</h3>
       {result.prize?.description && <div className="meta">{result.prize.description}</div>}
@@ -599,7 +613,7 @@ export function PrizeGrid({ items }: { items: PrizeItem[] }) {
           {p.imageKey ? (
             <img src={mediaUrl(p.imageKey)} alt="" loading="lazy" decoding="async" width={36} height={36} />
           ) : (
-            <b>{p.icon ?? '🎁'}</b>
+            <b>{p.icon ?? <Icon icon={Gift} />}</b>
           )}
           {p.label}
         </div>

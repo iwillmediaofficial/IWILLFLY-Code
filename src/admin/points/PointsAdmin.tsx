@@ -17,6 +17,8 @@ import type { AdminBill, BillRejectReason, BillStatus, PointsSettings } from '..
 import { Empty, ErrorNotice, Loading } from '../ui';
 import { formatDate, friendlyError, toNumber, useDesktop, useInvalidate } from '../util';
 import { Holidays, Payouts, Report } from './Payouts';
+import { ExternalLink, Receipt } from 'lucide-react';
+import { Icon } from '../../components/Icon';
 
 const KEYS = [['admin_bills'], ['points_settings'], ['admin-attention']];
 
@@ -133,7 +135,7 @@ function Bills({ selected }: { selected?: string }) {
       {bills.isPending && <Loading />}
       {bills.error && <ErrorNotice error={bills.error} />}
       {bills.data?.length === 0 && (
-        <Empty emoji="🧾" title={filter === 'pending' ? 'No bills to check' : 'No bills here'}>
+        <Empty icon={Receipt} title={filter === 'pending' ? 'No bills to check' : 'No bills here'}>
           {filter === 'pending' ? 'New bills from customers show up here.' : undefined}
         </Empty>
       )}
@@ -144,7 +146,9 @@ function Bills({ selected }: { selected?: string }) {
         <div className="list">
           {bills.data?.map((b) => (
             <Link key={b.id} className="shop-card" to={`/admin/points/bills/${b.id}?from=${filter}`}>
-              <div className="shop-thumb">🧾</div>
+              <div className="shop-thumb">
+                <Icon icon={Receipt} />
+              </div>
               <div style={{ minWidth: 0 }}>
                 <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 4 }}>
                   <BillPill status={b.status} />
@@ -209,7 +213,7 @@ function BillTable({
           aria-current={String(b.id) === selected ? 'true' : undefined}
         >
           <span role="cell" className="bill-thumb" aria-hidden="true">
-            🧾
+            <Icon icon={Receipt} />
           </span>
           <span role="cell" className="meta">
             #{b.id}
@@ -312,7 +316,7 @@ function Photo({ bill: b }: { bill: AdminBill }) {
       </div>
       {link.data && (
         <a className="link-btn" href={link.data} target="_blank" rel="noreferrer">
-          Open full size ↗
+          Open full size <Icon icon={ExternalLink} />
         </a>
       )}
     </div>

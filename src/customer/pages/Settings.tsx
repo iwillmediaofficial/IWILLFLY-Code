@@ -12,6 +12,8 @@ import { usePlace } from '../../lib/location';
 import { useMyProfile, type MyProfile } from '../../lib/profile';
 import { db, must } from '../../lib/queries';
 import { useProfileArea } from '../../lib/profileArea';
+import { Bell, Lock, MapPin, Smartphone, User } from 'lucide-react';
+import { Icon } from '../../components/Icon';
 
 export default function Settings() {
   const { session, signOut } = useAuth();
@@ -25,7 +27,9 @@ export default function Settings() {
       header={<BackHeader back="/profile" title="Settings" subtitle="Location, notifications & privacy" />}
     >
       <section className="section form-card" id="location">
-        <h3 style={{ marginTop: 0 }}>📍 Your location</h3>
+        <h3 style={{ marginTop: 0 }}>
+          <Icon icon={MapPin} /> Your location
+        </h3>
         {session ? (
           <>
             <p className="meta" style={{ lineHeight: 1.6, marginTop: 0 }}>
@@ -79,12 +83,16 @@ export default function Settings() {
       {session && <DetailsSection />}
       {session && <MobileSection />}
       <section className="section form-card">
-        <h3 style={{ marginTop: 0 }}>🔔 Notifications</h3>
+        <h3 style={{ marginTop: 0 }}>
+          <Icon icon={Bell} /> Notifications
+        </h3>
         <p className="meta" style={{ lineHeight: 1.6, marginTop: 0 }}>
           Your inbox and push alerts for festival offers, prizes and shops you save.
         </p>
         <Link className="shop-card" to="/notifications">
-          <div className="shop-thumb">🔔</div>
+          <div className="shop-thumb">
+            <Icon icon={Bell} />
+          </div>
           <div>
             <h4>Notifications</h4>
             <div className="meta">Inbox and push notifications</div>
@@ -93,7 +101,9 @@ export default function Settings() {
         </Link>
       </section>
       <section className="section form-card">
-        <h3 style={{ marginTop: 0 }}>🔒 Privacy</h3>
+        <h3 style={{ marginTop: 0 }}>
+          <Icon icon={Lock} /> Privacy
+        </h3>
         <p className="meta" style={{ lineHeight: 1.6, margin: 0 }}>
           Your account keeps your sign-in email, the offers and shops you save, and your preferred area. Your
           location is used only to find nearby offers and is not shared with shops.
@@ -127,7 +137,9 @@ function DetailsSection() {
   const profile = useMyProfile();
   return (
     <section className="section form-card" id="details">
-      <h3 style={{ marginTop: 0 }}>👤 Your details</h3>
+      <h3 style={{ marginTop: 0 }}>
+        <Icon icon={User} /> Your details
+      </h3>
       {profile.data ? <DetailsForm profile={profile.data} /> : <p className="meta">Loading…</p>}
     </section>
   );
@@ -200,7 +212,9 @@ function MobileSection() {
   const profile = useMyProfile();
   return (
     <section className="section form-card" id="mobile">
-      <h3 style={{ marginTop: 0 }}>📱 Mobile number</h3>
+      <h3 style={{ marginTop: 0 }}>
+        <Icon icon={Smartphone} /> Mobile number
+      </h3>
       <p className="meta" style={{ lineHeight: 1.6, marginTop: 0 }}>
         Shops use this to reach you when you win a prize.
       </p>

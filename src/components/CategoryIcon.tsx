@@ -1,4 +1,6 @@
 import { useMemo, type CSSProperties } from 'react';
+import { Tag } from 'lucide-react';
+import { Icon, type LucideIcon } from './Icon';
 import { useCategories } from '../lib/queries';
 import { mediaUrl } from '../lib/supabase';
 import type { Category } from '../lib/types';
@@ -28,18 +30,18 @@ export function useCategoryLookup() {
 }
 
 /**
- * A category's picture in a rounded square, or its emoji when it has none.
+ * A category's picture in a rounded square, or a line icon (a tag unless `fallback` says otherwise) when it has none.
  * `size` sets a fixed square in px; `fill` makes the picture cover its container (e.g. a card thumbnail).
  */
 export function CategoryIcon({
   category,
-  fallback = '🏷️',
+  fallback = Tag,
   size,
   fill = false,
   style,
 }: {
   category: CategoryRef | null | undefined;
-  fallback?: string;
+  fallback?: LucideIcon;
   size?: number;
   fill?: boolean;
   style?: CSSProperties;
@@ -47,8 +49,7 @@ export function CategoryIcon({
   const lookup = useCategoryLookup();
   const found = lookup(category);
   const imageKey = category?.image_key ?? found?.image_key ?? null;
-  const icon = category?.icon ?? found?.icon ?? fallback;
-  if (!imageKey) return <>{icon}</>;
+  if (!imageKey) return <Icon icon={fallback} />;
   const box: CSSProperties = fill
     ? { width: '100%', height: '100%' }
     : { width: size ?? 24, height: size ?? 24, borderRadius: Math.max(4, Math.round((size ?? 24) * 0.28)) };

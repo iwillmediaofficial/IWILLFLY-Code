@@ -32,6 +32,8 @@ import { formatDay } from '../scratch';
 import { PointsTerms, Redeem } from './PointsRedeem';
 import { ErrorNotice, Loading, NoBackend, Thumb } from '../ui';
 import { errorText, formatDate } from '../util';
+import { Camera, MapPin, Receipt, Store, WalletIcon } from 'lucide-react';
+import { Icon } from '../../components/Icon';
 
 export default function Points() {
   const { session, loading } = useAuth();
@@ -43,7 +45,7 @@ export default function Points() {
         <Loading />
       ) : !session ? (
         <EmptyState
-          emoji="💰"
+          icon={WalletIcon}
           title="Sign in to earn points"
           text="Add your bills from shops on IWILLFLY and earn 1 point for every ₹50. Each point is worth ₹1."
         >
@@ -466,7 +468,13 @@ function BillForm({
           </label>
         )}
         <div className="image-pick" style={{ aspectRatio: '3 / 4', maxWidth: 200 }}>
-          {preview ? <img src={preview} alt="Your bill" /> : <span>📷 Take or choose a photo</span>}
+          {preview ? (
+            <img src={preview} alt="Your bill" />
+          ) : (
+            <span>
+              <Icon icon={Camera} /> Take or choose a photo
+            </span>
+          )}
           <input
             type="file"
             accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
@@ -545,7 +553,9 @@ function ShopPicker({
       <div className="field">
         <label>Shop</label>
         <div className="shop-card" style={{ cursor: 'default' }}>
-          <div className="shop-thumb">🏪</div>
+          <div className="shop-thumb">
+            <Icon icon={Store} />
+          </div>
           <div>
             <h4>{several && branch ? `${shop.name} · ${branch.name}` : shop.name}</h4>
             {meta && <div className="meta">{meta}</div>}
@@ -584,7 +594,7 @@ function ShopPicker({
             style={{ width: '100%', textAlign: 'left', font: 'inherit', color: 'inherit' }}
             onClick={() => onPick({ id: s.id, name: s.name })}
           >
-            <Thumb imageKey={s.logo_key} icon="🏪" />
+            <Thumb imageKey={s.logo_key} icon={<Icon icon={Store} />} />
             <div>
               <h4>{s.name}</h4>
               {(s.branch_count > 1 || s.area) && (
@@ -634,7 +644,9 @@ function BranchPicker({ branches, onPick }: { branches: PointsShopBranch[]; onPi
             style={{ width: '100%', textAlign: 'left', font: 'inherit', color: 'inherit' }}
             onClick={() => onPick(b.id)}
           >
-            <div className="shop-thumb">📍</div>
+            <div className="shop-thumb">
+              <Icon icon={MapPin} />
+            </div>
             <div>
               <h4>{b.name}</h4>
               {branchPlace(b) && <div className="meta">{branchPlace(b)}</div>}
@@ -668,7 +680,7 @@ function MyBills() {
       {bills.error && <ErrorNotice error={bills.error} onRetry={() => bills.refetch()} />}
       {bills.data?.length === 0 && (
         <EmptyState
-          emoji="🧾"
+          icon={Receipt}
           title="No bills yet"
           text="Add a bill from a shop on IWILLFLY to start earning points."
         />
@@ -766,7 +778,11 @@ function History() {
       {history.isPending && <Loading />}
       {history.error && <ErrorNotice error={history.error} onRetry={() => history.refetch()} />}
       {history.data?.length === 0 && (
-        <EmptyState emoji="💰" title="No points yet" text="Points from your approved bills will show here." />
+        <EmptyState
+          icon={WalletIcon}
+          title="No points yet"
+          text="Points from your approved bills will show here."
+        />
       )}
       <div className="list">
         {history.data?.map((e) => {

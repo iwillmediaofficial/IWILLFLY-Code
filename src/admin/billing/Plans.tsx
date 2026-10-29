@@ -5,6 +5,7 @@ import type { Plan } from '../../lib/types';
 import { Empty, ErrorNotice, Loading } from '../ui';
 import { toNumber, useInvalidate } from '../util';
 import { BILL_KEYS, billError, deletePlan, money, savePlan, usePlans, type PlanInput } from './api';
+import { Package } from 'lucide-react';
 
 export function Plans() {
   const [editing, setEditing] = useState<Plan | 'new' | null>(null);
@@ -30,7 +31,7 @@ export function Plans() {
       {plans.isPending && <Loading />}
       {plans.error && <ErrorNotice error={plans.error} />}
       {plans.data?.length === 0 && (
-        <Empty emoji="📦" title="No plans yet">
+        <Empty icon={Package} title="No plans yet">
           Start with a Free default plan, then add paid plans with higher limits.
         </Empty>
       )}

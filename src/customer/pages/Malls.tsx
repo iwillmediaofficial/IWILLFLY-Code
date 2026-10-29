@@ -7,6 +7,8 @@ import { useMalls } from '../../lib/queries';
 import { supabase } from '../../lib/supabase';
 import type { MallResult } from '../../lib/types';
 import { ErrorNotice, Loading, NoBackend, Thumb } from '../ui';
+import { Building2, Search } from 'lucide-react';
+import { Icon } from '../../components/Icon';
 
 export default function Malls() {
   const { place } = usePlace();
@@ -21,7 +23,7 @@ export default function Malls() {
           subtitle="Shops grouped inside each mall"
           actions={
             <Link className="icon-btn" to="/explore" aria-label="Search">
-              ⌕
+              <Icon icon={Search} size={20} />
             </Link>
           }
         />
@@ -54,7 +56,7 @@ export default function Malls() {
           </div>
         ) : (
           <EmptyState
-            emoji="🏬"
+            icon={Building2}
             title="No malls yet"
             text="Shopping destinations near you will appear here soon."
           />
@@ -68,7 +70,7 @@ export function MallCard({ mall: m }: { mall: MallResult }) {
   const approx = isApprox(usePlace().place);
   return (
     <Link className="shop-card" to={`/mall/${m.mall_id}`}>
-      <Thumb imageKey={m.cover_key} icon="🏬" />
+      <Thumb imageKey={m.cover_key} icon={<Icon icon={Building2} />} />
       <div>
         <h4>{m.name}</h4>
         <div className="meta">

@@ -24,6 +24,8 @@ import {
   type AdInput,
 } from './api';
 import { StatusPill } from './StatusPill';
+import { ArrowDown, ArrowUp, Megaphone } from 'lucide-react';
+import { Icon } from '../../components/Icon';
 
 /** Router state the Requests screen passes to prefill a new home banner. */
 export type AdPrefill = { prefill: Partial<AdInput>; from?: string };
@@ -124,7 +126,7 @@ function AdList() {
       {ads.isPending && <Loading />}
       {ads.error && <ErrorNotice error={ads.error} />}
       {ads.data?.length === 0 && (
-        <Empty emoji="📣" title="No home ads yet">
+        <Empty icon={Megaphone} title="No home ads yet">
           Add a banner for a festival, a mall or a vendor’s shop.
         </Empty>
       )}
@@ -149,7 +151,7 @@ function AdList() {
               disabled={i === 0 || move.isPending}
               onClick={() => move.mutate({ from: i, to: i - 1 })}
             >
-              ↑ Up
+              <Icon icon={ArrowUp} /> Up
             </button>
             <button
               className="btn small secondary"
@@ -157,7 +159,7 @@ function AdList() {
               disabled={i === list.length - 1 || move.isPending}
               onClick={() => move.mutate({ from: i, to: i + 1 })}
             >
-              ↓ Down
+              <Icon icon={ArrowDown} /> Down
             </button>
             <Link className="link-btn" to={`/admin/ads/${a.id}`} style={{ marginLeft: 'auto' }}>
               Edit ›
@@ -513,7 +515,9 @@ function AdForm({ ad, prefill }: { ad?: Ad; prefill?: Partial<AdInput> }) {
           value={f.sort_order}
           onChange={(e) => set({ sort_order: e.target.value })}
         />
-        <div className="hint">Lower numbers show first. You can also use ↑ ↓ in the list.</div>
+        <div className="hint">
+          Lower numbers show first. You can also use the Up and Down buttons in the list.
+        </div>
       </div>
       <label className="check-row">
         <input type="checkbox" checked={f.is_active} onChange={(e) => set({ is_active: e.target.checked })} />

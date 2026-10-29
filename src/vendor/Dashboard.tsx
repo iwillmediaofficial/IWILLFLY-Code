@@ -13,6 +13,8 @@ import { useVendorAnalytics } from './engagement/api';
 import { num } from './engagement/format';
 import { errorMessage, offerPhase, orNull, phoneError } from './format';
 import { ErrorNote, Lockable } from './ui';
+import { Camera, Check, Circle, CircleCheck, Hourglass } from 'lucide-react';
+import { Icon } from '../components/Icon';
 
 export default function Dashboard() {
   const vendor = useVendor();
@@ -30,7 +32,12 @@ export default function Dashboard() {
             : vendor.status === 'blocked'
               ? 'Blocked'
               : 'Under review'}
-          {vendor.is_verified && ' · ✓ Verified'}
+          {vendor.is_verified && (
+            <>
+              {' · '}
+              <Icon icon={Check} /> Verified
+            </>
+          )}
         </span>
       </section>
       <section className="section">
@@ -57,7 +64,7 @@ export default function Dashboard() {
         {!canEdit ? (
           <div className="btn-row" style={{ marginTop: 0 }}>
             <Link className="btn" to="/vendor/scratch/claim">
-              📷 Verify a prize
+              <Icon icon={Camera} /> Verify a prize
             </Link>
             <Link className="btn secondary" to="/vendor/insights">
               See insights
@@ -111,9 +118,11 @@ function StatusNotice({ vendor }: { vendor: Vendor }) {
   if (vendor.status === 'pending' && inv?.status === 'submitted') {
     return (
       <div className="notice warn">
-        <b>⏳ Payment verification pending.</b> We are checking your plan payment, {CHECK_TIME}. We will
-        notify you once your shop is approved. Meanwhile you can set up your shops, branches, logo and cover
-        photo.
+        <b>
+          <Icon icon={Hourglass} /> Payment verification pending.
+        </b>{' '}
+        We are checking your plan payment, {CHECK_TIME}. We will notify you once your shop is approved.
+        Meanwhile you can set up your shops, branches, logo and cover photo.
       </div>
     );
   }
@@ -136,7 +145,11 @@ function StatusNotice({ vendor }: { vendor: Vendor }) {
   return (
     <div className="notice">
       <b>You are live.</b> Your active shops and approved offers are visible to customers.{' '}
-      {vendor.is_verified && <span className="pill-status approved">✓ Verified</span>}
+      {vendor.is_verified && (
+        <span className="pill-status approved">
+          <Icon icon={Check} /> Verified
+        </span>
+      )}
     </div>
   );
 }
@@ -211,7 +224,9 @@ function FinishShop() {
       <ul>
         {steps.map((st) => (
           <li key={st.label} className={st.done ? 'done' : ''}>
-            <span aria-hidden>{st.done ? '✓' : '○'}</span>
+            <span aria-hidden>
+              <Icon icon={st.done ? CircleCheck : Circle} />
+            </span>
             <span className="grow">{st.label}</span>
             {!st.done && st.action && (
               <Link to={st.action.to} className="link-btn">
@@ -422,7 +437,7 @@ function BranchDashboard() {
             </Link>
           )}
           <Link className="btn secondary" to="/vendor/scratch/claim">
-            📷 Verify a prize
+            <Icon icon={Camera} /> Verify a prize
           </Link>
         </div>
       </section>

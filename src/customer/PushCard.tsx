@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useToast } from '../components/Toast';
 import { disablePush, enablePush, getPushState, type PushState } from '../lib/push';
 import { errorText } from './util';
+import { Bell, Check } from 'lucide-react';
+import { Icon } from '../components/Icon';
 
 /** Lets the signed-in user turn push notifications on or off for this browser. */
 export function PushCard() {
@@ -38,7 +40,9 @@ export function PushCard() {
 
   return (
     <section className="form-card">
-      <h3 style={{ marginTop: 0 }}>🔔 Push notifications</h3>
+      <h3 style={{ marginTop: 0 }}>
+        <Icon icon={Bell} /> Push notifications
+      </h3>
       {state === 'unsupported' && (
         <p className="meta push-text">
           Your browser can’t receive notifications. On iPhone, add IWILLFLY to your Home Screen first (Share ›
@@ -65,7 +69,10 @@ export function PushCard() {
       {state === 'on' && (
         <>
           <p className="meta push-text">
-            <b style={{ color: 'var(--color-green)' }}>✓ Notifications are on</b> for this device.
+            <b style={{ color: 'var(--color-green)' }}>
+              <Icon icon={Check} /> Notifications are on
+            </b>{' '}
+            for this device.
           </p>
           <button className="link-btn" disabled={busy} onClick={() => run(disablePush)}>
             {busy ? 'Turning off…' : 'Turn off notifications'}

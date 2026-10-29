@@ -2,6 +2,8 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { formatKm, openState } from '../lib/hours';
 import { mediaUrl } from '../lib/supabase';
 import type { Branch, LocationNode } from '../lib/types';
+import { ChevronDown, ChevronUp, MapPin, Mountain } from 'lucide-react';
+import { Icon } from '../components/Icon';
 
 export type BranchWithKm = Branch & { km: number | null };
 
@@ -113,7 +115,7 @@ export function BranchesByDistrict({
                 {g.district?.image_key ? (
                   <img src={mediaUrl(g.district.image_key)} alt="" width={44} height={44} loading="lazy" />
                 ) : (
-                  '🏞️'
+                  <Icon icon={Mountain} />
                 )}
               </span>
               <span className="grow">
@@ -122,7 +124,11 @@ export function BranchesByDistrict({
                   {n} {n === 1 ? 'branch' : 'branches'} available
                 </span>
               </span>
-              {only === 'all' && <span className="chev">{expanded ? '⌃' : '⌄'}</span>}
+              {only === 'all' && (
+                <span className="chev">
+                  <Icon icon={expanded ? ChevronUp : ChevronDown} />
+                </span>
+              )}
             </button>
             {expanded && (
               <div className="district-list">
@@ -139,7 +145,11 @@ export function BranchesByDistrict({
                         <h4>{b.name}</h4>
                         {where && <div className="meta">{where}</div>}
                         <div className="district-tags">
-                          {b.km != null && <span className="meta">📍 {formatKm(b.km, approx)}</span>}
+                          {b.km != null && (
+                            <span className="meta">
+                              <Icon icon={MapPin} /> {formatKm(b.km, approx)}
+                            </span>
+                          )}
                           <span className={`district-open${st.open ? '' : ' closed'}`}>
                             {st.open ? 'Open Now' : 'Closed'}
                           </span>

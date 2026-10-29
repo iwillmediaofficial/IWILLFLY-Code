@@ -12,6 +12,8 @@ import { CampaignSummary, JoinBlockedNote } from './CampaignBits';
 import { collectAt } from './format';
 import { PrizeForm } from './PrizeForm';
 import { WinnersList } from './WinnersList';
+import { Gift, MapPin } from 'lucide-react';
+import { Icon, IconBubble } from '../../components/Icon';
 
 export default function CampaignPage() {
   const { campaignId } = useParams();
@@ -132,7 +134,7 @@ function CampaignDetail({ campaign, joined }: { campaign: ScratchCampaign; joine
             <ErrorNote error={prizes.error} />
           ) : myPrizes.length === 0 ? (
             <div className="saved-empty" style={{ padding: '28px 20px' }}>
-              <div className="emoji">🎁</div>
+              <IconBubble icon={Gift} />
               <h3>No prizes yet</h3>
               <p>
                 {joined
@@ -219,7 +221,7 @@ function PrizeRow({
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           />
         ) : (
-          '🎁'
+          <Icon icon={Gift} />
         )}
       </div>
       <div style={{ minWidth: 0 }}>
@@ -230,7 +232,7 @@ function PrizeRow({
         </div>
         {branches.length > 1 && (
           <div className="meta" style={{ marginTop: 2 }}>
-            📍 Collect at: {collectAt(p, branches)}
+            <Icon icon={MapPin} /> Collect at: {collectAt(p, branches)}
           </div>
         )}
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>

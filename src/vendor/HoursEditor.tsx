@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { DAYS, formatTime } from '../lib/hours';
 import type { DayKey, Hours } from '../lib/types';
 import { formatDate, todayIST } from './format';
+import { X } from 'lucide-react';
+import { Icon } from '../components/Icon';
 
 const DEFAULT_DAY = { open: '09:00', close: '21:00' };
 
@@ -118,7 +120,7 @@ export function HolidaysEditor({ value, onChange }: { value: string[]; onChange:
                 aria-label={`Remove ${formatDate(d)}`}
                 onClick={() => onChange(value.filter((x) => x !== d))}
               >
-                ✕
+                <Icon icon={X} />
               </button>
             </span>
           ))}

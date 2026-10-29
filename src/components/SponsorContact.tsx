@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom';
 import { formatCode } from '../lib/scratch';
 import type { PlayResult } from '../lib/types';
 import { ContactButtons } from './ContactButtons';
+import { MapPin, Store } from 'lucide-react';
+import { Icon } from './Icon';
 
 /**
  * Lets a winner contact the shop that hands their prize over: call, WhatsApp (with a message about the
@@ -22,7 +24,9 @@ export function SponsorContact({ result }: { result: PlayResult }) {
   return (
     <div className="contact-card">
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div className="contact-icon">🏬</div>
+        <div className="contact-icon">
+          <Icon icon={Store} />
+        </div>
         <div style={{ minWidth: 0, textAlign: 'left' }}>
           <b>Contact {s.name}</b>
           <div className="meta">
@@ -45,7 +49,7 @@ export function SponsorContact({ result }: { result: PlayResult }) {
         extra={
           s.shop_id ? (
             <Link className="contact-btn" to={`/shop/${s.shop_id}`}>
-              📍 View shop
+              <Icon icon={MapPin} /> View shop
             </Link>
           ) : undefined
         }

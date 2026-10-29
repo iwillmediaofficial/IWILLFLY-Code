@@ -14,6 +14,8 @@ import {
 import { OfferTile } from '../OfferTile';
 import { ErrorNotice, Loading, NoBackend } from '../ui';
 import { toneFor, validity } from '../util';
+import { Gift, Hourglass, ShoppingBag } from 'lucide-react';
+import { Icon } from '../../components/Icon';
 
 export default function Festival() {
   const { slug } = useParams();
@@ -32,7 +34,7 @@ export default function Festival() {
   if (festival.error) return shell(<ErrorNotice error={festival.error} onRetry={() => festival.refetch()} />);
   if (!f) {
     return shell(
-      <EmptyState emoji="🎉" title="Festival not found" text="This festival may no longer be on IWILLFLY.">
+      <EmptyState icon="🎉" title="Festival not found" text="This festival may no longer be on IWILLFLY.">
         <Link className="btn" to="/" style={{ display: 'inline-block', marginTop: 12 }}>
           Back to home
         </Link>
@@ -75,7 +77,7 @@ export default function Festival() {
                     shopId={o.shop_id}
                     offerId={o.offer_id}
                     imageKey={o.image_key}
-                    icon="🎁"
+                    icon={<Icon icon={Gift} />}
                     badge={o.discount_label ?? (o.is_featured ? 'FEATURED' : 'OFFER')}
                     tone={toneFor(i)}
                     title={o.shop_name}
@@ -87,7 +89,7 @@ export default function Festival() {
               </div>
             ) : (
               <EmptyState
-                emoji="🛍️"
+                icon={ShoppingBag}
                 title="No festival offers yet"
                 text="Shops are adding their festival deals. Check back soon."
               />
@@ -95,7 +97,7 @@ export default function Festival() {
           </>
         ) : (
           <EmptyState
-            emoji={upcoming ? '⏳' : '🎊'}
+            icon={upcoming ? Hourglass : '🎊'}
             title={upcoming ? 'Coming soon' : 'This festival has ended'}
             text={
               upcoming

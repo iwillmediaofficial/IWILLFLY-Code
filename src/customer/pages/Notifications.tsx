@@ -6,6 +6,7 @@ import { EmptyState } from '../../components/ShopCard';
 import { supabase } from '../../lib/supabase';
 import { PushCard } from '../PushCard';
 import { Loading, NoBackend } from '../ui';
+import { Bell } from 'lucide-react';
 
 export default function Notifications() {
   const { session, loading } = useAuth();
@@ -17,7 +18,7 @@ export default function Notifications() {
         <Loading />
       ) : !session ? (
         <EmptyState
-          emoji="🔔"
+          icon={Bell}
           title="Sign in to see your notifications"
           text="Festival offers, prize alerts and updates from shops will appear here."
         >

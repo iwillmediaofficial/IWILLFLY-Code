@@ -13,6 +13,8 @@ import { ErrorNote, Loading, NotFound, PageHead } from '../ui';
 import { useBillingSettings, useInvoice, useSubmitPayment } from './api';
 import { CHECK_TIME, invoiceClass, invoiceLabel, money, upiLink } from './format';
 import { payOnline, type Gateway } from './pay';
+import { CircleCheck, Hourglass, Lock, Printer } from 'lucide-react';
+import { Icon } from '../../components/Icon';
 
 const methodLabel: Record<string, string> = {
   upi: 'UPI',
@@ -78,7 +80,7 @@ export default function InvoicePage() {
       <InvoiceSheet invoice={inv} items={data.items} />
       <div className="btn-row no-print" style={{ marginTop: 12 }}>
         <button type="button" className="btn secondary" onClick={() => window.print()}>
-          🖨 Print or save as PDF
+          <Icon icon={Printer} /> Print or save as PDF
         </button>
       </div>
     </>
@@ -130,7 +132,7 @@ function PendingCard({
   return (
     <div className="form-card pay-status no-print">
       <div className="pay-status-icon" aria-hidden>
-        ⏳
+        <Icon icon={Hourglass} />
       </div>
       <h3>Payment verification pending</h3>
       <p>
@@ -164,8 +166,8 @@ function PaidNotice() {
   if (applying) {
     return (
       <div className="form-card pay-status no-print">
-        <div className="pay-status-icon" aria-hidden>
-          ✅
+        <div className="pay-status-icon" aria-hidden style={{ color: 'var(--color-green)' }}>
+          <Icon icon={CircleCheck} />
         </div>
         <h3>Payment received</h3>
         <p>
@@ -382,11 +384,17 @@ function PayOnline({ invoice: i, gateways }: { invoice: Invoice; gateways: Gatew
           onClick={() => pay(g)}
           disabled={busy !== null}
         >
-          {busy === g
-            ? 'Opening the payment page…'
-            : several
-              ? `🔒 Pay ${money(i.total)} with ${GATEWAY_NAME[g]}`
-              : `🔒 Pay ${money(i.total)} securely`}
+          {busy === g ? (
+            'Opening the payment page…'
+          ) : several ? (
+            <>
+              <Icon icon={Lock} /> Pay {money(i.total)} with {GATEWAY_NAME[g]}
+            </>
+          ) : (
+            <>
+              <Icon icon={Lock} /> Pay {money(i.total)} securely
+            </>
+          )}
         </button>
       ))}
     </div>

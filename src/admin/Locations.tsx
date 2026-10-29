@@ -7,6 +7,8 @@ import type { LocationNode } from '../lib/types';
 import { SquareImageField } from './SquareImageField';
 import { Empty, ErrorNotice, Loading } from './ui';
 import { PUBLIC_KEYS, friendlyError, slugify, toNumber, useInvalidate } from './util';
+import { Building, MapIcon, MapPin, Mountain, TriangleAlert } from 'lucide-react';
+import { Icon, type LucideIcon } from '../components/Icon';
 
 type Kind = LocationNode['kind'];
 const CHILD_KIND: Record<Kind, Kind | null> = {
@@ -15,7 +17,12 @@ const CHILD_KIND: Record<Kind, Kind | null> = {
   city: 'area',
   area: null,
 };
-const KIND_ICON: Record<Kind, string> = { state: '🗺️', district: '🏞️', city: '🏙️', area: '📍' };
+const KIND_ICON: Record<Kind, LucideIcon> = {
+  state: MapIcon,
+  district: Mountain,
+  city: Building,
+  area: MapPin,
+};
 const KEYS = [['locations'], ['admin', 'malls'], ...PUBLIC_KEYS];
 
 /** What is open below a row: an edit form for it, or an add form for a new child. */
@@ -73,7 +80,7 @@ export function Locations() {
       )}
       {locations.isPending && <Loading />}
       {locations.error && <ErrorNotice error={locations.error} />}
-      {locations.data?.length === 0 && <Empty emoji="🗺️" title="No locations yet" />}
+      {locations.data?.length === 0 && <Empty icon={MapIcon} title="No locations yet" />}
       <div>
         {rows.map(({ node, depth }) => (
           <div key={node.id} style={{ marginLeft: depth * 16 }}>
@@ -134,7 +141,9 @@ function LocationRow({ node, onEdit, onAdd }: { node: LocationNode; onEdit: () =
           style={{ width: 28, height: 28, borderRadius: 8, objectFit: 'cover' }}
         />
       ) : (
-        <span style={{ fontSize: 18 }}>{KIND_ICON[node.kind]}</span>
+        <span style={{ fontSize: 18, color: 'var(--color-blue)' }}>
+          <Icon icon={KIND_ICON[node.kind]} />
+        </span>
       )}
       <div className="grow" style={{ minWidth: 0 }}>
         <b style={{ fontSize: 14 }}>{node.name}</b>{' '}
@@ -144,7 +153,7 @@ function LocationRow({ node, onEdit, onAdd }: { node: LocationNode; onEdit: () =
         </span>
         {noPin && (
           <div className="meta" style={{ color: 'var(--color-red)' }}>
-            ⚠ No lat/lng: nearby sorting cannot use this area
+            <Icon icon={TriangleAlert} /> No lat/lng: nearby sorting cannot use this area
           </div>
         )}
       </div>
@@ -297,7 +306,7 @@ function LocationForm({
         <SquareImageField
           value={imageKey}
           onChange={setImageKey}
-          emoji={KIND_ICON.district}
+          icon={<Icon icon={Mountain} />}
           folder="locations"
           alt="District picture"
         />

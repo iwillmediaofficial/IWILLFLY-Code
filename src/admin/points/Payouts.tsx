@@ -7,6 +7,7 @@ import { db, must } from '../../lib/queries';
 import type { AdminRedemption, Holiday, PointsReportRow, RedemptionStatus } from '../../lib/types';
 import { Empty, ErrorNotice, Loading } from '../ui';
 import { formatDate, friendlyError, useInvalidate } from '../util';
+import { Landmark } from 'lucide-react';
 
 const KEYS = [['admin_redemptions'], ['points_report'], ['admin-attention']];
 
@@ -68,7 +69,7 @@ export function Payouts() {
       {list.isPending && <Loading />}
       {list.error && <ErrorNotice error={list.error} />}
       {list.data?.length === 0 && (
-        <Empty emoji="🏦" title={filter === 'requested' ? 'Nothing to pay' : 'No cash-outs here'}>
+        <Empty icon={Landmark} title={filter === 'requested' ? 'Nothing to pay' : 'No cash-outs here'}>
           {filter === 'requested' ? 'New cash-out requests show up here, oldest first.' : undefined}
         </Empty>
       )}

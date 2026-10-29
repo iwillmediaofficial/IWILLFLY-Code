@@ -7,6 +7,8 @@ import type { Category } from '../lib/types';
 import { SquareImageField } from './SquareImageField';
 import { Empty, ErrorNotice, Loading } from './ui';
 import { PUBLIC_KEYS, friendlyError, slugify, toNumber, useInvalidate } from './util';
+import { Folders, Tag } from 'lucide-react';
+import { Icon } from '../components/Icon';
 
 const KEYS = [['admin', 'categories'], ['categories'], ...PUBLIC_KEYS];
 
@@ -33,7 +35,7 @@ export function Categories() {
       {editing === 'new' && <CategoryForm nextSort={nextSort} onDone={() => setEditing(null)} />}
       {categories.isPending && <Loading />}
       {categories.error && <ErrorNotice error={categories.error} />}
-      {categories.data?.length === 0 && <Empty emoji="🗂️" title="No categories yet" />}
+      {categories.data?.length === 0 && <Empty icon={Folders} title="No categories yet" />}
       <div style={{ marginTop: 10 }}>
         {list.map((c) =>
           editing !== 'new' && editing?.id === c.id ? (
@@ -55,7 +57,7 @@ export function Categories() {
                     height={48}
                   />
                 ) : (
-                  c.icon || '🏷️'
+                  <Icon icon={Tag} />
                 )}
               </div>
               <div className="grow">
@@ -178,7 +180,7 @@ function CategoryForm({
       <SquareImageField
         value={imageKey}
         onChange={setImageKey}
-        emoji={icon.trim() || '🏷️'}
+        icon={<Icon icon={Tag} />}
         folder="categories"
         alt="Category picture"
       />

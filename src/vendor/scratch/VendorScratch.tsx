@@ -11,6 +11,8 @@ import CampaignPage from './CampaignPage';
 import ClaimPage from './ClaimPage';
 import { claimLabel } from './format';
 import { WinnersList } from './WinnersList';
+import { Camera } from 'lucide-react';
+import { Icon } from '../../components/Icon';
 
 export default function VendorScratch() {
   return (
@@ -45,7 +47,7 @@ function ScratchHome() {
           marginBottom: 12,
         }}
       >
-        📷 Verify a prize
+        <Icon icon={Camera} /> Verify a prize
         <span style={{ display: 'block', fontSize: 12, fontWeight: 600, marginTop: 4 }}>
           Scan the winner's QR code or type their claim code
         </span>

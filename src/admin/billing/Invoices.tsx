@@ -28,6 +28,8 @@ import {
   type InvoiceFilter,
   type InvoiceWithItems,
 } from './api';
+import { Camera, Printer, Receipt } from 'lucide-react';
+import { Icon } from '../../components/Icon';
 
 const FILTERS: { key: InvoiceFilter; label: string }[] = [
   { key: 'submitted', label: 'Needs checking' },
@@ -86,7 +88,7 @@ export function Invoices() {
       {invoices.isPending && <Loading />}
       {invoices.error && <ErrorNotice error={invoices.error} />}
       {invoices.data?.length === 0 && (
-        <Empty emoji="🧾" title={filter === 'submitted' ? 'Nothing to check' : 'No invoices here'}>
+        <Empty icon={Receipt} title={filter === 'submitted' ? 'Nothing to check' : 'No invoices here'}>
           {filter === 'submitted'
             ? 'When a vendor says they have paid, the invoice shows up here.'
             : undefined}
@@ -104,7 +106,9 @@ export function Invoices() {
 function InvoiceRow({ invoice: i }: { invoice: Invoice }) {
   return (
     <Link className="shop-card" to={`/admin/billing/invoices/${i.id}`}>
-      <div className="shop-thumb">🧾</div>
+      <div className="shop-thumb">
+        <Icon icon={Receipt} />
+      </div>
       <div style={{ minWidth: 0 }}>
         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 4 }}>
           <InvoicePill status={i.status} />
@@ -126,7 +130,12 @@ function InvoiceRow({ invoice: i }: { invoice: Invoice }) {
             ) : (
               'UPI payment'
             )}
-            {i.payer_proof_key ? ' · 📷 screenshot' : ''}
+            {i.payer_proof_key && (
+              <>
+                {' '}
+                · <Icon icon={Camera} /> screenshot
+              </>
+            )}
             {i.submitted_at ? ` · sent ${formatDate(i.submitted_at)}` : ''}
           </div>
         )}
@@ -178,7 +187,7 @@ export function InvoiceDetail() {
           <InvoiceSheet invoice={inv} />
           <div className="btn-row no-print">
             <button className="btn small secondary" onClick={() => window.print()}>
-              🖨 Print / save as PDF
+              <Icon icon={Printer} /> Print / save as PDF
             </button>
           </div>
         </>
