@@ -836,6 +836,8 @@ export interface PointsSettings {
   validity_months: number;
   /** a bill must be added within this many days of its date */
   bill_age_days: number;
+  /** most points one bill can earn; null = no cap */
+  max_points_per_bill: number | null;
   updated_at: string;
 }
 
@@ -849,6 +851,7 @@ export interface PointsWallet {
   redeem_step_points: number;
   validity_months: number;
   bill_age_days: number;
+  max_points_per_bill: number | null;
   next_expiry: { expires_at: string; points: number } | null;
   pending_bills: number;
   pending_points: number;

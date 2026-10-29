@@ -11,7 +11,7 @@ import {
   useSearchParams,
 } from 'react-router-dom';
 import { useToast } from '../../components/Toast';
-import { REJECT_REASONS, pointsText, rupees, useBillPhoto } from '../../lib/points';
+import { REJECT_REASONS, billPoints, pointsText, rupees, useBillPhoto } from '../../lib/points';
 import { db, must } from '../../lib/queries';
 import type { AdminBill, BillRejectReason, BillStatus, PointsSettings } from '../../lib/types';
 import { Empty, ErrorNotice, Loading } from '../ui';
@@ -279,8 +279,8 @@ function BillReview() {
         <div className="bill-review">
           <Photo bill={b} />
           <div>
-            <Facts bill={b} rate={settings.data.rupees_per_point} />
-            {b.status === 'pending' && <Decide key={b.id} bill={b} rate={settings.data.rupees_per_point} />}
+            <Facts bill={b} rules={settings.data} />
+            {b.status === 'pending' && <Decide key={b.id} bill={b} rules={settings.data} />}
           </div>
         </div>
       )}
@@ -324,7 +324,7 @@ function branchText(b: AdminBill) {
   return [b.branch_name, b.branch_area].filter(Boolean).join(' · ');
 }
 
-function Facts({ bill: b, rate }: { bill: AdminBill; rate: number }) {
+function Facts({ bill: b, rules }: { bill: AdminBill; rules: PointsSettings }) {
   const ageDays = Math.round(
     (new Date(b.created_at).getTime() - new Date(`${b.bill_date}T00:00:00+05:30`).getTime()) / 86_400_000,
   );
@@ -350,7 +350,7 @@ function Facts({ bill: b, rate }: { bill: AdminBill; rate: number }) {
         </dd>
         <dt>Amount typed</dt>
         <dd>
-          {rupees(b.amount)} <span className="meta">= {pointsText(Math.floor(b.amount / rate))}</span>
+          {rupees(b.amount)} <span className="meta">= {pointsText(billPoints(b.amount, rules))}</span>
         </dd>
         {b.approved_amount != null && (
           <>
@@ -408,7 +408,9 @@ function Facts({ bill: b, rate }: { bill: AdminBill; rate: number }) {
 
 const REASONS = Object.entries(REJECT_REASONS) as [BillRejectReason, string][];
 
-function Decide({ bill: b, rate }: { bill: AdminBill; rate: number }) {
+function Decide({ bill: b, rules }: { bill: AdminBill; rules: PointsSettings }) {
+  const rate = rules.rupees_per_point;
+  const cap = rules.max_points_per_bill;
   const toast = useToast();
   const navigate = useNavigate();
   const invalidate = useInvalidate();
@@ -418,7 +420,8 @@ function Decide({ bill: b, rate }: { bill: AdminBill; rate: number }) {
   const [error, setError] = useState('');
 
   const amt = toNumber(amount);
-  const points = amt != null && amt >= rate ? Math.floor(amt / rate) : 0;
+  const points = amt != null ? billPoints(amt, rules) : 0;
+  const capped = cap != null && amt != null && amt >= rate && Math.floor(amt / rate) > cap;
 
   // after a decision, open the next bill waiting (oldest first) or go back to the queue
   const next = async (message: string) => {
@@ -475,6 +478,7 @@ function Decide({ bill: b, rate }: { bill: AdminBill; rate: number }) {
             {amt != null && amt !== b.amount
               ? `Corrected from ${rupees(b.amount)}. The customer will see the change.`
               : 'Change this if the total on the photo is different.'}
+            {capped && ` Capped at ${pointsText(cap)} per bill.`}
           </div>
         </div>
         <div className="btn-row">
@@ -565,6 +569,8 @@ const FIELDS: {
   min: number;
   max: number;
   step?: string;
+  /** may be left empty (saved as no value) */
+  optional?: boolean;
 }[] = [
   {
     key: 'rupees_per_point',
@@ -609,17 +615,28 @@ const FIELDS: {
     min: 1,
     max: 365,
   },
+  {
+    key: 'max_points_per_bill',
+    label: 'Max points per bill',
+    hint: 'The most points one bill can earn, however big the bill. Leave empty for no limit.',
+    min: 1,
+    max: 10000000,
+    optional: true,
+  },
 ];
 
 function SettingsForm({ s }: { s: PointsSettings }) {
   const toast = useToast();
   const invalidate = useInvalidate();
   const [f, setF] = useState(
-    () => Object.fromEntries(FIELDS.map((x) => [x.key, String(Number(s[x.key]))])) as Record<string, string>,
+    () =>
+      Object.fromEntries(
+        FIELDS.map((x) => [x.key, s[x.key] == null ? '' : String(Number(s[x.key]))]),
+      ) as Record<string, string>,
   );
   const [error, setError] = useState('');
   const save = useMutation({
-    mutationFn: async (patch: Record<string, number>) =>
+    mutationFn: async (patch: Record<string, number | null>) =>
       must(await db().from('points_settings').update(patch).eq('id', 1).select('id').single()),
     onSuccess: () => {
       invalidate(...KEYS, ['points_wallet']);
@@ -630,13 +647,17 @@ function SettingsForm({ s }: { s: PointsSettings }) {
   const submit = (e: FormEvent) => {
     e.preventDefault();
     setError('');
-    const patch: Record<string, number> = {};
+    const patch: Record<string, number | null> = {};
     for (const x of FIELDS) {
+      if (x.optional && f[x.key].trim() === '') {
+        patch[x.key] = null;
+        continue;
+      }
       const n = toNumber(f[x.key]);
       const whole = x.step == null;
       if (n == null || n < x.min || n > x.max || (whole && !Number.isInteger(n)))
         return setError(
-          `${x.label}: enter ${whole ? 'a whole number' : 'a number'} from ${x.min} to ${x.max}.`,
+          `${x.label}: enter ${whole ? 'a whole number' : 'a number'} from ${x.min} to ${x.max}${x.optional ? ', or leave it empty' : ''}.`,
         );
       patch[x.key] = whole ? n : Math.round(n * 100) / 100;
     }
@@ -644,6 +665,7 @@ function SettingsForm({ s }: { s: PointsSettings }) {
   };
   const rate = toNumber(f.rupees_per_point) ?? 0;
   const min = toNumber(f.min_redeem_points) ?? 0;
+  const cap = toNumber(f.max_points_per_bill) ?? 0;
   return (
     <form className="form-card" onSubmit={submit}>
       {FIELDS.map((x) => (
@@ -657,6 +679,7 @@ function SettingsForm({ s }: { s: PointsSettings }) {
             max={x.max}
             step={x.step ?? '1'}
             value={f[x.key]}
+            placeholder={x.optional ? 'No limit' : undefined}
             onChange={(e) => setF((cur) => ({ ...cur, [x.key]: e.target.value }))}
           />
           <div className="hint">{x.hint}</div>
@@ -665,6 +688,7 @@ function SettingsForm({ s }: { s: PointsSettings }) {
       {rate > 0 && min > 0 && (
         <div className="notice">
           A customer needs {rupees(rate * min)} of approved bills to reach {pointsText(min)}.
+          {cap > 0 && ` One bill earns at most ${pointsText(cap)} (a bill of ${rupees(rate * cap)} or more).`}
         </div>
       )}
       {error && <p className="error-text">{error}</p>}
