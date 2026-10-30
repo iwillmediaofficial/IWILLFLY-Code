@@ -1,6 +1,9 @@
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { track } from '../lib/engagement';
+import { parkingInfo } from '../lib/parking';
+import type { Parking } from '../lib/types';
+import { Icon } from '../components/Icon';
 import { OfferImage } from './ui';
 
 /** The prototype offer card. Tapping counts a click for the shop and offer, then opens the offer. */
@@ -15,6 +18,7 @@ export function OfferTile({
   title,
   meta,
   sponsored,
+  parking,
   onOpen,
 }: {
   shopId: number;
@@ -29,9 +33,12 @@ export function OfferTile({
   meta: string;
   /** Paid placement (Top Picks): shows a small "Sponsored" tag. */
   sponsored?: boolean;
+  /** The branch's parking, shown as a small coloured tag; nothing when the branch hasn't set it. */
+  parking?: Parking | null;
   onOpen?: () => void;
 }) {
   const navigate = useNavigate();
+  const park = parkingInfo(parking);
   const open = () => {
     track('click', shopId, offerId);
     onOpen?.();
@@ -50,6 +57,12 @@ export function OfferTile({
         {sponsored && <span className="sponsored">Sponsored</span>}
         <h4>{title}</h4>
         <div className="meta">{meta}</div>
+        {park && (
+          <div className={`park-tag ${park.value}`} title={park.label}>
+            <Icon icon={park.icon} />
+            <span>{park.tag}</span>
+          </div>
+        )}
         <div className="offer-cta">
           <strong>View offer</strong>
           <span>→</span>

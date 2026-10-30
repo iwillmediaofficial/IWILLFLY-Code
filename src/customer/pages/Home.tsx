@@ -12,7 +12,7 @@ import { CampaignPrizes, ScratchButton, ScratchModal } from '../../components/Sc
 import { EmptyState } from '../../components/ShopCard';
 import { formatKm } from '../../lib/hours';
 import { isApprox, usePlace } from '../../lib/location';
-import { useCategories, useMalls, useOfferSearch } from '../../lib/queries';
+import { useBranchParking, useCategories, useMalls, useOfferSearch } from '../../lib/queries';
 import { formatTime, useScratchToday } from '../../lib/scratch';
 import { mediaUrl, supabase } from '../../lib/supabase';
 import { FestivalBanners } from '../FestivalBanner';
@@ -346,6 +346,7 @@ function CategoryGrid() {
 function NearOffers() {
   const approx = isApprox(usePlace().place);
   const { data, isLoading, error, refetch } = useOfferSearch({ limit: 10 });
+  const parking = useBranchParking(data?.map((o) => o.shop_id) ?? []);
   if (!supabase) return null;
   if (isLoading) return <Loading text="Finding offers near you…" />;
   if (error) return <ErrorNotice error={error} onRetry={() => refetch()} />;
@@ -382,6 +383,7 @@ function NearOffers() {
               : o.shop_name
           }
           meta={[formatKm(o.distance_km, approx), o.title].filter(Boolean).join(' · ')}
+          parking={o.branch_slug ? parking.data?.get(`${o.shop_id}/${o.branch_slug}`) : null}
         />
       ))}
     </div>

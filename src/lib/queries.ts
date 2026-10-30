@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from './supabase';
 import { useAuth } from '../auth/AuthProvider';
 import { usePlace } from './location';
-import type { Category, LocationNode, MallResult, OfferResult, ShopResult } from './types';
+import type { Category, LocationNode, MallResult, OfferResult, Parking, ShopResult } from './types';
 
 /** The Supabase client, or a clear error when the app was built without its keys. */
 export function db() {
@@ -69,6 +69,26 @@ export function useShopSearch(opts: {
         }),
       ),
     enabled: Boolean(supabase) && opts.enabled !== false,
+  });
+}
+
+/** Parking set on the branches of these shops, keyed "<shop id>/<branch slug>" for offer cards. */
+export function useBranchParking(shopIds: number[]) {
+  const ids = [...new Set(shopIds)].sort((a, b) => a - b);
+  return useQuery({
+    queryKey: ['branch-parking', ids],
+    queryFn: async () => {
+      const rows = must<{ shop_id: number; slug: string; parking: Parking }[]>(
+        await db()
+          .from('branches')
+          .select('shop_id, slug, parking')
+          .in('shop_id', ids)
+          .not('parking', 'is', null),
+      );
+      return new Map(rows.map((r) => [`${r.shop_id}/${r.slug}`, r.parking]));
+    },
+    enabled: Boolean(supabase) && ids.length > 0,
+    staleTime: 5 * 60_000,
   });
 }
 
