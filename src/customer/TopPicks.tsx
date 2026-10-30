@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { CategoryIcon } from '../components/CategoryIcon';
 import { usePlace } from '../lib/location';
-import { db, must } from '../lib/queries';
+import { db, must, useBranchParking } from '../lib/queries';
 import { supabase } from '../lib/supabase';
 import { OfferTile } from './OfferTile';
 import { toneFor } from './util';
@@ -48,6 +48,7 @@ export function TopPicksSection() {
     enabled: Boolean(supabase),
     staleTime: 60_000,
   });
+  const parking = useBranchParking(data?.map((o) => o.shop_id) ?? []);
 
   useEffect(() => {
     const fresh = (data ?? []).map((p) => p.top_pick_id).filter((id) => !seen.has(id));
@@ -85,6 +86,7 @@ export function TopPicksSection() {
                 : o.shop_name
             }
             meta={o.title}
+            parking={o.branch_slug ? parking.data?.get(`${o.shop_id}/${o.branch_slug}`) : null}
             sponsored
             onOpen={() => trackTopPicks('tap', [o.top_pick_id])}
           />
