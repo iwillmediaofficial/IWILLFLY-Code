@@ -21,6 +21,7 @@ import {
   Wallet,
 } from 'lucide-react';
 import { Icon, type LucideIcon } from '../../components/Icon';
+import { PointsRing } from '../PointsRing';
 
 const pad = (n: number | undefined) => (n == null ? '–' : String(n).padStart(2, '0'));
 
@@ -54,32 +55,35 @@ export default function Profile() {
         </LogoHeader>
       }
     >
-      <section className="hero">
-        <div
-          style={{
-            width: 64,
-            height: 64,
-            borderRadius: '50%',
-            background: '#fff',
-            color: '#1460d6',
-            display: 'grid',
-            placeItems: 'center',
-            fontSize: 28,
-            fontWeight: 900,
-            marginBottom: 12,
-          }}
-        >
-          {name.charAt(0).toUpperCase()}
+      <section className={wallet.data ? 'hero profile-hero' : 'hero'}>
+        <div className="profile-hero-who">
+          <div
+            style={{
+              width: 64,
+              height: 64,
+              borderRadius: '50%',
+              background: '#fff',
+              color: '#1460d6',
+              display: 'grid',
+              placeItems: 'center',
+              fontSize: 28,
+              fontWeight: 900,
+              marginBottom: 12,
+            }}
+          >
+            {name.charAt(0).toUpperCase()}
+          </div>
+          <h1>{name}</h1>
+          <p>{session ? email : 'Sign in to save offers and play Scratch & Win'}</p>
+          {session ? (
+            <span className="hero-pill">IWILLFLY Member</span>
+          ) : (
+            <Link className="hero-pill" to="/login">
+              Sign in
+            </Link>
+          )}
         </div>
-        <h1>{name}</h1>
-        <p>{session ? email : 'Sign in to save offers and play Scratch & Win'}</p>
-        {session ? (
-          <span className="hero-pill">IWILLFLY Member</span>
-        ) : (
-          <Link className="hero-pill" to="/login">
-            Sign in
-          </Link>
-        )}
+        {wallet.data && <PointsRing w={wallet.data} />}
       </section>
       <section className="section">
         <div className="info-grid">
