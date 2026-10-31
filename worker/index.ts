@@ -11,7 +11,8 @@ import { handleSeo } from './seo';
 import { cleanupUploadLog, handleUpload } from './upload';
 
 // The app itself is static files served by Workers Static Assets (see wrangler.jsonc).
-// Only /api/*, the SEO paths (/shop/*, /mall/*, /sitemap.xml, /robots.txt) and the cron trigger reach this code.
+// Only /api/*, the SEO paths (/shop/*, /mall/*, /sitemap.xml, /robots.txt), the app's start file
+// (/assets/index-*.js, see isMissingAppFile) and the cron trigger reach this code.
 async function route(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const { pathname } = new URL(request.url);
   if (request.method === 'POST' && pathname === '/api/upload') return handleUpload(request, env);
@@ -43,7 +44,47 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
   if (pathname.startsWith('/api/')) return new Response('Not found', { status: 404 });
   const seo = await handleSeo(request, env, ctx);
   if (seo) return seo;
-  return env.ASSETS.fetch(request);
+  const res = await env.ASSETS.fetch(request);
+  if (isMissingAppFile(pathname, res)) return reloadScript();
+  return res;
+}
+
+/**
+ * True when the app's start file asked for no longer exists: asset serving then answers with the app page
+ * (single-page-application), which the browser refuses to run as a script. Only the start file
+ * (/assets/index-<hash>.js) is routed here, one Worker request per visit; other files stay on asset serving.
+ */
+function isMissingAppFile(pathname: string, res: Response): boolean {
+  return (
+    pathname.startsWith('/assets/') &&
+    pathname.endsWith('.js') &&
+    (res.headers.get('Content-Type') ?? '').includes('text/html')
+  );
+}
+
+/**
+ * Sent in place of an app file a deploy removed. A copy of the page saved before the deploy (Instagram's and
+ * Facebook's in-app browsers keep one, even copies older than public/boot-check.js) asks for those files;
+ * this reloads it once with a fresh address so the current page loads. At most once per 30 seconds.
+ */
+function reloadScript(): Response {
+  const js = `(function(){
+  var K = 'iwf-stale-reload';
+  try {
+    var last = Number(sessionStorage.getItem(K));
+    if (last && Date.now() - last < 30000) return;
+    sessionStorage.setItem(K, String(Date.now()));
+  } catch (e) {
+    if (/[?&]_r=/.test(location.search)) return;
+  }
+  var url = new URL(location.href);
+  url.searchParams.set('_r', Date.now().toString(36));
+  location.replace(url.toString());
+})();
+`;
+  return new Response(js, {
+    headers: { 'Content-Type': 'text/javascript; charset=utf-8', 'Cache-Control': 'no-store' },
+  });
 }
 
 export default {
