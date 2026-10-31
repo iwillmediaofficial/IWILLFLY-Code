@@ -20,6 +20,7 @@ import {
   Tag,
   Ticket,
   TrendingUp,
+  UserRound,
   Users,
   Wallet,
 } from 'lucide-react';
@@ -35,6 +36,7 @@ import { PendingBranches } from './Branches';
 import { LoginFormsSwitch } from './LoginFormsSwitch';
 import ScratchAdmin from './scratch/ScratchAdmin';
 import PointsAdmin from './points/PointsAdmin';
+import Customers from './customers/Customers';
 import AdminAds from './engagement/Ads';
 import AdminPopups from './engagement/Popups';
 import AdminTopPicks from './TopPicks';
@@ -62,6 +64,7 @@ type Tab = { to: string; label: string; icon: LucideIcon; end?: boolean; roles: 
 
 const tabs: Tab[] = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true, roles: EVERYONE },
+  { to: '/admin/customers', label: 'Customers', icon: UserRound, roles: ADMIN },
   { to: '/admin/vendors', label: 'Vendors', icon: Store, roles: ADMIN, count: 'vendors' },
   { to: '/admin/branches', label: 'New branches', icon: MapPin, roles: ADMIN, count: 'branches' },
   { to: '/admin/offers', label: 'Offers', icon: Tag, roles: ADMIN, count: 'offers' },
@@ -87,7 +90,10 @@ const tabs: Tab[] = [
 /** How the desktop sidebar groups the tabs above. */
 const GROUPS: { label: string; items: string[] }[] = [
   { label: 'Overview', items: ['Dashboard', 'Analytics', 'Reports'] },
-  { label: 'Marketplace', items: ['Vendors', 'New branches', 'Offers', 'Categories', 'Malls', 'Locations'] },
+  {
+    label: 'Marketplace',
+    items: ['Customers', 'Vendors', 'New branches', 'Offers', 'Categories', 'Malls', 'Locations'],
+  },
   {
     label: 'Engagement',
     items: ['Scratch & Win', 'Festivals', 'Home ads', 'Pop-ups', 'Top Picks', 'Requests', 'Notify'],
@@ -206,6 +212,7 @@ function AdminPage({ visible }: { visible: Tab[] }) {
       </nav>
       <Routes>
         <Route index element={<Dashboard />} />
+        <Route path="customers/*" element={<Customers />} />
         <Route path="vendors" element={<Vendors />} />
         <Route path="vendors/new" element={<VendorCreate />} />
         <Route path="vendors/:id" element={<VendorDetail />} />
@@ -356,7 +363,7 @@ function Dashboard() {
     { label: 'Vendors', value: s?.vendors, to: '/admin/vendors?status=all' },
     { label: 'Shops', value: s?.shops },
     { label: 'Malls', value: s?.malls, to: '/admin/malls' },
-    { label: 'Customers', value: s?.customers },
+    { label: 'Customers', value: s?.customers, to: '/admin/customers' },
   ];
   const attentionTiles: { label: string; icon: LucideIcon; value: number | null | undefined; to: string }[] =
     [
