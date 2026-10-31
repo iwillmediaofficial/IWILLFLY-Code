@@ -161,16 +161,24 @@ export function useToggleSaved(kind: SaveKind) {
   });
 }
 
-/** Is the Create account form switched on (Admin > Dashboard)? Treated as on until known, or if the check fails. */
-export function useSignupOpen() {
+export type LoginForms = { customer_signup: boolean; customer_signin: boolean };
+
+/**
+ * Which forms the customer login page shows (Admin > Dashboard > Login page forms).
+ * Each is treated as on until known, or if the check fails.
+ */
+export function useLoginForms() {
   const q = useQuery({
     queryKey: ['site_settings'],
     queryFn: async () =>
-      must<{ customer_signup: boolean } | null>(
-        await db().from('site_settings').select('customer_signup').eq('id', 1).maybeSingle(),
+      must<LoginForms | null>(
+        await db().from('site_settings').select('customer_signup, customer_signin').eq('id', 1).maybeSingle(),
       ),
     staleTime: 60_000,
     enabled: Boolean(supabase),
   });
-  return q.data?.customer_signup !== false;
+  return {
+    signupOpen: q.data?.customer_signup !== false,
+    signinOpen: q.data?.customer_signin !== false,
+  };
 }
