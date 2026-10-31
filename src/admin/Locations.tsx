@@ -1,14 +1,18 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { Suspense, lazy, useMemo, useState, type FormEvent } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useToast } from '../components/Toast';
 import { db, must, useLocations } from '../lib/queries';
 import { mediaUrl } from '../lib/supabase';
 import type { LocationNode } from '../lib/types';
+import { PlaceSearch } from './PlaceSearch';
 import { SquareImageField } from './SquareImageField';
 import { Empty, ErrorNotice, Loading } from './ui';
 import { PUBLIC_KEYS, friendlyError, slugify, toNumber, useInvalidate } from './util';
 import { Building, MapIcon, MapPin, Mountain, TriangleAlert } from 'lucide-react';
 import { Icon, type LucideIcon } from '../components/Icon';
+
+// Leaflet is big, so the map loads only when a form is open.
+const MapPinPicker = lazy(() => import('../components/MapPin').then((m) => ({ default: m.MapPin })));
 
 type Kind = LocationNode['kind'];
 const CHILD_KIND: Record<Kind, Kind | null> = {
@@ -199,6 +203,22 @@ function LocationForm({
   const [imageKey, setImageKey] = useState<string | null>(node?.image_key ?? null);
   const [error, setError] = useState('');
 
+  // The map and the two boxes stay in step: the pin follows what is typed, and moving the pin fills the boxes.
+  const pinLat = toNumber(lat);
+  const pinLng = toNumber(lng);
+  const setPin = (p: { lat: number; lng: number }) => {
+    setLat(String(Math.round(p.lat * 1e6) / 1e6));
+    setLng(String(Math.round(p.lng * 1e6) / 1e6));
+  };
+  // With no pin yet, centre the map on the nearest place above this one that has a point (city, then district).
+  const { data: all = [] } = useLocations();
+  const centreOn = useMemo(() => {
+    let p: LocationNode | null | undefined = parent;
+    while (p && (p.lat == null || p.lng == null)) p = all.find((n) => n.id === p!.parent_id);
+    return p ?? null;
+  }, [parent, all]);
+  const near = centreOn?.lat != null && centreOn.lng != null ? { lat: centreOn.lat, lng: centreOn.lng } : null;
+
   const save = useMutation({
     mutationFn: async () => {
       // `center` is generated from lat/lng by the database; never write it.
@@ -296,11 +316,25 @@ function LocationForm({
           />
         </div>
       </div>
-      {kind === 'area' && (
-        <p className="meta" style={{ marginTop: -6 }}>
-          Areas need lat/lng for “nearby” sorting. Tip: long-press the spot in Google Maps to copy its
-          coordinates.
-        </p>
+      {kind !== 'state' && (
+        <div className="field">
+          <label>Map pin</label>
+          <PlaceSearch initial={name} near={near} onPick={setPin} />
+          <Suspense fallback={<div className="map-box" />}>
+            <MapPinPicker
+              lat={pinLat}
+              lng={pinLng}
+              fallback={centreOn}
+              pasteAnywhere
+              onChange={setPin}
+            />
+          </Suspense>
+          <p className="meta" style={{ marginTop: 6 }}>
+            Search the name, paste a Google Maps link, or tap the map. Latitude and Longitude fill in by
+            themselves; then Save.
+            {kind === 'area' && ' Areas need lat/lng for “nearby” sorting.'}
+          </p>
+        </div>
       )}
       {kind === 'district' && (
         <SquareImageField

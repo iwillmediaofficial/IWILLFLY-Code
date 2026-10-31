@@ -73,10 +73,13 @@ type Result = { tone: 'ok' | 'warn' | 'bad'; text: string };
 export function MapsLinkBox({
   onSpot,
   area,
+  anywhere = false,
 }: {
   onSpot: (p: { lat: number; lng: number }) => void;
   /** The chosen area: a pasted spot must be inside it. */
   area?: LocationNode | null;
+  /** Admin > Locations sets an area's own centre, so any spot in India is accepted and no Area is needed. */
+  anywhere?: boolean;
 }) {
   const { data: locations = [] } = useLocations();
   const [text, setText] = useState('');
@@ -86,7 +89,7 @@ export function MapsLinkBox({
   async function find(value = text) {
     const v = value.trim();
     if (!v || busy) return;
-    if (!area) {
+    if (!area && !anywhere) {
       setResult({ tone: 'bad', text: 'Choose the Area first, then paste the link.' });
       return;
     }
@@ -95,19 +98,21 @@ export function MapsLinkBox({
     try {
       const spot = await findSpot(v);
       if (!inIndia(spot)) throw new SpotError('This spot is outside India. Check the link.');
-      const outside = outsideArea(locations, area, spot);
+      const outside = area && !anywhere ? outsideArea(locations, area, spot) : null;
       if (outside) throw new SpotError(outside);
       onSpot({ lat: spot.lat, lng: spot.lng });
       const where = `${spot.lat.toFixed(5)}, ${spot.lng.toFixed(5)}`;
       if (spot.approx)
         setResult({
           tone: 'warn',
-          text: `Approximate: this link only shows where the map was looking. Pin moved to ${where}, drag it onto the shop.`,
+          text: `Approximate: this link only shows where the map was looking. Pin moved to ${where}, drag it onto the ${anywhere ? 'right spot' : 'shop'}.`,
         });
       else
         setResult({
           tone: 'ok',
-          text: `Pin moved to ${where}. Check it is on your shop entrance, drag to adjust.`,
+          text: anywhere
+            ? `Pin moved to ${where}. Drag it to adjust if needed.`
+            : `Pin moved to ${where}. Check it is on your shop entrance, drag to adjust.`,
         });
     } catch (e) {
       setResult({ tone: 'bad', text: e instanceof SpotError ? e.message : NOT_FOUND });

@@ -4,6 +4,7 @@ import { cleanupBillPhotos, handlePhoto, handlePhotoLink } from './bills';
 import type { Env } from './env';
 import { handleInstamojoReturn, handleInstamojoStart, handleInstamojoWebhook } from './instamojo';
 import { handleMapsResolve } from './mapsLink';
+import { handlePlaceSearch } from './placeSearch';
 import { dispatchPush, handleDispatch } from './push';
 import { handleRazorpayReturn, handleRazorpayStart, handleRazorpayWebhook } from './razorpay';
 import { withSecurityHeaders } from './securityHeaders';
@@ -28,6 +29,7 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
   if (request.method === 'POST' && pathname === '/api/bills/photo-link') return handlePhotoLink(request, env);
   if (request.method === 'GET' && pathname === '/api/bills/photo') return handlePhoto(request, env);
   if (request.method === 'POST' && pathname === '/api/maps/resolve') return handleMapsResolve(request, env);
+  if (request.method === 'POST' && pathname === '/api/places/search') return handlePlaceSearch(request, env);
   if (request.method === 'POST' && pathname === '/api/pay/instamojo/start')
     return handleInstamojoStart(request, env);
   if (request.method === 'GET' && pathname === '/api/pay/instamojo/return')
