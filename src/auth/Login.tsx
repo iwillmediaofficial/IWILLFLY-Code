@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AppShell, LogoHeader } from '../components/AppShell';
 import { AreaPicker } from '../components/AreaPicker';
 import { LegalLinks } from '../components/LegalLinks';
-import { useSignupOpen } from '../lib/queries';
+import { useLoginForms } from '../lib/queries';
 import { supabase } from '../lib/supabase';
 import { homeFor, useAuth } from './AuthProvider';
 import { GoogleButton } from './GoogleButton';
@@ -60,7 +60,7 @@ export default function Login() {
   const { session, roles, loading } = useAuth();
   const navigate = useNavigate();
   const from = useReturnPath();
-  const signupOpen = useSignupOpen();
+  const { signupOpen, signinOpen } = useLoginForms();
   const [mode, setMode] = useState<Mode>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -80,8 +80,12 @@ export default function Login() {
     }
   }, [loading, session, roles, from, navigate]);
 
-  // Sign in instead if an admin closed sign-up while the form was open.
-  const view: Mode = mode === 'signup' && !signupOpen ? 'signin' : mode;
+  // Admins can switch off either email form (Admin > Dashboard > Login page forms).
+  // Show the other form instead, or only Continue with Google when both are off.
+  let view: Mode | 'none' = mode;
+  if (view === 'signup' && !signupOpen) view = 'signin';
+  if (view !== 'signup' && !signinOpen) view = signupOpen ? 'signup' : 'none';
+  const bothForms = signupOpen && signinOpen;
 
   if (!supabase) {
     return (
@@ -162,7 +166,7 @@ export default function Login() {
         <p>Sign in to save offers, play the daily Scratch & Win and claim your prizes.</p>
       </section>
       <section className="section form-card">
-        {signupOpen ? (
+        {bothForms ? (
           <div className="tabs" role="tablist">
             <button
               type="button"
@@ -183,6 +187,16 @@ export default function Login() {
               Create account
             </button>
           </div>
+        ) : view === 'signup' ? (
+          <>
+            <h3 style={{ marginTop: 0 }}>Create account</h3>
+            <p className="meta">Already have an account? Continue with Google below.</p>
+          </>
+        ) : view === 'none' ? (
+          <>
+            <h3 style={{ marginTop: 0 }}>Sign in</h3>
+            <p className="meta">Continue with Google to sign in or create your account.</p>
+          </>
         ) : (
           <>
             <h3 style={{ marginTop: 0 }}>Sign in</h3>
@@ -285,9 +299,11 @@ export default function Login() {
           />
         )}
 
-        <div className="meta" style={{ textAlign: 'center', margin: '14px 0' }}>
-          or
-        </div>
+        {view !== 'none' && (
+          <div className="meta" style={{ textAlign: 'center', margin: '14px 0' }}>
+            or
+          </div>
+        )}
         <GoogleButton returnPath="/login" />
         {error && <p className="error-text">{error}</p>}
       </section>

@@ -32,7 +32,7 @@ import { Locations } from './Locations';
 import { MallEdit, Malls } from './Malls';
 import { Offers } from './Offers';
 import { PendingBranches } from './Branches';
-import { SignupSwitch } from './SignupSwitch';
+import { LoginFormsSwitch } from './LoginFormsSwitch';
 import ScratchAdmin from './scratch/ScratchAdmin';
 import PointsAdmin from './points/PointsAdmin';
 import AdminAds from './engagement/Ads';
@@ -475,7 +475,7 @@ function Dashboard() {
           )}
         </section>
       )}
-      {isAdmin && <SignupSwitch />}
+      {isAdmin && <LoginFormsSwitch />}
     </>
   );
 }
