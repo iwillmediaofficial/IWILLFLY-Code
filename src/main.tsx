@@ -12,6 +12,14 @@ window.addEventListener('vite:preloadError', (event) => {
   if (reloadForNewVersion()) event.preventDefault();
 });
 
+// The app has started: tell public/boot-check.js not to reload, and drop its fresh-address marker.
+(window as Window & { __iwfStarted?: () => void }).__iwfStarted?.();
+if (new URLSearchParams(window.location.search).has('_r')) {
+  const url = new URL(window.location.href);
+  url.searchParams.delete('_r');
+  window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
+}
+
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 60_000 } } });
 
 createRoot(document.getElementById('root')!).render(
