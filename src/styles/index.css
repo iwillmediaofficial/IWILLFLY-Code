@@ -2573,6 +2573,55 @@
   .maps-link-msg.bad {
     color: var(--color-red);
   }
+  /* Admin > Locations: find a place by name (src/admin/PlaceSearch.tsx). */
+  .place-search {
+    margin: 0 0 10px;
+  }
+  .place-hits {
+    list-style: none;
+    margin: 6px 0 0;
+    padding: 0;
+    border: 1px solid var(--color-line);
+    border-radius: 12px;
+    overflow: hidden;
+    max-height: 260px;
+    overflow-y: auto;
+  }
+  .place-hits li + li {
+    border-top: 1px solid var(--color-line);
+  }
+  .place-hits button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: 0;
+    padding: 9px 12px;
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .place-hits button:hover,
+  .place-hits button:focus-visible {
+    background: var(--color-bg, #f4f6fb);
+  }
+  .place-kind {
+    margin-left: 6px;
+    font-size: 11px;
+    color: var(--color-muted);
+    text-transform: capitalize;
+  }
+  .place-label {
+    display: block;
+    font-size: 12px;
+    color: var(--color-muted);
+    margin-top: 2px;
+  }
+  .place-credit {
+    font-size: 10px;
+    color: var(--color-muted);
+    margin-top: 4px;
+  }
 }
 
 /* Scratch & Win (live): canvas scratch layer, result details and My Prizes. */

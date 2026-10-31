@@ -22,12 +22,15 @@ export function MapPin({
   lng,
   onChange,
   fallback,
+  pasteAnywhere = false,
 }: {
   lat: number | null;
   lng: number | null;
   onChange: (p: { lat: number; lng: number }) => void;
   /** The chosen area: the map centres on it when no pin is set yet, and a pasted spot must be inside it. */
   fallback?: LocationNode | null;
+  /** Accept a pasted spot anywhere in India (Admin > Locations, where the pin IS the area's centre). */
+  pasteAnywhere?: boolean;
 }) {
   const box = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
@@ -73,6 +76,8 @@ export function MapPin({
       m.setView([lat, lng], Math.max(m.getZoom(), 15));
     } else {
       marker.current.setLatLng([lat, lng]);
+      // A spot set from outside the map (typed numbers, a place search) may be off screen: bring it into view.
+      if (!m.getBounds().contains([lat, lng])) m.setView([lat, lng], Math.max(m.getZoom(), 14));
     }
     if (focusNext.current) {
       focusNext.current = false;
@@ -104,6 +109,7 @@ export function MapPin({
       )}
       <MapsLinkBox
         area={fallback}
+        anywhere={pasteAnywhere}
         onSpot={(p) => {
           focusNext.current = true;
           onChange(p);
