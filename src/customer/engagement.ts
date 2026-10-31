@@ -16,8 +16,11 @@ export function useAds() {
   });
 }
 
+/** Anything with a tap target: a home ad or an announcement pop-up. */
+type Linked = { link_kind: string; link_target: string | null };
+
 /** An ad's external link when it is a valid https URL. */
-export function adExternalUrl(ad: Ad) {
+export function adExternalUrl(ad: Linked) {
   if (ad.link_kind !== 'url' || !ad.link_target) return null;
   try {
     const u = new URL(ad.link_target.trim());
@@ -28,7 +31,7 @@ export function adExternalUrl(ad: Ad) {
 }
 
 /** The in-app path an ad tap opens, or null when it has none. Offers look up their shop. */
-export async function resolveAdPath(ad: Ad): Promise<string | null> {
+export async function resolveAdPath(ad: Linked): Promise<string | null> {
   const target = ad.link_target?.trim();
   if (!target) return null;
   switch (ad.link_kind) {
