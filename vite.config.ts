@@ -13,7 +13,13 @@ function staticSecurityHeaders(supabaseUrl: string | undefined): Plugin {
       const lines = Object.entries(securityHeaders(supabaseUrl)).map(([k, v]) => `  ${k}: ${v}`);
       // Pages are never stored, so in-app browsers (Instagram, Facebook) can't reopen an old copy whose app
       // files a later deploy removed. Hashed app files and pictures keep normal caching ("! name" removes it).
-      const keepCaching = ['/assets/*', '/icons/*', '/favicon.png', '/iwillfly-logo.webp', '/iwillfly-logo.jpg'];
+      const keepCaching = [
+        '/assets/*',
+        '/icons/*',
+        '/favicon.png',
+        '/iwillfly-logo.webp',
+        '/iwillfly-logo.jpg',
+      ];
       const source = [
         '/*',
         ...lines,
