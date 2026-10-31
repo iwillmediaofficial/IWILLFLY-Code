@@ -366,7 +366,7 @@ function Facts({ bill: b, rules }: { bill: AdminBill; rules: PointsSettings }) {
         )}
         <dt>Customer</dt>
         <dd>
-          {b.customer_name || '—'}
+          <Link to={`/admin/customers/${b.customer_id}`}>{b.customer_name || 'See customer'}</Link>
           <div className="meta">
             {b.customer_email}
             {b.customer_phone ? ` · ${b.customer_phone}` : ''}

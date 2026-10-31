@@ -2806,6 +2806,21 @@
     min-width: 0;
     overflow-wrap: anywhere;
   }
+  /* Admin > Customers: a customer's bills, prizes and cash-outs */
+  .cust-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    color: inherit;
+    text-decoration: none;
+  }
+  .cust-line + .cust-line {
+    margin-top: 8px;
+  }
+  .cust-stats {
+    margin-bottom: 12px;
+  }
 }
 
 /* Phase 4: printing an invoice shows only the invoice, without the app's header, tabs and buttons. */
@@ -3204,6 +3219,20 @@
       display: flex;
       flex-wrap: wrap;
       gap: 4px;
+    }
+
+    /* Customers: same table and panel as the bill queue, with its own columns. */
+    .bill-row.cust-row {
+      grid-template-columns:
+        40px minmax(160px, 2fr) minmax(100px, 1fr) minmax(110px, 1.2fr) minmax(90px, auto)
+        minmax(56px, auto) minmax(48px, auto);
+    }
+    /* with a customer open the list is narrower, so mobile and area go */
+    .bill-split .cust-row {
+      grid-template-columns: 40px minmax(140px, 2fr) minmax(90px, auto) minmax(56px, auto) minmax(48px, auto);
+    }
+    .bill-split .cust-col-hide {
+      display: none;
     }
 
     /* Other pages: lists of cards use two columns; forms keep a readable width. */
