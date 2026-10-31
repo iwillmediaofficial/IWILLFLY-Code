@@ -447,6 +447,44 @@ export interface Ad {
   updated_at: string;
 }
 
+export type PopupLinkKind = AdLinkKind | 'page';
+export type PopupIcon = 'star' | 'gift' | 'ticket' | 'megaphone' | 'sparkles';
+
+/** What a customer's announcement pop-up shows (public.my_popup returns these columns). */
+export interface PopupContent {
+  id: number;
+  /** 'picture' = 4:5 poster on top; 'card' = blue header with an icon and up to 3 points */
+  style: 'picture' | 'card';
+  image_key: string | null;
+  icon: PopupIcon;
+  tag: string | null;
+  title: string;
+  message: string | null;
+  bullets: string[];
+  button_text: string | null;
+  link_kind: PopupLinkKind;
+  /** url, the shop/offer/mall id, the festival slug, or an app path for 'page' */
+  link_target: string | null;
+}
+
+/** An announcement pop-up as admins manage it. */
+export interface Popup extends PopupContent {
+  audience: 'all' | 'districts' | 'areas';
+  location_ids: number[];
+  starts_at: string;
+  ends_at: string | null;
+  frequency: 'once' | 'daily' | 'visit';
+  show_on: 'home' | 'any';
+  add_to_inbox: boolean;
+  sort_order: number;
+  is_active: boolean;
+  seen_count: number;
+  tapped_count: number;
+  closed_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export type PlacementKind = 'featured_offer' | 'home_banner' | 'festival_spotlight';
 export type RequestStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
 

@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   LogOut,
   MapPin,
+  Megaphone,
   MessageCircle,
   Receipt,
   Sparkles,
@@ -35,6 +36,7 @@ import { SignupSwitch } from './SignupSwitch';
 import ScratchAdmin from './scratch/ScratchAdmin';
 import PointsAdmin from './points/PointsAdmin';
 import AdminAds from './engagement/Ads';
+import AdminPopups from './engagement/Popups';
 import AdminTopPicks from './TopPicks';
 import AdminAnalytics from './engagement/Analytics';
 import AdminFestivals from './engagement/Festivals';
@@ -66,6 +68,7 @@ const tabs: Tab[] = [
   { to: '/admin/scratch', label: 'Scratch & Win', icon: Ticket, roles: CAMPAIGN },
   { to: '/admin/festivals', label: 'Festivals', icon: Sparkles, roles: CAMPAIGN },
   { to: '/admin/ads', label: 'Home ads', icon: ImageIcon, roles: CAMPAIGN },
+  { to: '/admin/popups', label: 'Pop-ups', icon: Megaphone, roles: CAMPAIGN },
   { to: '/admin/top-picks', label: 'Top Picks', icon: Star, roles: ADMIN },
   { to: '/admin/requests', label: 'Requests', icon: Inbox, roles: CAMPAIGN },
   { to: '/admin/notify', label: 'Notify', icon: Bell, roles: CAMPAIGN },
@@ -87,7 +90,7 @@ const GROUPS: { label: string; items: string[] }[] = [
   { label: 'Marketplace', items: ['Vendors', 'New branches', 'Offers', 'Categories', 'Malls', 'Locations'] },
   {
     label: 'Engagement',
-    items: ['Scratch & Win', 'Festivals', 'Home ads', 'Top Picks', 'Requests', 'Notify'],
+    items: ['Scratch & Win', 'Festivals', 'Home ads', 'Pop-ups', 'Top Picks', 'Requests', 'Notify'],
   },
   { label: 'Money', items: ['Points', 'Billing'] },
   { label: 'Team', items: ['Support', 'Team', 'Audit log'] },
@@ -216,6 +219,7 @@ function AdminPage({ visible }: { visible: Tab[] }) {
         <Route path="scratch/*" element={<ScratchAdmin />} />
         <Route path="festivals/*" element={<AdminFestivals />} />
         <Route path="ads/*" element={<AdminAds />} />
+        <Route path="popups/*" element={<AdminPopups />} />
         <Route path="top-picks" element={<AdminTopPicks />} />
         <Route path="requests" element={<AdminRequests />} />
         <Route path="notify" element={<AdminNotify />} />

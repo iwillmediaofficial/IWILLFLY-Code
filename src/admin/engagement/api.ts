@@ -11,6 +11,7 @@ import type {
   Offer,
   PlacementKind,
   PlacementRequest,
+  Popup,
   RequestStatus,
   ReviewStatus,
 } from '../../lib/types';
@@ -199,6 +200,54 @@ export async function reorderAds(ordered: Pick<Ad, 'id' | 'sort_order'>[]) {
   for (const c of changes) {
     must(await db().from('ads').update({ sort_order: c.to }).eq('id', c.id));
   }
+}
+
+// Announcement pop-ups ----------------------------------------------------------------------------
+
+/** "Live" is called running, like home ads, so the same status pill fits. */
+export function popupStatus(
+  p: Pick<Popup, 'is_active' | 'starts_at' | 'ends_at'>,
+  now = Date.now(),
+): AdStatus {
+  if (!p.is_active) return 'off';
+  if (p.ends_at && Date.parse(p.ends_at) <= now) return 'ended';
+  if (Date.parse(p.starts_at) > now) return 'scheduled';
+  return 'running';
+}
+
+export function usePopups() {
+  return useQuery({
+    queryKey: [ENG_KEY, 'popups'],
+    queryFn: async () =>
+      must<Popup[]>(
+        await db().from('popups').select('*').order('sort_order').order('id', { ascending: false }),
+      ),
+  });
+}
+
+export function usePopup(id: number | null) {
+  return useQuery({
+    queryKey: [ENG_KEY, 'popup', id],
+    queryFn: async () => must<Popup>(await db().from('popups').select('*').eq('id', id!).single()),
+    enabled: id != null,
+  });
+}
+
+export type PopupInput = Omit<
+  Popup,
+  'id' | 'seen_count' | 'tapped_count' | 'closed_count' | 'created_at' | 'updated_at'
+>;
+
+export async function savePopup(id: number | null, row: PopupInput) {
+  if (id != null) {
+    must(await db().from('popups').update(row).eq('id', id));
+    return id;
+  }
+  return must<{ id: number }>(await db().from('popups').insert(row).select('id').single()).id;
+}
+
+export async function deletePopup(id: number) {
+  must(await db().from('popups').delete().eq('id', id));
 }
 
 export type NamedRef = { id: number; name: string };

@@ -3,6 +3,7 @@ import { Link, NavLink } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { useUnreadCount } from '../lib/engagement';
 import { Bell } from 'lucide-react';
+import { AnnouncementPopup } from './AnnouncementPopup';
 import { Icon } from './Icon';
 
 export function AppShell({ children, header }: { children: ReactNode; header: ReactNode }) {
@@ -11,6 +12,7 @@ export function AppShell({ children, header }: { children: ReactNode; header: Re
       {header}
       <main className="page">{children}</main>
       <BottomNav />
+      <AnnouncementPopup />
     </div>
   );
 }

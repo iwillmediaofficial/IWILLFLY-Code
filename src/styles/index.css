@@ -3980,3 +3980,358 @@
   animation: none;
   mix-blend-mode: normal;
 }
+
+/* Announcement pop-up (src/components/AnnouncementPopup.tsx) and its admin page (src/admin/engagement/Popups.tsx). */
+@layer components {
+  .popup-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 300;
+    background: rgba(12, 27, 56, 0.66);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+    animation: popup-fade 0.2s ease-out;
+  }
+  .popup-card {
+    position: relative;
+    /* The whole 4:5 poster plus its words fit on short screens; never wider than a phone pop-up. */
+    width: min(380px, 100%);
+    max-height: 100%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: #fff;
+    border-radius: 24px;
+    box-shadow: 0 30px 70px rgba(0, 0, 0, 0.35);
+    animation: popup-rise 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+  }
+  .popup-card.picture {
+    width: min(380px, 100%, calc((100dvh - 250px) * 0.8));
+    min-width: min(280px, 100%);
+  }
+  .popup-x {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 2;
+    width: 36px;
+    height: 36px;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(12, 27, 56, 0.55);
+    color: #fff;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+  }
+  .popup-card.card .popup-x {
+    background: rgba(255, 255, 255, 0.18);
+  }
+  .popup-poster {
+    position: relative;
+    aspect-ratio: 4 / 5;
+    background: linear-gradient(135deg, #e6efff, #d7e6ff);
+    display: grid;
+    place-items: center;
+    color: var(--color-muted);
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .popup-poster img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .popup-head {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--color-blue), var(--color-blue2));
+    color: #fff;
+    text-align: center;
+    padding: 28px 20px 22px;
+  }
+  .popup-head::before,
+  .popup-head::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+  }
+  .popup-head::before {
+    width: 220px;
+    height: 220px;
+    top: -90px;
+    right: -60px;
+    background: rgba(255, 255, 255, 0.07);
+  }
+  .popup-head::after {
+    width: 140px;
+    height: 140px;
+    bottom: -70px;
+    left: -40px;
+    background: rgba(255, 220, 22, 0.18);
+  }
+  .popup-medal {
+    position: relative;
+    z-index: 1;
+    width: 76px;
+    height: 76px;
+    margin: 0 auto 12px;
+    border-radius: 50%;
+    background: var(--color-yellow);
+    color: #173f92;
+    display: grid;
+    place-items: center;
+    box-shadow: 0 0 0 8px rgba(255, 220, 22, 0.25);
+  }
+  .popup-tag {
+    position: relative;
+    z-index: 1;
+    display: inline-block;
+    background: var(--color-yellow);
+    color: var(--color-ink);
+    font-size: 10.5px;
+    font-weight: 900;
+    letter-spacing: 0.07em;
+    border-radius: 99px;
+    padding: 5px 11px;
+  }
+  .popup-tag.soft {
+    background: var(--color-blue-soft);
+    color: var(--color-blue);
+    margin-bottom: 6px;
+  }
+  .popup-head h3 {
+    position: relative;
+    z-index: 1;
+    margin: 10px 0 0;
+    font-size: 22px;
+    font-weight: 900;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+  }
+  .popup-body {
+    padding: 16px 18px 14px;
+  }
+  .popup-body h3 {
+    margin: 0 0 5px;
+    font-size: 19px;
+    font-weight: 900;
+    overflow-wrap: anywhere;
+  }
+  .popup-body p {
+    margin: 0;
+    font-size: 13.5px;
+    line-height: 1.45;
+    color: var(--color-muted);
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+  }
+  .popup-points {
+    list-style: none;
+    margin: 12px 0 0;
+    padding: 0;
+    display: grid;
+    gap: 9px;
+  }
+  .popup-points li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13.5px;
+    font-weight: 600;
+  }
+  .popup-points i {
+    flex: none;
+    width: 26px;
+    height: 26px;
+    border-radius: 9px;
+    background: var(--color-blue-soft);
+    color: var(--color-blue);
+    display: grid;
+    place-items: center;
+    font-style: normal;
+    font-weight: 900;
+    font-size: 12px;
+  }
+  .popup-cta {
+    margin-top: 14px;
+    width: 100%;
+    height: 48px;
+    border: 0;
+    border-radius: 14px;
+    background: var(--color-blue);
+    color: #fff;
+    font-weight: 800;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+  }
+  .popup-cta.yellow {
+    background: var(--color-yellow);
+    color: var(--color-ink);
+  }
+  .popup-later {
+    display: block;
+    width: 100%;
+    margin-top: 6px;
+    padding: 8px;
+    border: 0;
+    background: none;
+    color: var(--color-muted);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  @keyframes popup-fade {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes popup-rise {
+    from {
+      opacity: 0;
+      transform: translateY(24px) scale(0.96);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .popup-layer,
+    .popup-card {
+      animation: none;
+    }
+  }
+
+  /* Admin: list rows and the editor with its live preview. */
+  .popup-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    color: inherit;
+  }
+  .popup-thumb {
+    flex: none;
+    width: 46px;
+    height: 58px;
+    border-radius: 9px;
+    object-fit: cover;
+    background: linear-gradient(135deg, var(--color-blue), var(--color-blue2));
+    color: var(--color-yellow);
+    display: grid;
+    place-items: center;
+  }
+  .popup-row b {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .popup-row .grow {
+    min-width: 0;
+    flex: 1;
+  }
+  .popup-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .popup-stats div {
+    background: var(--color-bg);
+    border-radius: 12px;
+    padding: 8px;
+    text-align: center;
+  }
+  .popup-stats b {
+    display: block;
+    font-size: 17px;
+    font-weight: 900;
+  }
+  .popup-stats span {
+    font-size: 11px;
+    color: var(--color-muted);
+    font-weight: 600;
+  }
+  .popup-edit {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+  .popup-edit .field-row > * {
+    min-width: 0;
+  }
+  .popup-edit input[type='datetime-local'] {
+    min-width: 0;
+    width: 100%;
+  }
+  @media (max-width: 480px) {
+    .popup-edit .popup-dates {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  .popup-preview {
+    background: #dfe5ee;
+    border-radius: 20px;
+    padding: 18px 14px;
+    display: flex;
+    justify-content: center;
+  }
+  .popup-preview .popup-card {
+    animation: none;
+    max-height: none;
+    width: min(340px, 100%);
+    box-shadow: 0 16px 40px rgba(12, 27, 56, 0.22);
+  }
+  .seg-pick {
+    display: flex;
+    gap: 3px;
+    padding: 3px;
+    background: var(--color-bg);
+    border: 1px solid var(--color-line);
+    border-radius: 12px;
+  }
+  .seg-pick button {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    background: none;
+    border-radius: 9px;
+    padding: 9px 6px;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--color-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .seg-pick button[aria-checked='true'] {
+    background: #fff;
+    color: var(--color-blue);
+    box-shadow: 0 2px 8px rgba(23, 96, 217, 0.15);
+  }
+  @media (min-width: 1024px) {
+    .popup-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 14px;
+    }
+    .popup-list .manage-card + .manage-card {
+      margin-top: 0;
+    }
+    .popup-edit {
+      grid-template-columns: minmax(0, 1fr) 380px;
+      align-items: start;
+    }
+    .popup-edit > aside {
+      position: sticky;
+      top: 20px;
+    }
+  }
+}
