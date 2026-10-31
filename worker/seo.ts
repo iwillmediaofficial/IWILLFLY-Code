@@ -110,7 +110,8 @@ async function detailPage(
   const headers = new Headers(shell.headers);
   headers.delete('ETag');
   headers.delete('Content-Length');
-  headers.set('Cache-Control', 'public, max-age=0, must-revalidate');
+  // Never stored, like the app page itself (see vite.config.ts), so in-app browsers can't reopen an old copy.
+  headers.set('Cache-Control', 'no-store');
   const base = new Response(shell.body, { status: shell.status, headers });
 
   if (row === null) {
